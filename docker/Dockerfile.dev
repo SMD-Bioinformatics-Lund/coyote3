@@ -51,13 +51,13 @@ COPY deploy/installer/ ./deploy/installer/
 COPY tests/ ./tests/
 COPY CHANGELOG.md README.md LICENSE.txt COPYRIGHT.txt NOTICE.txt ./
 COPY LICENSING.md THIRD_PARTY_NOTICES.md ./
-COPY services/atlas/ ./services/atlas/
+COPY services/relay/ ./services/relay/
 COPY pyproject.toml MANIFEST.in package_build.py ./
 COPY release.toml ./
-RUN pip install --no-cache-dir --no-deps -e core -e . -e services/atlas
-COPY .release/relay/ /opt/coyote-relay/
-RUN python -c 'from pathlib import Path; from scripts.release.build_sdk import ExternalArtifact; ExternalArtifact(Path.cwd(), "coyote-relay", Path("/opt/coyote-relay")).validate()' && \
-    pip install --no-cache-dir --no-deps /opt/coyote-relay/coyote_relay-*.whl && pip check
+RUN pip install --no-cache-dir --no-deps -e core -e . -e services/relay
+COPY .release/atlas/ /opt/coyote-atlas/
+RUN python -c 'from pathlib import Path; from scripts.release.build_sdk import ExternalArtifact; ExternalArtifact(Path.cwd(), "coyote-atlas", Path("/opt/coyote-atlas")).validate()' && \
+    pip install --no-cache-dir --no-deps /opt/coyote-atlas/coyote_atlas-*.whl && pip check
 
 USER coyote4:coyote4
 

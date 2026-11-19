@@ -20,7 +20,7 @@ from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[2]
 EXTERNAL_DISTRIBUTIONS = {
-    "coyote-relay": "relay_version",
+    "coyote-atlas": "atlas_version",
 }
 
 
@@ -153,7 +153,7 @@ def build_sdk(
     output_directory: Path,
     *,
     build_isolation: bool = True,
-    relay_artifact: Path | None = None,
+    atlas_artifact: Path | None = None,
 ) -> None:
     """Build the selected application distributions without stale generated sources.
 
@@ -161,7 +161,7 @@ def build_sdk(
         output_directory: Destination for the built wheels, created if absent.
         build_isolation: Install build dependencies in pip's isolated environment.
             False uses build tools already installed in the invoking environment.
-        relay_artifact: Prepared external relay directory for builds without Git access.
+        atlas_artifact: Prepared external Atlas directory for builds without Git access.
             None prepares or reuses the host cache from the pinned Git revision.
 
     Raises:
@@ -170,15 +170,15 @@ def build_sdk(
     """
     output_directory = output_directory.expanduser().resolve()
     output_directory.mkdir(parents=True, exist_ok=True)
-    artifact = ExternalArtifact(ROOT, "coyote-relay", relay_artifact)
+    artifact = ExternalArtifact(ROOT, "coyote-atlas", atlas_artifact)
     wheel = (
-        artifact.validate() if relay_artifact else artifact.prepare(build_isolation=build_isolation)
+        artifact.validate() if atlas_artifact else artifact.prepare(build_isolation=build_isolation)
     )
     shutil.copyfile(wheel, output_directory / wheel.name)
     for project in (
         ROOT / "core",
         ROOT,
-        ROOT / "services/atlas",
+        ROOT / "services/relay",
         ROOT / "services/demo",
     ):
         with tempfile.TemporaryDirectory(prefix="coyote-package-build-") as temporary:
@@ -192,6 +192,7 @@ def build_sdk(
                 "build_support.py",
                 "package_build.py",
                 "demo_build.py",
+                "relay_build.py",
                 "LICENSING.md",
                 "THIRD_PARTY_NOTICES.md",
                 "CHANGELOG.md",
@@ -252,12 +253,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--no-build-isolation", action="store_true")
-    parser.add_argument("--relay-artifact", type=Path)
+    parser.add_argument("--atlas-artifact", type=Path)
     args = parser.parse_args()
     build_sdk(
         args.output_dir,
         build_isolation=not args.no_build_isolation,
-        relay_artifact=args.relay_artifact,
+        atlas_artifact=args.atlas_artifact,
     )
 
 

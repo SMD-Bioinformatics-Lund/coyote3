@@ -43,7 +43,7 @@ TAIL = "M380.74 94.091H394.093L413.14 136.309C422.664 119.618 428.555 104.891 43
 PACKAGE_ASSETS = (
     "api/src/coyote_api/config/assets/coyote-api-logo.svg",
     "core/docs/assets/coyote-core-logo.svg",
-    "services/atlas/src/coyote_atlas/assets/coyote-atlas-logo.svg",
+    "services/relay/src/coyote_relay/assets/coyote-relay-logo.svg",
     "services/demo/src/coyote_demo/assets/coyote-demo-logo.svg",
     "services/hop/src/coyote_hop/assets/coyote-hop-logo.svg",
 )

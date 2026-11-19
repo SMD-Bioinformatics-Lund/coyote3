@@ -17,15 +17,16 @@ clinical behavior and traceability unless the requested change explicitly alters
   Never import the API. API and Mongo ship together as `coyote-server`.
 - `coyote-pyclient` is an independent repository for external HTTP integrations.
   Do not install it as an application dependency. Client tests belong there.
-- `coyote-relay` is an external public repository, pinned by Git commit in uv.
-  Base submission uses core and HTTPX;
-  optional routes and workers use server composition. Keep Relay source and tests
-  in that repository; shared clinical ingestion logic belongs to core.
-- Pin the external Relay dependency to a reviewed full Git commit.
-  Keep their versions, lockfile and release selection consistent. The default
-  application dependency group installs Relay; it is not a server-wheel dependency.
-- `services/atlas/`: reference resources and publication. `services/demo/`: synthetic
-  data and installation guarded by explicitly isolated targets.
+- `services/relay/`: pipeline submission commands, ingestion routes and workers.
+  Relay uses base core; optional API and worker integrations use server composition.
+  Keep its source, tests and documentation here. Shared ingestion rules belong to core.
+- `coyote-atlas` is an independent reference-resource repository. Pin a reviewed
+  full Git commit in uv and keep its selected version and artifact record consistent.
+  Reference data installation remains explicit; package imports never write data.
+- The default application dependency group installs local Relay and pinned Atlas;
+  neither is a required server-wheel dependency.
+- `services/demo/`: synthetic data and installation guarded by explicitly isolated
+  targets. Keep its server and Relay integration in this workspace.
 - `frontend/`: React presentation, UI defaults and API client abstractions.
 - Each component owns its tests and documentation. Root tests cover composed
   behavior, packaging, security and integration boundaries.

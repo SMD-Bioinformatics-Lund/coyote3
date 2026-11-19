@@ -18,7 +18,7 @@ Coyote Relay supplies the ingestion HTTP routes. Install `coyote-relay[api]`
 alongside the server and restart it to register these routes in `/api/v1/docs`
 and `/api/v1/redoc`. The standard application image includes Relay. A server
 installed without Relay omits these routes. See the
-[package installation guide](../core/README.md#coyote-relay) for
+[package installation guide](../../services/relay/docs/README.md) for
 standalone submission tools and worker installation.
 
 ## Sample-bundle JSON request fields
@@ -790,7 +790,7 @@ ${PYTHON_BIN:-python} scripts/bootstrap/validate_assay_consistency.py \
   --seed-file services/demo/src/coyote_demo/data/demo_center \
   --reference-seed-data core/src/coyote/config/catalogs/rbac \
   --reference-seed-data api/src/coyote_api/bootstrap/catalogs/reference \
-  --reference-seed-data services/atlas/src/coyote_atlas/data/reference \
+  --reference-seed-data "$(python -c 'from coyote_atlas.bundle import ReferenceBundle; print(ReferenceBundle.packaged().directory)')" \
   --yaml tests/fixtures/ingest/generic_case_control.yaml
 ```
 

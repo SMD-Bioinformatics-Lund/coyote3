@@ -296,7 +296,7 @@ class NativeInstaller(Installer):
             command.append("--no-editable")
             # Local source can change without a package-version change. Refresh
             # these wheels while retaining locked third-party dependencies.
-            for package in ("coyote-server", "coyote-core", "coyote-atlas"):
+            for package in ("coyote-server", "coyote-core", "coyote-relay"):
                 command.extend(["--reinstall-package", package])
         self.runner.run(
             command,

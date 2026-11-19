@@ -33,7 +33,7 @@ class DevelopmentWatcher:
         """Resolve source roots from package metadata and explicitly added directories.
 
         Args:
-            additional: Extra editable sources, for example a separately checked-out Relay package.
+            additional: Extra editable sources, for example a separately checked-out Atlas package.
 
         Returns:
             Existing source directories without duplicates.

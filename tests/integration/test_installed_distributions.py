@@ -25,7 +25,7 @@ def installed_distributions(tmp_path_factory):
     build_sdk(
         wheels,
         build_isolation=False,
-        relay_artifact=ROOT / ".release/relay",
+        atlas_artifact=ROOT / ".release/atlas",
     )
     core = next(wheels.glob("coyote_core-*.whl"))
     server = next(wheels.glob("coyote_server-*.whl"))

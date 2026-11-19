@@ -36,7 +36,8 @@ the affected component versions, update selected dependencies and `uv.lock`, and
 keep application, package, HTTP API and configuration revisions distinct.
 See [release compatibility](../core/compatibility.md) for their responsibilities.
 
-Relay is maintained independently. Adopt its reviewed full Git commit
+Core, server, Relay and Demo are maintained in this workspace.
+Atlas is maintained independently. Adopt its reviewed full Git commit
 through `[tool.uv.sources]`, update `uv.lock`, and select its package version in
 `release.toml`. The release artifact set contains five wheels: core,
 server, Relay, Atlas and Demo. The normal image installs four; Demo is reserved for

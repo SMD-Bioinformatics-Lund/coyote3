@@ -33,11 +33,16 @@ RELEASE_CHANGE_SCOPES = {
         ("api/CHANGELOG.md", "adapters/mongo/CHANGELOG.md"),
         ("api/src", "adapters/mongo/src", "pyproject.toml", "package_build.py", "MANIFEST.in"),
     ),
-    "relay_version": ((), ()),  # External package owns its changelog.
-    "atlas_version": (
-        ("services/atlas/CHANGELOG.md",),
-        ("services/atlas/src", "services/atlas/pyproject.toml"),
+    "relay_version": (
+        ("services/relay/CHANGELOG.md",),
+        (
+            "services/relay/src",
+            "services/relay/pyproject.toml",
+            "services/relay/relay_build.py",
+            "services/relay/MANIFEST.in",
+        ),
     ),
+    "atlas_version": ((), ()),  # External package owns its changelog.
     "demo_version": (
         ("services/demo/CHANGELOG.md",),
         ("services/demo/src", "services/demo/pyproject.toml"),
@@ -254,7 +259,7 @@ def release_identity(root: Path, *, sdk_only: bool = False) -> dict[str, Any]:
                 )
         for relative, distribution, selected in (
             (".", "coyote-server", release["server_version"]),
-            ("services/atlas", "coyote-atlas", release["atlas_version"]),
+            ("services/relay", "coyote-relay", release["relay_version"]),
             ("services/demo", "coyote-demo", release["demo_version"]),
         ):
             package = tomllib.loads((root / relative / "pyproject.toml").read_text())["project"]
@@ -279,13 +284,17 @@ def release_identity(root: Path, *, sdk_only: bool = False) -> dict[str, Any]:
                     raise ValueError(
                         "Server core dependency must select the release version and reporting/alignment features"
                     )
-            if distribution in {"coyote-atlas", "coyote-demo"}:
+            if distribution in {"coyote-relay", "coyote-demo"}:
                 if f"coyote-core=={release['sdk_version']}" not in package["dependencies"]:
                     raise ValueError(f"{distribution} core dependency differs from selection")
                 if package.get("optional-dependencies", {}).get("api") != [
                     f"coyote-server=={release['server_version']}"
                 ]:
                     raise ValueError(f"{distribution} API dependency differs from selection")
+                if distribution == "coyote-relay" and package.get("optional-dependencies", {}).get(
+                    "worker"
+                ) != [f"coyote-server=={release['server_version']}"]:
+                    raise ValueError("Relay worker dependency differs from selection")
                 if distribution == "coyote-demo" and package.get("optional-dependencies", {}).get(
                     "worker"
                 ) != [

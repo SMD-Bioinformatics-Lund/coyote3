@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Ram Nanduri
+# SPDX-License-Identifier: GPL-3.0-only
+
+"""Validate a Coyote4 ingestion YAML spec before API submission."""
+
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+import yaml
+from coyote.contracts.manifests import parse_yaml_payload
+from coyote.contracts.sample_manifest import SampleManifest
+from coyote.contracts.schemas.samples import SamplesDoc
+from pydantic import ValidationError
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """Parse the ingestion YAML path and optional file-check and output modes.
+
+    Args:
+        argv: Arguments excluding the executable name; None reads process arguments.
+
+    Returns:
+        Process options; file existence checks, normalized JSON, and file listing
+        are disabled unless explicitly requested.
+
+    Raises:
+        SystemExit: Required options are missing, arguments are invalid, or help is requested.
+    """
+    parser = argparse.ArgumentParser(description="Validate Coyote4 ingest spec YAML")
+    parser.add_argument("--yaml", required=True, help="Path to YAML spec file")
+    parser.add_argument(
+        "--clinical",
+        action="store_true",
+        help="Also apply local clinical validation. Receiving-server checks still apply.",
+    )
+    parser.add_argument(
+        "--check-files",
+        action="store_true",
+        help="Verify referenced input file paths exist",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print normalized payload as JSON",
+    )
+    parser.add_argument(
+        "--list-files",
+        action="store_true",
+        help="Print resolved paths for every declared input file",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Validate manifest structure, with optional local core validation, without submitting it.
+
+    Args:
+        argv: Arguments excluding the executable name; None reads process arguments.
+
+    Returns:
+        Zero after printing success, optional normalized JSON, or resolved file paths.
+        File-list output takes precedence over success and JSON output. Structural
+        success does not establish center-specific clinical or authorization eligibility.
+
+    Raises:
+        SystemExit: CLI parsing exits, YAML is missing or not an object, contract
+            validation fails, or a requested file existence check finds missing inputs.
+        yaml.YAMLError: The YAML syntax is invalid.
+        OSError: The YAML file cannot be read.
+
+    Notes:
+        Relative input paths resolve against the YAML file's directory. File existence
+        is checked only with ``--check-files``; no API or database writes occur.
+    """
+    args = parse_args(argv)
+    model_type = SamplesDoc if args.clinical else SampleManifest
+    spec_path = Path(args.yaml)
+    if not spec_path.exists():
+        raise SystemExit(f"YAML file not found: {spec_path}")
+
+    yaml_content = spec_path.read_text(encoding="utf-8")
+    payload = yaml.safe_load(yaml_content)
+    if not isinstance(payload, dict):
+        raise SystemExit("YAML must decode to an object")
+
+    try:
+        model = model_type.model_validate(parse_yaml_payload(yaml_content))
+    except (ValidationError, ValueError) as exc:
+        raise SystemExit(f"Spec validation failed:\n{exc}") from exc
+
+    resolved_files: list[tuple[str, Path]] = []
+    for field, resource in model.files.items():
+        path = Path(resource.path)
+        if not path.is_absolute():
+            path = spec_path.parent / path
+        resolved_files.append((field, path.resolve()))
+
+    if args.check_files:
+        missing = [f"{field}: {path}" for field, path in resolved_files if not path.exists()]
+        if missing:
+            joined = "\n".join(missing)
+            raise SystemExit(f"Referenced files missing:\n{joined}")
+
+    if args.list_files:
+        for _field, path in resolved_files:
+            print(path)
+        return 0
+
+    if args.clinical:
+        print("[ok] manifest passes local core validation; receiving-server checks still apply")
+    else:
+        print(
+            "[ok] manifest structure is valid; clinical validation is performed by the receiving server"
+        )
+    if args.json:
+        print(
+            json.dumps(
+                model.model_dump(mode="json", exclude_none=True),
+                indent=2,
+                sort_keys=True,
+            )
+        )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

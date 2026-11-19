@@ -111,7 +111,7 @@ Use Coyote Relay to validate and submit a copy of each controlled manifest.
 This writes sample data; `--increment` can create an additional sample on a
 repeated submission. Use a disposable validation deployment or an approved test
 sample. Obtain a short-lived bearer token through the documented
-[Relay login workflow](../core/README.md#coyote-relay), stored in an owner-only
+[Relay login workflow](../../services/relay/docs/README.md), stored in an owner-only
 file. Keep tokens out of command arguments and captured evidence.
 
 A ZIP must preserve the relative paths referenced by its manifest. Without a ZIP,

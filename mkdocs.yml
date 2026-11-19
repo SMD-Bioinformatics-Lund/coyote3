@@ -165,14 +165,14 @@ nav:
     - Reference: packages/mongo/reference.md
     - Development: packages/mongo/development.md
     - Architecture: packages/mongo/architecture.md
-  - Atlas reference service:
-    - Start here: packages/atlas/README.md
-    - Getting started: packages/atlas/getting-started.md
-    - Usage: packages/atlas/usage.md
-    - Configuration: packages/atlas/configuration.md
-    - Reference: packages/atlas/reference.md
-    - Development: packages/atlas/development.md
-    - Architecture: packages/atlas/architecture.md
+  - Relay ingestion service:
+    - Start here: packages/relay/README.md
+    - Getting started: packages/relay/getting-started.md
+    - Usage: packages/relay/usage.md
+    - Configuration: packages/relay/configuration.md
+    - Reference: packages/relay/reference.md
+    - Development: packages/relay/development.md
+    - Architecture: packages/relay/architecture.md
   - Demo service:
     - Start here: packages/demo/README.md
     - Getting started: packages/demo/getting-started.md

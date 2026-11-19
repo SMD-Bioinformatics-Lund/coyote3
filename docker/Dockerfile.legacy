@@ -60,11 +60,11 @@ COPY LICENSING.md THIRD_PARTY_NOTICES.md CHANGELOG.md MANIFEST.in package_build.
 COPY core/ ./core/
 COPY api/ ./api/
 COPY adapters/mongo/ ./adapters/mongo/
-COPY services/atlas/ ./services/atlas/
+COPY services/relay/ ./services/relay/
 COPY services/demo/ ./services/demo/
 COPY scripts/release/build_sdk.py ./scripts/release/build_sdk.py
-COPY .release/relay/ /opt/coyote-relay/
-RUN python scripts/release/build_sdk.py --output-dir /wheels --relay-artifact /opt/coyote-relay
+COPY .release/atlas/ /opt/coyote-atlas/
+RUN python scripts/release/build_sdk.py --output-dir /wheels --atlas-artifact /opt/coyote-atlas
 
 FROM coyote4_runtime_base AS coyote4_server_files
 EXPOSE 8001
@@ -93,14 +93,14 @@ RUN apt-get update -o Acquire::Retries=5 && \
     rm -rf /var/lib/apt/lists/*
 COPY tests/ ./tests/
 COPY core/ ./core/
-COPY services/atlas/ ./services/atlas/
+COPY services/relay/ ./services/relay/
 COPY pyproject.toml MANIFEST.in package_build.py ./
 COPY api/ ./api/
 COPY adapters/mongo/ ./adapters/mongo/
-RUN pip install --no-cache-dir --no-deps -e core -e . -e services/atlas
-COPY .release/relay/ /opt/coyote-relay/
-RUN python -c 'from pathlib import Path; from scripts.release.build_sdk import ExternalArtifact; ExternalArtifact(Path.cwd(), "coyote-relay", Path("/opt/coyote-relay")).validate()' && \
-    pip install --no-cache-dir --no-deps /opt/coyote-relay/coyote_relay-*.whl && pip check
+RUN pip install --no-cache-dir --no-deps -e core -e . -e services/relay
+COPY .release/atlas/ /opt/coyote-atlas/
+RUN python -c 'from pathlib import Path; from scripts.release.build_sdk import ExternalArtifact; ExternalArtifact(Path.cwd(), "coyote-atlas", Path("/opt/coyote-atlas")).validate()' && \
+    pip install --no-cache-dir --no-deps /opt/coyote-atlas/coyote_atlas-*.whl && pip check
 USER coyote4:coyote4
 CMD ["python3", "-m", "uvicorn", "coyote_api.app.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "2"]
 

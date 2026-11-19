@@ -2,6 +2,7 @@
 
 **Status:** Accepted
 **Date:** 16 November 2026
+**Updated:** 19 November 2026
 
 ## Context
 
@@ -16,8 +17,8 @@ API and MongoDB adapter are delivered together as the application's server.
 
 ## Decision
 
-Maintain four local distributions in one uv workspace: core, server, Atlas and
-Demo. Relay is maintained in a separate repository and installed from a pinned
+Maintain four local distributions in one uv workspace: core, server, Relay and
+Demo. Atlas is maintained in a separate repository and installed from a pinned
 Git revision. The independent Python client is for external integrations.
 
 | Distribution and source | Responsibility | Local dependencies |
@@ -25,8 +26,8 @@ Git revision. The independent Python client is for external integrations.
 | `coyote-core`, in `core/` | Clinical contracts, rules and application operations | None |
 | `coyote-server`, at the root | API, runtime composition and maintenance in `api/`; MongoDB persistence in `adapters/mongo/` | Core |
 | `coyote-pyclient`, in its own repository | Remote HTTP access and client-owned response models | None |
-| `coyote-relay`, in external `coyote-relay` repository | Pipeline submission tools, optional HTTP routes and ingestion workers | Core; API/worker extras use server composition |
-| `coyote-atlas`, in `services/atlas/` | Reference bundles, provenance, validation and publication | Core; optional API integration uses server composition |
+| `coyote-relay`, in `services/relay/` | Pipeline submission tools, optional HTTP routes and ingestion workers | Core; API/worker extras use server composition |
+| `coyote-atlas`, in its external repository | Reference bundles, provenance, validation and publication | Core; optional API integration uses server composition |
 | `coyote-demo`, in `services/demo/` | Synthetic datasets and guarded demo installation | Core; optional API integration uses server, and worker integration uses Relay |
 
 The root `pyproject.toml` owns the server version, dependencies and wheel build.

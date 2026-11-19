@@ -180,17 +180,17 @@ def main() -> int:
     for relative in (
         ".",
         "core",
-        "services/atlas",
+        "services/relay",
         "services/demo",
     ):
         project = tomllib.loads((ROOT / relative / "pyproject.toml").read_text())["project"]
         projects[project["name"]] = project
     runtime = runtime_requirements(projects)
 
-    # The independently maintained Relay is resolved by Git in uv.lock. Export
+    # The independently maintained Atlas is resolved by Git in uv.lock. Export
     # its direct runtime requirements without needing a second source checkout.
     packages = tomllib.loads((ROOT / "uv.lock").read_text())["package"]
-    for distribution in ("coyote-relay",):
+    for distribution in ("coyote-atlas",):
         external = next(package for package in packages if package["name"] == distribution)
         for dependency in external["dependencies"]:
             if dependency["name"] in local_names:

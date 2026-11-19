@@ -42,7 +42,7 @@ Validate seed data and cross-collection assay relationships before using them.
   --seed-file services/demo/src/coyote_demo/data/demo_center \
   --reference-seed-data core/src/coyote/config/catalogs/rbac \
   --reference-seed-data api/src/coyote_api/bootstrap/catalogs/reference \
-  --reference-seed-data services/atlas/src/coyote_atlas/data/reference \
+  --reference-seed-data "$(python -c 'from coyote_atlas.bundle import ReferenceBundle; print(ReferenceBundle.packaged().directory)')" \
   --validate-all-contracts
 ```
 

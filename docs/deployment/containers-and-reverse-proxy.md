@@ -104,7 +104,7 @@ record; it does not rebuild Coyote Core from the checkout. Development overlays 
 an editable source installation with bind-mounted backend sources. They do not
 start backend reload watchers: file changes become visible immediately, and an
 explicit service restart loads Python edits. Rebuild and recreate services when
-dependencies, the external Relay revision or image contents change. For faster
+dependencies, the external Atlas revision or image contents change. For faster
 iteration, use [native editable development](../core/uv-development.md).
 
 Logging defaults to `INFO` for production/prod and `DEBUG` elsewhere. `LOG_LEVEL`

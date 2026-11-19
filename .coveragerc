@@ -4,7 +4,7 @@ source =
     coyote_api
     coyote
     coyote_mongo
-    coyote_atlas
+    coyote_relay
     coyote_demo
 omit =
     */tests/*

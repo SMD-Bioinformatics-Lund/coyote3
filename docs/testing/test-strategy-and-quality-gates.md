@@ -23,8 +23,8 @@ establish correctness or clinical readiness.
 | `api/tests` | Host configuration, authentication, HTTP contracts and permission scope |
 | `adapters/mongo/tests` | Query compilation, repositories and persistence integration |
 | `coyote-pyclient` repository tests | HTTP transport, authentication, client resources and failures |
-| External `coyote-relay` test suite | Submission tools, manifests and ingestion worker composition |
-| `services/atlas/tests` | Reference validation, resources and publication |
+| `services/relay/tests` | Submission tools, manifests and ingestion worker composition |
+| External `coyote-atlas` test suite | Reference validation, resources and publication |
 | `services/demo/tests` | Synthetic resources and isolated installation safeguards |
 | Root `tests/` | Package composition, transactions, architecture and operational tooling |
 | `frontend/` | Vitest component/unit tests and Playwright application workflows |
@@ -68,11 +68,11 @@ bash scripts/quality/run_package_tests.sh all --coverage
 ```
 
 The runner changes to each component directory and uses its own pytest and coverage
-configuration. It accepts `core`, `api`, `mongo`, `atlas`, `demo` or `all`.
+configuration. It accepts `core`, `api`, `mongo`, `relay`, `demo` or `all`.
 Source remains editable; no wheel rebuild is needed for a test change.
 
-Relay and pyClient own their suites in their separate repositories. Follow
-[Relay development](../core/README.md#coyote-relay)
+Atlas and pyClient own their suites in their separate repositories. Follow
+[Atlas documentation](../core/README.md#coyote-atlas)
 and [pyClient development](../core/README.md#coyote-pyclient)
 to validate those packages. The application tests their installed integration
 boundaries without collecting their external suites.

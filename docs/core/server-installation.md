@@ -18,14 +18,14 @@ pip setup, from the repository root in a prepared development environment, is:
 ```bash
 python -m pip install -r requirements-dev.txt
 ./install.sh dependencies
-python -m pip install --no-deps .release/relay/coyote_relay-*.whl
+python -m pip install --no-deps .release/atlas/coyote_atlas-*.whl
 python -m pip install --no-deps -e core -e . \
-  -e 'services/atlas[api]'
+  -e 'services/relay[api,worker]'
 ```
 
 Python edits require process reload, not wheel builds. Metadata and dependency
 changes require reinstalling or running `uv sync`.
-The default uv `application` dependency group includes Relay, pinned to a full
+The default uv `application` dependency group includes local Relay and Atlas pinned to a full
 Git commit in root `pyproject.toml` and `uv.lock`. The server requires
 `coyote-core[reporting,alignment]`; the application dependency export supplies
 those feature dependencies for the pip setup above.
@@ -77,10 +77,10 @@ excluded. Operators supply a reviewed external center profile.
 
 ## Deployment
 
-Before a Docker build, `./install.sh dependencies` prepares the pinned Relay
+Before a Docker build, `./install.sh dependencies` prepares the pinned Atlas
 wheel with its source/checksum record. The installer also performs
 this preparation for its Compose build commands. The image builds core, server,
-Atlas and Demo locally, then installs core, server, Relay and Atlas into
+Relay and Demo locally, then installs core, server, Relay and Atlas into
 the normal runtime image. Demo is added
 only by the dedicated demo image target. API source directories do not override
 the installed wheels. API and worker services use the same image.

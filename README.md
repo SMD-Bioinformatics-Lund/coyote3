@@ -70,9 +70,12 @@ and PDF reports from the reviewed findings, comment and configuration snapshot.
 | [API](api/README.md) and [Mongo](adapters/mongo/README.md) | HTTP host and persistence, distributed together as `coyote-server` |
 | [Frontend](frontend/README.md) | Clinical review and administration interface |
 | [pyClient](docs/core/README.md#coyote-pyclient) | Independent Python HTTP client |
-| [Relay](docs/core/README.md#coyote-relay) | Ingestion workers and pipeline submission tools |
-| [Atlas](services/atlas/README.md) | Reference resources and publication |
+| [Relay](services/relay/README.md) | Ingestion workers and pipeline submission tools |
+| [Atlas](docs/core/README.md#coyote-atlas) | Reference resources and publication |
 | [Demo](services/demo/README.md) | Synthetic data and guarded demonstration installation |
+
+Core, server, Relay, Demo and the frontend share this repository and review
+workflow. Atlas and pyClient are maintained separately.
 
 Each component owns its documentation and tests. Root `tests/` covers composed
 behavior; `deploy/`, `docker/` and `scripts/` contain maintained operational tools.

@@ -16,7 +16,7 @@ active.
 | Python types | `PYTHONPATH=. mypy` |
 | Backend tests | `PYTHONPATH=. pytest -q` |
 | Independent Python client tests | Run `python -m pytest -q` in the client repository |
-| Ingestion service tests | Run `python -m pytest -q` in the Relay repository; see [Relay development](../core/README.md#coyote-relay) |
+| Ingestion service tests | `bash scripts/quality/run_package_tests.sh relay`; see [Relay development](../../services/relay/docs/development.md) |
 | Frontend lint | `npm --prefix frontend run lint` |
 | Frontend unit tests | `npm --prefix frontend run test:unit` |
 | Frontend build | `npm --prefix frontend run build` |

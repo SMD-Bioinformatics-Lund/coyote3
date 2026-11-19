@@ -61,7 +61,7 @@ Relay submission uses base core and HTTPX. Both structural and clinical manifest
 validation are available locally; the receiving server always applies its own
 current clinical and access checks. Core owns ingestion coordination, manifest
 normalization and clinical decisions. VCF processing requires its alignment extra.
-`services/atlas/` owns HGNC/VEP resources and reference publication. Its installed
+The independent Atlas package owns HGNC/VEP resources and reference publication. Its installed
 provider supplies validated bundles to server installation; clinical VEP grouping
 policy remains in core. `services/demo/` owns synthetic datasets and demonstration
 installation. Its optional routes activate only after explicit isolated-target
@@ -110,8 +110,8 @@ Workers / trusted Python ----------> Coyote Core operations
 | `core/src/coyote/contracts/` | HTTP and collection schemas, managed-resource forms and persisted serialization contracts. | May compose domain value models; the domain does not import transport or collection schemas. |
 | `core/src/coyote/config/catalogs/rbac/` | Canonical permission definitions and built-in role templates. | Server installation consumes these resources; core imports do not install data. |
 | `api/src/coyote_api/services/`, `api/src/coyote_api/bootstrap/` | Public-page composition, authorized installation and deployment catalogs. | Host code and data ship in the server wheel, outside the core namespace. |
-| `coyote_relay` in the external Relay repository | Pipeline submission transport and ingestion task entry points. | Calls core workflows; workers use server composition. Server code must not import this service. |
-| `services/atlas/src/coyote_atlas/` | HGNC/VEP reference resources, validation and publication. | Base package uses core; optional host integration supplies persistence and authorized API operations. |
+| `services/relay/src/coyote_relay/` | Pipeline submission transport and ingestion task entry points. | Calls core workflows; workers use server composition. Server code must not import this service. |
+| External Atlas `coyote_atlas/` | HGNC/VEP reference resources, validation and publication. | Base package uses core; optional host integration supplies persistence and authorized API operations. |
 | `services/demo/src/coyote_demo/` | Synthetic datasets, guarded installation and optional demo API routes. | Base package uses core; host integration requires isolated targets and restricted credentials. |
 | `api/src/coyote_api/presentation/` | Host selection of packaged report layouts. | HTML/CSS belong to `smd-reports`; temporary rendering performs no report persistence. |
 | `api/src/coyote_api/infra/` | Host integrations, metrics, task inspection and filesystem operations. | Implements core capabilities without importing application composition. |

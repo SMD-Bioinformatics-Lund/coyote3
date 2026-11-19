@@ -18,12 +18,12 @@ def checkout(tmp_path):
     """Create editable package metadata without any application credentials or services."""
     (tmp_path / "pyproject.toml").write_text(
         '[tool.setuptools.package-dir]\ncoyote_api = "api/src/coyote_api"\n'
-        '[tool.uv.workspace]\nmembers = ["core", "services/atlas", "services/demo"]\n'
+        '[tool.uv.workspace]\nmembers = ["core", "services/relay", "services/demo"]\n'
     )
     for name in (
         "api",
         "core",
-        "services/atlas",
+        "services/relay",
         "services/demo",
     ):
         (tmp_path / name / "src").mkdir(parents=True)
@@ -67,7 +67,7 @@ def test_workspace_and_external_editable_packages_are_all_watched(checkout):
     assert {path.relative_to(checkout).as_posix() for path in directories} == {
         "api/src",
         "core/src",
-        "services/atlas/src",
+        "services/relay/src",
         "services/demo/src",
         "external client",
     }
@@ -86,7 +86,7 @@ def wait_for(predicate, timeout=10):
 
 def test_source_and_package_configuration_changes_restart_and_shutdown_service(checkout):
     """Exercise actual polling and signals, including sources from an optional service."""
-    source = checkout / "services/atlas/src/version.py"
+    source = checkout / "services/relay/src/version.py"
     settings = checkout / "core/src/settings.toml"
     source.write_text("first")
     settings.write_text("initial")
@@ -153,7 +153,7 @@ def test_docker_services_run_directly_with_manual_backend_reload(folder):
             "api",
             "adapters/mongo",
             "core",
-            "services/atlas",
+            "services/relay",
             "services/demo",
         ):
             assert f"../../{package}:/app/{package}" in mounts

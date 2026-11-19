@@ -79,7 +79,7 @@ See [installation operations](installation-operations.md).
 - Bundled permission documents are installed with `system_managed: true`; their
   definitions are immutable at runtime but remain assignable through roles.
 - `services/demo/src/coyote_demo/data/demo_center` contains synthetic ASP, ASPC, and ISGL documents for isolated installation checks.
-- `services/atlas/src/coyote_atlas/data/reference` contains the release-bundled HGNC and VEP
+- `coyote_atlas/data/reference` contains the release-bundled HGNC and VEP
   snapshots loaded by the reference installer when their collections are
   empty.
 - Normal application startup does not seed or synchronize governance documents.

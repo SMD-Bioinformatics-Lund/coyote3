@@ -14,17 +14,17 @@ For a full Coyote installation, follow the [installation guide](../deployment/RE
 | --- | --- | --- |
 | Coyote Core | Shared models, validation, analysis and reporting workflows | [Coyote Core guide](../../core/docs/README.md) |
 | Server | FastAPI host and MongoDB adapter, distributed together | [API guide](../../api/docs/README.md), [MongoDB guide](../../adapters/mongo/docs/README.md) |
-| Atlas | HGNC/VEP reference resources and publication | [Atlas guide](../../services/atlas/docs/README.md) |
+| Relay | Pipeline submission commands, ingestion routes and workers | [Relay guide](../../services/relay/docs/README.md) |
 | Demo | Synthetic data and installation in isolated targets | [Demo guide](../../services/demo/docs/README.md) |
 | Frontend | React review and administration interface | [Frontend guide](../../frontend/docs/README.md) |
 
-## Coyote Relay
+## Coyote Atlas
 
-Relay provides pipeline submission commands, ingestion routes and workers. The
-application installs a reviewed Git revision. Its source, CLI options and tests
-are maintained in a separate repository.
+Atlas maintains checked HGNC/VEP reference bundles, provenance and publication.
+The application installs a reviewed Git commit. Package updates do not overwrite
+installed references; operators select and install data explicitly.
 
-[Relay documentation](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/docs/README.md)
+[Atlas documentation](https://github.com/SMD-Bioinformatics-Lund/coyote-atlas/blob/dev/docs/README.md)
 
 ## Coyote pyClient
 

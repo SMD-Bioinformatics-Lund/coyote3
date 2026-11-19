@@ -52,7 +52,7 @@ Application bootstrap and test fixtures have separate ownership:
 | --- | --- | --- |
 | `core/src/coyote/config/catalogs/rbac` | Application permissions and built-in roles | Yes; installed for an empty deployment |
 | `api/src/coyote_api/bootstrap/catalogs/reference` | Application assay-group and query-rule catalogs | Yes; through normal governed bootstrap |
-| `services/atlas/src/coyote_atlas/data/reference` | Checked HGNC/VEP snapshots, source metadata and diagrams | Selected reference installation; populated collections are preserved |
+| `coyote_atlas/data/reference` | Checked HGNC/VEP snapshots, source metadata and diagrams | Selected reference installation; populated collections are preserved |
 | `services/demo/src/coyote_demo/data/demo_center` | Synthetic ASP, ASPC, and ISGL definitions | No; isolated demonstration/validation resources |
 | `tests/fixtures/collections/all_collections_dummy` | Synthetic documents spanning collection contracts | No; tests and demonstrations only |
 | `tests/fixtures/ingest` | Synthetic DNA/RNA manifests and artifacts | No; ingest validation only |

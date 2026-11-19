@@ -9,8 +9,8 @@ components retain separate source, tests, coverage and guides inside one server 
 | `coyote-core` | `core/src/coyote/` | No API or database implementation; reporting and alignment dependencies are extras |
 | `coyote-server` | `api/src/coyote_api/`, `adapters/mongo/src/coyote_mongo/` | Core; API composes the Mongo component |
 | `coyote-pyclient` | `src/coyote_pyclient/` in the external client repository | None; Pydantic and HTTPX for its independent HTTP interface |
-| `coyote-relay` | `coyote_relay` in the external Relay repository | Base core and HTTPX; API/worker integrations add server |
-| `coyote-atlas` | `services/atlas/src/coyote_atlas/` | Core and HTTPX; optional API integration uses the server |
+| `coyote-relay` | `services/relay/src/coyote_relay/` | Base core and HTTPX; API/worker integrations add server |
+| `coyote-atlas` | `coyote_atlas` in the external Atlas repository | Core and HTTPX; optional API integration uses the server |
 | `coyote-demo` | `services/demo/src/coyote_demo/` | Core; optional API integration uses the server, and worker integration uses Relay |
 
 ## Shared core and request flow
@@ -77,7 +77,7 @@ models and never imports core or the adapter.
 Relay owns pipeline submission commands, ingestion HTTP routes and Celery tasks.
 Manifest normalization, structural validation, clinical parsing,
 job execution and manifest-watching workflows belong to core. HTTP uploads, process
-entry points and task-queue integration stay outside core. See the [ingestion service guide](README.md#coyote-relay).
+entry points and task-queue integration stay outside core. See the [ingestion service guide](../../services/relay/docs/README.md).
 
 Core owns the canonical permission and role catalogs and Coyote's VEP interpretation
 policy. Atlas owns HGNC/VEP snapshots, provenance, validation and reference
@@ -118,6 +118,6 @@ stable helper; they must not make package tests depend on another package's test
 tree. There is no deployed testing service. Demonstration data can support
 acceptance runs, while frozen regression fixtures remain owned by their tests.
 
-Relay can be built and installed from its independent repository without a source
-checkout at runtime. Release validation and publication are tracked
-in [future work](../project/future-work.md#independent-coyote-relay-repository-and-release).
+Core, server, Relay and Demo share this workspace, its lockfile and release PR.
+They remain separately installable distributions. Atlas and pyClient have separate
+repositories; package boundaries do not require one repository per package.

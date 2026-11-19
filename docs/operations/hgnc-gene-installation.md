@@ -1,6 +1,6 @@
 # HGNC gene reference installation
 
-The bundled file `services/atlas/src/coyote_atlas/data/reference/hgnc_genes.seed.ndjson.gz`
+The bundled file `coyote_atlas/data/reference/hgnc_genes.seed.ndjson.gz`
 belongs to the `coyote-atlas` reference pack. Core owns its document contract and
 gene/transcript interpretation; it does not ship the installed gene database.
 The server's first-installation workflow installs the bundled snapshot through the

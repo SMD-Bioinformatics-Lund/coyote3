@@ -31,7 +31,7 @@ Export and preparation do not write to the source databases.
 The identity and knowledgebase database migrations share JSON output and exit-code
 handling in `database/migration_report.py`. Each command retains its own validation,
 dry-run and write controls. Submission, manifest validation and pipeline login are
-provided by [Coyote Relay](../docs/core/README.md#coyote-relay), not a scripts directory.
+provided by [Coyote Relay](../services/relay/docs/README.md), not a scripts directory.
 
 Normal deployment does not install demonstration code or samples. The optional
 `coyote-demo` package supplies `coyote-demo-install` and its authenticated API
@@ -41,13 +41,13 @@ The [synthetic clinical workflow guide](../docs/testing/clinical-workflow-demo.m
 documents the packaged installer. Offline ingest and reporting fixtures belong in
 `tests/fixtures/clinical_workflows/`; they are not production startup tools.
 
-`quality/run_package_tests.sh` runs `core`, `api`, `mongo`, `atlas`, `demo`, or `all`
+`quality/run_package_tests.sh` runs `core`, `api`, `mongo`, `relay`, `demo`, or `all`
 from each package directory. The default is its full suite; `--smoke` selects fast
 checks and `--coverage` enforces that package's branch-coverage floor and writes
 its local reports. It uses `PYTHON_BIN`, the active virtual environment, or root
 `.venv/bin/python`. It starts no application services. GitHub CI uses smoke mode;
 full suites and coverage remain available for local release validation.
-Relay and pyClient suites run in their own repositories; see the
+Atlas and pyClient suites run in their own repositories; see the
 [test ownership guide](../docs/testing/test-strategy-and-quality-gates.md#independent-package-coverage).
 
 `branding/generate_logos.py` is the sole logo blueprint. It derives package logos

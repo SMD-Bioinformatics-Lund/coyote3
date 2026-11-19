@@ -222,9 +222,9 @@ def test_deployments_start_ingest_and_maintenance_from_their_own_apps(relative_p
 
 
 @pytest.mark.parametrize("dockerfile", ["Dockerfile", "Dockerfile.dev", "Dockerfile.legacy"])
-def test_source_images_include_the_ingestion_distribution(dockerfile) -> None:
+def test_source_images_include_the_selected_reference_distribution(dockerfile) -> None:
     """Source and editable image builds have the complete independently packaged service."""
     definition = (REPOSITORY_ROOT / "docker" / dockerfile).read_text()
-    assert "COPY .release/relay/ /opt/coyote-relay/" in definition
+    assert "COPY .release/atlas/ /opt/coyote-atlas/" in definition
     if dockerfile in {"Dockerfile.dev", "Dockerfile.legacy"}:
-        assert "/opt/coyote-relay/coyote_relay-*.whl" in definition
+        assert "/opt/coyote-atlas/coyote_atlas-*.whl" in definition

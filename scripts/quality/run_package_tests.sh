@@ -8,9 +8,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 selection="${1:-all}"
 mode="${2:-}"
-if [[ "$#" -gt 2 || ! "$selection" =~ ^(all|core|api|mongo|atlas|demo)$ ||
+if [[ "$#" -gt 2 || ! "$selection" =~ ^(all|core|api|mongo|relay|demo)$ ||
       ! "$mode" =~ ^(--smoke|--coverage)?$ ]]; then
-  echo "Usage: $0 [all|core|api|mongo|atlas|demo] [--smoke|--coverage]" >&2
+  echo "Usage: $0 [all|core|api|mongo|relay|demo] [--smoke|--coverage]" >&2
   exit 2
 fi
 
@@ -21,7 +21,7 @@ fi
 PYTHON_BIN="$("$PYTHON_BIN" -c 'import sys; print(sys.executable)')"
 
 if [[ "$selection" == all ]]; then
-  projects=(core api mongo atlas demo)
+  projects=(core api mongo relay demo)
 else
   projects=("$selection")
 fi
@@ -31,7 +31,7 @@ for project in "${projects[@]}"; do
     core) directory=core ;;
     api) directory=api ;;
     mongo) directory=adapters/mongo ;;
-    atlas) directory=services/atlas ;;
+    relay) directory=services/relay ;;
     demo) directory=services/demo ;;
   esac
   arguments=(-q)

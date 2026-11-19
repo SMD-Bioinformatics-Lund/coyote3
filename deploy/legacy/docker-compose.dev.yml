@@ -179,7 +179,7 @@ services:
       - ../../api:/app/api
       - ../../adapters/mongo:/app/adapters/mongo
       - ../../core:/app/core
-      - ../../services/atlas:/app/services/atlas
+      - ../../services/relay:/app/services/relay
       - ../../services/demo:/app/services/demo
       - ../../docs:/app/docs
       - ../../CHANGELOG.md:/app/CHANGELOG.md:ro

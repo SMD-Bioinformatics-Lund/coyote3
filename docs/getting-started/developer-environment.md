@@ -24,7 +24,7 @@ support Python 3.12 or later. Install the selected interpreter before creating t
 environment; do not rely on an older distribution's `python3` default.
 
 Use the [editable uv workspace](../core/uv-development.md) for the core, MongoDB
-adapter, API, Atlas and Demo. Ordinary Python edits need a process reload, not a wheel
+adapter, API, Relay and Demo. Ordinary Python edits need a process reload, not a wheel
 rebuild:
 
 ```bash

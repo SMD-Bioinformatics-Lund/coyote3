@@ -48,15 +48,15 @@ def release_root(tmp_path):
         '[project]\nname="coyote-server"\nversion="1.5.0"\n'
         'dependencies=["coyote-core[reporting,alignment]==1.3.1"]\n'
     )
-    source = "https://github.com/example/relay.git"
+    source = "https://github.com/example/atlas.git"
     commit = "a" * 40
     with (tmp_path / "pyproject.toml").open("a") as output:
-        output.write(f'\n[tool.uv.sources]\ncoyote-relay = {{git="{source}", rev="{commit}"}}\n')
+        output.write(f'\n[tool.uv.sources]\ncoyote-atlas = {{git="{source}", rev="{commit}"}}\n')
     (tmp_path / "uv.lock").write_text(
-        f'[[package]]\nname="coyote-relay"\nversion="1.1.0"\n'
+        f'[[package]]\nname="coyote-atlas"\nversion="1.1.0"\n'
         f'source={{git="{source}?rev={commit}#{commit}"}}\n'
     )
-    for service in ("atlas", "demo"):
+    for service in ("relay", "demo"):
         directory = tmp_path / "services" / service
         directory.mkdir(parents=True)
         dependencies = '["coyote-core==1.3.1"]'
@@ -66,7 +66,7 @@ def release_root(tmp_path):
             + (
                 'worker=["coyote-server==1.5.0", "coyote-relay==1.1.0"]\n'
                 if service == "demo"
-                else ""
+                else 'worker=["coyote-server==1.5.0"]\n'
             )
         )
     for path in ("package.json", "frontend/package.json"):
@@ -212,14 +212,14 @@ def test_application_rejects_a_stale_server_package_selection(release_root):
         release_identity(release_root)
 
 
-def test_application_rejects_a_stale_relay_selection(release_root):
+def test_application_rejects_a_stale_atlas_selection(release_root):
     path = release_root / "uv.lock"
     path.write_text(
         path.read_text().replace(
-            'name="coyote-relay"\nversion="1.1.0"', 'name="coyote-relay"\nversion="1.0.0"'
+            'name="coyote-atlas"\nversion="1.1.0"', 'name="coyote-atlas"\nversion="1.0.0"'
         )
     )
-    with pytest.raises(ValueError, match="coyote-relay version differs"):
+    with pytest.raises(ValueError, match="coyote-atlas version differs"):
         release_identity(release_root)
 
 
@@ -263,6 +263,8 @@ def test_server_requires_the_selected_core_and_runtime_features(release_root, de
     "service,old,new,message",
     [
         ("demo", "coyote-relay==1.1.0", "coyote-relay==0.9.0", "Demo worker"),
+        ("relay", "coyote-core==1.3.1", "coyote-core==1.2.0", "coyote-relay core"),
+        ("relay", "coyote-server==1.5.0", "coyote-server==1.4.0", "coyote-relay API"),
     ],
 )
 def test_optional_service_dependencies_match_release_selection(
@@ -373,7 +375,7 @@ def test_release_build_does_not_copy_old_build_outputs(tmp_path, monkeypatch):
     for package in (
         "api",
         "adapters/mongo",
-        "services/atlas",
+        "services/relay",
         "services/demo",
     ):
         directory = source / package
@@ -393,11 +395,11 @@ def test_release_build_does_not_copy_old_build_outputs(tmp_path, monkeypatch):
     stale.mkdir(parents=True)
     (stale / "old.py").write_text("retired")
     monkeypatch.setattr(build_sdk, "ROOT", source)
-    relay_wheel = tmp_path / "coyote_relay-1.2.0-py3-none-any.whl"
-    relay_wheel.write_bytes(b"synthetic cached dependency")
-    relay = Mock()
-    relay.prepare.return_value = relay_wheel
-    monkeypatch.setattr(build_sdk, "ExternalArtifact", Mock(return_value=relay))
+    atlas_wheel = tmp_path / "coyote_atlas-1.2.0-py3-none-any.whl"
+    atlas_wheel.write_bytes(b"synthetic cached dependency")
+    atlas = Mock()
+    atlas.prepare.return_value = atlas_wheel
+    monkeypatch.setattr(build_sdk, "ExternalArtifact", Mock(return_value=atlas))
     inspected = []
 
     def inspect_build(command, *, check):

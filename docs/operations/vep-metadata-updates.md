@@ -48,7 +48,7 @@ VEP consequences.
 
 The compressed `vep_metadata.seed.ndjson.gz`, its provenance manifest and the
 content-addressed `vep_diagrams/` files belong to the Atlas reference pack under
-`services/atlas/src/coyote_atlas/data/reference/`. The authoritative installed location is
+`coyote_atlas/data/reference/`. The authoritative installed location is
 `coyote_atlas.bundle.ReferenceBundle.packaged().directory`. Core owns the metadata
 contracts, release interpretation and Coyote grouping policy; it does not own a
 database connection or automatically install references.
@@ -226,7 +226,7 @@ Release 103 remains protected from the metadata importer; its diagram can be
 updated independently. Image provenance is retained inside each diagram document.
 
 The seed stores original binary files under
-`services/atlas/src/coyote_atlas/data/reference/vep_diagrams/<sha256>`. Atlas validates hashes
+`coyote_atlas/data/reference/vep_diagrams/<sha256>`. Atlas validates hashes
 and installs these into the configured image collection before metadata. Keep
 this directory with the reference seed when copying a seed pack to another center.
 The downloader's review output may contain base64 as JSON transport data; import

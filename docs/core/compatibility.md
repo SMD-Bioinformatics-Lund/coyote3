@@ -10,8 +10,8 @@ combination; package installation and public-index publication are separate task
 | Core version | `core/pyproject.toml`, distribution `coyote-core` |
 | Server version, shared by API and MongoDB adapter | Root `pyproject.toml`, distribution `coyote-server` |
 | HTTP client version | `pyproject.toml` in the independent pyClient repository |
-| Ingestion service version | `pyproject.toml` at the Relay revision pinned in `uv.lock` |
-| Reference service version | `services/atlas/pyproject.toml` |
+| Ingestion service version | `services/relay/pyproject.toml` |
+| Reference service version | `pyproject.toml` at the Atlas revision pinned in `uv.lock` |
 | Demo package version | `services/demo/pyproject.toml` |
 | Application selection | `release.toml`: application and five selected Python distribution versions |
 | HTTP generation | Declared `/api/vN` routes, checked against `http_api_major` |
@@ -28,7 +28,7 @@ Coyote4 application selects core `4.0.0` and version `1.0.0` for the server,
 Relay, Atlas and Demo. The independent HTTP client has its own version
 and compatibility checks; it is not part of the application artifact set.
 
-Relay is an external Git dependency. Its full reviewed commit belongs to `[tool.uv.sources]` in the root `pyproject.toml` and the resolved
+Atlas is an external Git dependency. Its full reviewed commit belongs to `[tool.uv.sources]` in the root `pyproject.toml` and the resolved
 `uv.lock`. Adopting an external change requires updating those pins and selecting
 the corresponding version in `release.toml`. Build provenance retains the Git
 source and artifact checksum. No floating branch is used for deployment.

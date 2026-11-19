@@ -77,7 +77,7 @@ coyote_api = ["py.typed", "app/templates/*", "config/*.toml", "config/assets/*",
 coyote_mongo = ["py.typed", "config/*.toml"]
 
 [dependency-groups]
-application = ["coyote-relay==1.0.0"]
+application = ["coyote-relay==1.0.0", "coyote-atlas==1.0.0"]
 watch = ["watchdog[watchmedo]==7.1.0"]
 dev = [
     {include-group = "watch"},
@@ -166,8 +166,11 @@ convention = "google"
 [tool.ruff.lint.per-file-ignores]
 "api/**/*.py" = ["TID251"]
 "adapters/**/*.py" = ["TID251"]
-"services/atlas/src/coyote_atlas/api/**/*.py" = ["TID251"]
-"services/atlas/tests/**/*.py" = ["TID251"]
+"services/relay/src/coyote_relay/api/**/*.py" = ["TID251"]
+"services/relay/tests/**/*.py" = ["TID251"]
+"services/relay/src/coyote_relay/celery_app.py" = ["TID251"]
+"services/relay/src/coyote_relay/tasks.py" = ["TID251"]
+"services/relay/src/coyote_relay/worker.py" = ["TID251"]
 "services/demo/src/coyote_demo/api/**/*.py" = ["TID251"]
 "services/demo/src/coyote_demo/host.py" = ["TID251"]
 "services/demo/tests/**/*.py" = ["TID251"]
@@ -255,11 +258,11 @@ override-dependencies = ["coyote-core[reporting,alignment]"]
 default-groups = ["dev", "application"]
 
 [tool.uv.workspace]
-members = ["core", "services/atlas", "services/demo"]
+members = ["core", "services/relay", "services/demo"]
 
 [tool.uv.sources]
 coyote-core = { workspace = true }
 coyote-server = { workspace = true }
-coyote-relay = { git = "https://github.com/SMD-Bioinformatics-Lund/coyote-relay.git", rev = "b8c1de4f3eba4567fef9cac92df133fd572dfbe1" }
-coyote-atlas = { workspace = true }
+coyote-relay = { workspace = true }
+coyote-atlas = { git = "https://github.com/SMD-Bioinformatics-Lund/coyote-atlas.git", rev = "06dd19da58969b80e04cd9dfda5080dbf5902bc4" }
 coyote-demo = { workspace = true }

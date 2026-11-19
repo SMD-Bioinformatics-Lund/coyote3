@@ -138,7 +138,7 @@ The `coyote-relay` distribution owns `coyote-relay-validate`, `coyote-relay-logi
 and `coyote-relay-submit`; these are installed commands, not repository scripts.
 Worker installations add `coyote-relay-worker`. Shared parsing, validation and
 job workflows belong to core. See the
-[ingestion service guide](../core/README.md#coyote-relay).
+[ingestion service guide](../../services/relay/docs/README.md).
 
 ## Operational prerequisites
 

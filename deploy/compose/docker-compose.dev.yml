@@ -42,7 +42,7 @@ services:
       - ../../api:/app/api
       - ../../adapters/mongo:/app/adapters/mongo
       - ../../core:/app/core
-      - ../../services/atlas:/app/services/atlas
+      - ../../services/relay:/app/services/relay
       - ../../services/demo:/app/services/demo
       - ../../release.toml:/app/release.toml:ro
       - ${COYOTE4_LOGS_HOST_ROOT:?COYOTE4_LOGS_HOST_ROOT is required}:/app/logs

@@ -12,8 +12,9 @@
   finding snapshots and traceable saved reports.
 - Assay/environment access control, scoped API credentials, session administration
   local and administrator-assisted LDAP account recovery, and durable audit records.
-- Coyote Relay ingestion and recovery, Atlas reference bundles, isolated Demo
-  installations and an independent Python client for external integrations.
+- Coyote Relay ingestion and recovery in the application workspace; independently
+  maintained Atlas reference bundles, isolated Demo installations and a Python
+  client for external integrations.
 - One installer for native and Docker deployments, with independent MongoDB, Redis
   and application lifecycles, explicit connection URLs and editable uv development.
 - GNU GPL v3 only licensing, with separate copyright and contributor notices.

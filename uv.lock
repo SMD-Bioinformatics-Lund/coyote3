@@ -8,9 +8,9 @@ resolution-markers = [
 
 [manifest]
 members = [
-    "coyote-atlas",
     "coyote-core",
     "coyote-demo",
+    "coyote-relay",
     "coyote-server",
 ]
 overrides = [{ name = "coyote-core", extras = ["reporting", "alignment"], editable = "core" }]
@@ -624,30 +624,11 @@ wheels = [
 [[package]]
 name = "coyote-atlas"
 version = "1.0.0"
-source = { editable = "services/atlas" }
+source = { git = "https://github.com/SMD-Bioinformatics-Lund/coyote-atlas.git?rev=06dd19da58969b80e04cd9dfda5080dbf5902bc4#06dd19da58969b80e04cd9dfda5080dbf5902bc4" }
 dependencies = [
     { name = "coyote-core", extra = ["alignment", "reporting"] },
     { name = "httpx" },
 ]
-
-[package.optional-dependencies]
-api = [
-    { name = "coyote-server" },
-]
-test = [
-    { name = "pytest" },
-    { name = "pytest-cov" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "coyote-core", editable = "core" },
-    { name = "coyote-server", marker = "extra == 'api'", editable = "." },
-    { name = "httpx", specifier = "==0.28.1" },
-    { name = "pytest", marker = "extra == 'test'", specifier = "==9.0.3" },
-    { name = "pytest-cov", marker = "extra == 'test'", specifier = "==7.1.0" },
-]
-provides-extras = ["api", "test"]
 
 [[package]]
 name = "coyote-core"
@@ -712,7 +693,7 @@ worker = [
 [package.metadata]
 requires-dist = [
     { name = "coyote-core", editable = "core" },
-    { name = "coyote-relay", marker = "extra == 'worker'", git = "https://github.com/SMD-Bioinformatics-Lund/coyote-relay.git?rev=b8c1de4f3eba4567fef9cac92df133fd572dfbe1" },
+    { name = "coyote-relay", marker = "extra == 'worker'", editable = "services/relay" },
     { name = "coyote-server", marker = "extra == 'api'", editable = "." },
     { name = "coyote-server", marker = "extra == 'worker'", editable = "." },
     { name = "mongomock", marker = "extra == 'test'", specifier = "==4.3.0" },
@@ -724,13 +705,46 @@ provides-extras = ["api", "worker", "test"]
 [[package]]
 name = "coyote-relay"
 version = "1.0.0"
-source = { git = "https://github.com/SMD-Bioinformatics-Lund/coyote-relay.git?rev=b8c1de4f3eba4567fef9cac92df133fd572dfbe1#b8c1de4f3eba4567fef9cac92df133fd572dfbe1" }
+source = { editable = "services/relay" }
 dependencies = [
     { name = "coyote-core", extra = ["alignment", "reporting"] },
     { name = "httpx" },
     { name = "pydantic" },
     { name = "pyyaml" },
 ]
+
+[package.optional-dependencies]
+api = [
+    { name = "coyote-server" },
+]
+test = [
+    { name = "mongomock" },
+    { name = "pip" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "setuptools" },
+    { name = "wheel" },
+]
+worker = [
+    { name = "coyote-server" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "coyote-core", editable = "core" },
+    { name = "coyote-server", marker = "extra == 'api'", editable = "." },
+    { name = "coyote-server", marker = "extra == 'worker'", editable = "." },
+    { name = "httpx", specifier = "==0.28.1" },
+    { name = "mongomock", marker = "extra == 'test'", specifier = "==4.3.0" },
+    { name = "pip", marker = "extra == 'test'", specifier = "==26.2.1" },
+    { name = "pydantic", specifier = "==2.14.3" },
+    { name = "pytest", marker = "extra == 'test'", specifier = "==9.0.3" },
+    { name = "pytest-cov", marker = "extra == 'test'", specifier = "==7.1.0" },
+    { name = "pyyaml", specifier = "==6.0.3" },
+    { name = "setuptools", marker = "extra == 'test'", specifier = "==84.2.1" },
+    { name = "wheel", marker = "extra == 'test'", specifier = "==0.48.0" },
+]
+provides-extras = ["api", "worker", "test"]
 
 [[package]]
 name = "coyote-server"
@@ -786,6 +800,7 @@ test = [
 
 [package.dev-dependencies]
 application = [
+    { name = "coyote-atlas" },
     { name = "coyote-relay" },
 ]
 dev = [
@@ -867,7 +882,10 @@ requires-dist = [
 provides-extras = ["test"]
 
 [package.metadata.requires-dev]
-application = [{ name = "coyote-relay", git = "https://github.com/SMD-Bioinformatics-Lund/coyote-relay.git?rev=b8c1de4f3eba4567fef9cac92df133fd572dfbe1" }]
+application = [
+    { name = "coyote-atlas", git = "https://github.com/SMD-Bioinformatics-Lund/coyote-atlas.git?rev=06dd19da58969b80e04cd9dfda5080dbf5902bc4" },
+    { name = "coyote-relay", editable = "services/relay" },
+]
 dev = [
     { name = "mypy", specifier = "==1.20.1" },
     { name = "mypy-extensions", specifier = "==1.1.0" },

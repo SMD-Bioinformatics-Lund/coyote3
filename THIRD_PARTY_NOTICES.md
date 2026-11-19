@@ -9,8 +9,9 @@ rights. Components expressly identified under separate terms retain those terms.
 - Python runtime dependencies: [pyproject.toml](pyproject.toml) and
   [requirements.txt](requirements.txt). Installed distributions provide their
   own license metadata and license files.
-- External Relay dependencies:
-  [coyote-relay/pyproject.toml](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/pyproject.toml).
+- Relay dependencies: [services/relay/pyproject.toml](services/relay/pyproject.toml).
+- Atlas carries reference-resource attribution and dependency notices in its
+  installed distribution; see [Atlas documentation](docs/core/README.md#coyote-atlas).
 - Frontend dependencies: [frontend/package.json](frontend/package.json) and its
   lockfile. Dependencies retain their packaged copyright and license notices.
 - Documentation and repository tooling: [package.json](package.json) and
@@ -24,13 +25,10 @@ rights. Components expressly identified under separate terms retain those terms.
 
 ## Bundled materials
 
-- [Reference catalog notice](services/atlas/src/coyote_atlas/data/reference/NOTICE.txt).
-  The bundled Ensembl-derived materials retain their
-  [Apache License 2.0](services/atlas/src/coyote_atlas/data/reference/LICENSE.txt).
 - [Logo sources and attribution](frontend/public/logos/README.md).
 - [Local icon sources and attribution](frontend/public/icons/README.md)
   (Lucide Icons and Contributors, ISC).
-- [Coyote Relay license](https://github.com/SMD-Bioinformatics-Lund/coyote-relay/blob/dev/LICENSE.txt).
+- [Coyote Relay license](services/relay/LICENSE.txt).
 
 Knowledgebase data, institutional insignia and third-party marks are subject to
 their respective terms. Their use in COYOTE4 does not grant ownership, trademark

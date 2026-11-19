@@ -1,0 +1,2 @@
+# Use the root uv workspace for integrated development.
+-e .[test]

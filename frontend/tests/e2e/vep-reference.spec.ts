@@ -1,11 +1,23 @@
 import { expect, test } from "@playwright/test"
-import { readFileSync } from "node:fs"
-import { gunzipSync } from "node:zlib"
+import { createHash } from "node:crypto"
 import { installApiFixtures } from "./support/api-fixtures"
 import type { VepReference } from "../../src/pages/static/VepReferencePage"
 
-const referenceDirectory = new URL("../../../services/atlas/src/coyote_atlas/data/reference/", import.meta.url)
-const references: VepReference[] = gunzipSync(readFileSync(new URL("vep_metadata.seed.ndjson.gz", referenceDirectory))).toString().trim().split("\n").map(line => JSON.parse(line) as VepReference)
+// Synthetic reference data keeps browser behavior independent of Atlas source files.
+const diagram = '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300"><rect width="1200" height="300" fill="#eee"/><path d="M40 150h1120" stroke="#555" stroke-width="8"/></svg>'
+const references: VepReference[] = ["116", "103"].map(release => ({
+  vep_id: release,
+  source: "https://example.test/cache",
+  vc_translation_source: "https://example.test/classes",
+  conseq_translation_source: "https://example.test/consequences",
+  conseq_translations: {
+    missense_variant: { display: "missense_variant", desc: "A sequence variant that changes an amino acid.", group: "missense", impact: "MODERATE", so_term: "SO:0001583" },
+  },
+  consequence_groups: { missense: ["missense_variant"] },
+  variant_class_translations: { SNV: { short: "SNV", desc: "Single nucleotide variant", displayname: "SNV", so_term: "SO:0001483" } },
+  db_info: { GRCh38: { published_sources: { Ensembl: release } } },
+  consequence_diagram: { mime_type: "image/svg+xml", sha256: createHash("sha256").update(diagram).digest("hex"), width: 1200, height: 300, source_url: "https://example.test/diagram.svg", release },
+}))
 
 for (const width of [1440, 390]) {
   test(`VEP references and diagrams fit ${width}px`, async ({ page }, testInfo) => {
@@ -20,9 +32,9 @@ for (const width of [1440, 390]) {
     })
     await page.route("**/api/v1/public/vep/*/diagram", async route => {
       const release = new URL(route.request().url()).pathname.split("/").at(-2)
-      const diagram = references.find(row => row.vep_id === release)?.consequence_diagram
-      if (!diagram) return route.fulfill({ status: 404 })
-      await route.fulfill({ contentType: diagram.mime_type, body: readFileSync(new URL(`vep_diagrams/${diagram.sha256}`, referenceDirectory)) })
+      const metadata = references.find(row => row.vep_id === release)?.consequence_diagram
+      if (!metadata) return route.fulfill({ status: 404 })
+      await route.fulfill({ contentType: metadata.mime_type, body: diagram })
     })
     await page.goto("/about/vep")
     await expect(page.getByRole("heading", { name: "VEP Reference", exact: true })).toBeVisible()

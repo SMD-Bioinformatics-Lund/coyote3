@@ -18,21 +18,6 @@ The Python import remains `coyote_pyclient`. A future JavaScript client can use
 `coyote-jsclient` with its own release lifecycle. The React frontend uses its
 TypeScript HTTP client; backend services invoke core operations directly.
 
-## Independent Coyote Relay repository and release
-
-**Status: public repository created; release approval and PyPI publication remain pending.**
-
-- [x] Move source, documentation, tests and GPL-3.0-only notices to
-  [coyote-relay](../core/README.md#coyote-relay), with implementation on `dev`.
-- [x] Consume an exact Git revision in application builds and retain its wheel and checksum.
-- [ ] Approve the release into `main` after independent installation and compatibility validation.
-- [ ] Publish to PyPI after package-name verification and release approval.
-
-The base package connects to a running API through explicit command-line or
-`COYOTE_RELAY_*` settings. Optional API and worker integrations declare the server
-dependency. Neither installation nor importing the base package provisions a
-database, starts a worker or submits data.
-
 ## Shared findings with separate somatic and germline interpretation
 
 **Status: proposed; not implemented as a complete workflow.**

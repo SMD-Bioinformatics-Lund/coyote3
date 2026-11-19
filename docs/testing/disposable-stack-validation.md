@@ -599,7 +599,7 @@ API container. Use a new sample in the disposable database; this writes data and
 must not overwrite the watch-ingested sample.
 
 Obtain a short-lived bearer token using the
-[Relay login workflow](../core/README.md#coyote-relay) and the local validation
+[Relay login workflow](../../services/relay/docs/README.md) and the local validation
 account. Store it in an owner-only file. Copy the manifest before submission:
 Relay saves a receipt and renames the copy according to the terminal result.
 

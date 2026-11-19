@@ -27,7 +27,7 @@ and `runtime_settings.py`. Complete center-file examples are in
 `src/coyote_api/config/examples/center/`. See the [configuration guide](docs/configuration.md)
 for environment loading and ownership.
 
-Reference snapshots belong to [Coyote Atlas](../services/atlas/README.md), and
+Reference snapshots belong to [Coyote Atlas](../docs/core/README.md#coyote-atlas), and
 synthetic data belongs to [Coyote Demo](../services/demo/README.md). Their optional
 API extensions use this host's authentication and persistence. Normal bootstrap
 never installs synthetic samples; the demo requires explicitly isolated storage.

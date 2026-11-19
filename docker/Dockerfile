@@ -55,11 +55,11 @@ COPY LICENSING.md THIRD_PARTY_NOTICES.md CHANGELOG.md MANIFEST.in package_build.
 COPY core/ ./core/
 COPY api/ ./api/
 COPY adapters/mongo/ ./adapters/mongo/
-COPY services/atlas/ ./services/atlas/
+COPY services/relay/ ./services/relay/
 COPY services/demo/ ./services/demo/
 COPY scripts/release/build_sdk.py ./scripts/release/build_sdk.py
-COPY .release/relay/ /opt/coyote-relay/
-RUN python scripts/release/build_sdk.py --output-dir /wheels --relay-artifact /opt/coyote-relay
+COPY .release/atlas/ /opt/coyote-atlas/
+RUN python scripts/release/build_sdk.py --output-dir /wheels --atlas-artifact /opt/coyote-atlas
 
 FROM coyote4_runtime_base AS coyote4_server_files
 
