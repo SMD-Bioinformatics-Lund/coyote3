@@ -2,6 +2,8 @@
 
 ## v1.0.0
 
+- Check scheduled audit-export freshness and verify history against a separately
+  retained checkpoint for operational acceptance and monitoring.
 - Count distinct valid sign-ins and recent activity independently of TTL cleanup,
   excluding missing accounts and sessions invalidated by credential changes.
 - Scope finding inventory by serialized sample IDs, matching stored `SAMPLE_ID`

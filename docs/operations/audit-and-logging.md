@@ -521,6 +521,26 @@ Keep independently retained earlier checkpoints for comparison. Hourly exports
 verify the current chain; they do not automatically designate a local file as an
 independently trusted anchor. Export failures appear as failed Celery tasks.
 
+For deployment acceptance and ongoing monitoring, run this read-only check from a
+host that can read the archive and the independently retained anchor:
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/database/verify_audit_chain.py \
+  --check-schedule --max-age-seconds 7200 \
+  --checkpoint /protected/checkpoints/trusted-audit-checkpoint.json
+```
+
+It requires `AUDIT_CHECKPOINT_DIRECTORY`, a successful export within two hours,
+and agreement of the database with both the latest export and the trusted anchor.
+Disabled exports, missing or stale files, failed verification and database failures
+return a nonzero exit status. Alert on that status and on checkpoint task failures;
+schedule the check independently of the application scheduler.
+
+Before production approval, retain the check's result and have the storage owner
+record the archive's retention policy and confirm that the MongoDB runtime account
+cannot overwrite or delete archived checkpoints. Fresh files do not prove independent
+storage protection. Local tests cannot establish these deployment-specific controls.
+
 Traceability audit events are event records, not automatic resource snapshots. Clinical
 rule-set events contain the rule-set identity, content version, revision, status, actor, and
 operation metadata, but not the complete rule document at that revision. Full, hash-chained rule

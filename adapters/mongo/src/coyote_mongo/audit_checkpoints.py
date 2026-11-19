@@ -4,11 +4,42 @@
 """Exclusive, durable checkpoint exports to an operator-provisioned archival mount."""
 
 import json
+import math
 import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
+
+
+def latest_checkpoint(
+    directory: Path, *, max_age_seconds: float, now: datetime | None = None
+) -> tuple[dict[str, Any], float]:
+    """Read the newest export and reject missing, stale or invalid archive evidence.
+
+    Freshness uses the archive file's modification time. This checks exporter
+    liveness, not storage independence or retention enforcement. The caller must
+    also verify the chain against an independently retained trusted checkpoint.
+    """
+    if not math.isfinite(max_age_seconds) or max_age_seconds <= 0:
+        raise ValueError("Checkpoint maximum age must be positive")
+    if not directory.is_dir():
+        raise ValueError("Checkpoint archive directory is unavailable")
+    files = list(directory.glob("audit-*.json"))
+    if not files:
+        raise ValueError("No scheduled audit checkpoints are available")
+    if any(path.is_symlink() for path in files):
+        raise ValueError("Checkpoint must be a regular archive file")
+    latest = max(files, key=lambda path: path.stat().st_mtime)
+    if latest.is_symlink() or not latest.is_file():
+        raise ValueError("Checkpoint must be a regular archive file")
+    age = (now or datetime.now(timezone.utc)).timestamp() - latest.stat().st_mtime
+    if age < -60 or age > max_age_seconds:
+        raise ValueError("Scheduled audit checkpoint is stale or has a future timestamp")
+    checkpoint = json.loads(latest.read_text())
+    if not isinstance(checkpoint, dict) or checkpoint.get("valid") is not True:
+        raise ValueError("Latest audit checkpoint is not a successful verification")
+    return checkpoint, max(age, 0.0)
 
 
 def archive_checkpoint(checkpoint: dict[str, Any], directory: Path) -> Path:
