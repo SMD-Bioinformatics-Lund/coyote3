@@ -38,6 +38,11 @@ class LdapManager:
         self._config: dict = {}
         self._server: Server | None = None
 
+    def reset(self) -> None:
+        """Forget deployment settings after the owning runtime closes."""
+        self._config = {}
+        self._server = None
+
     @property
     def is_configured(self) -> bool:
         """Return whether this runtime has an initialized LDAP server."""
@@ -51,8 +56,7 @@ class LdapManager:
         manager remains uninitialized and an LDAP login receives a clear
         configuration error at the authentication boundary.
         """
-        self._config = {}
-        self._server = None
+        self.reset()
 
         host = str(config.get("LDAP_HOST") or "").strip()
         if not host:

@@ -109,3 +109,31 @@ def test_redis_cache_shutdown_closes_owned_client():
     cache = RedisCacheBackend(client=client, key_prefix="test", default_timeout=30, logger=Mock())
     cache.close()
     client.close.assert_called_once()
+
+
+def test_shutdown_clears_ldap_and_cache_even_when_mongo_close_fails(monkeypatch):
+    store = MongoStore()
+    adapter = Mock()
+    adapter.close.side_effect = RuntimeError("synthetic close failure")
+    store._adapter = adapter
+    ldap = runtime_setup.ldap_manager
+    monkeypatch.setattr(ldap, "_config", {"LDAP_HOST": "synthetic.invalid"})
+    monkeypatch.setattr(ldap, "_server", object())
+    cache = Mock()
+    runtime = runtime_setup.ApiRuntimeContext({}, logging.getLogger("test"), cache, store)
+    runtime._adapter = adapter
+    with pytest.raises(RuntimeError, match="close failure"):
+        runtime.close()
+    assert not ldap.is_configured
+    assert ldap._config == {}
+    cache.close.assert_called_once()
+    runtime.close()
+    adapter.close.assert_called_once()
+
+
+def test_store_initialization_uses_the_supplied_context_owner():
+    owned_store = Mock()
+    runtime = runtime_setup.ApiRuntimeContext({}, logging.getLogger("test"), store=owned_store)
+    runtime_setup._init_store(runtime)
+    owned_store.reset.assert_called_once()
+    owned_store.init_from_app.assert_called_once_with(runtime)

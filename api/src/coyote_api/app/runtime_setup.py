@@ -41,7 +41,10 @@ class ApiRuntimeContext:
         adapter, self._adapter = self._adapter, None
         try:
             if adapter is not None and self.store._adapter is adapter:
-                self.store.reset()
+                try:
+                    self.store.reset()
+                finally:
+                    ldap_manager.reset()
         finally:
             if cache is not None:
                 cache.close()
@@ -202,8 +205,8 @@ def _init_store(runtime: ApiRuntimeContext) -> None:
     retry_delay = 2.0
     for attempt in range(1, max_retries + 1):
         try:
-            store.reset()
-            store.init_from_app(runtime)
+            runtime.store.reset()
+            runtime.store.init_from_app(runtime)
             return
         except (AutoReconnect, ConnectionFailure, NetworkTimeout) as exc:
             if attempt < max_retries:
