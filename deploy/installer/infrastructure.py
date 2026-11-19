@@ -131,12 +131,13 @@ def main(service: str, argv: list[str]) -> int:
         files=[ROOT / "deploy" / folder / f"docker-compose.{service}.yml"],
         overlays=overlays,
         service_profiles=[name] if service == "mongo" else [],
+        process_environment=environment,
     )
     console.log(f"Docker {name}: {args.operation} / {profile.project}")
     if args.operation == "plan":
         console.log("Plan only: no service connections or filesystem changes")
         return 0
-    engine = InfrastructureCompose(profile, runner)
+    engine = InfrastructureCompose(profile, Runner(profile.process_env))
     if args.operation == "start":
         engine.validate()
         engine.run(["up", "-d", "--wait", "--wait-timeout", "180", name])

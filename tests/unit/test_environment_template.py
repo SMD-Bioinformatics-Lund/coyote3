@@ -14,6 +14,7 @@ TEMPLATES = sorted((ROOT / "deploy/env").glob("example*.env"))
 COMPOSE_FILES = (
     ROOT / "deploy/compose/docker-compose.yml",
     ROOT / "deploy/compose/docker-compose.mongo.yml",
+    ROOT / "deploy/compose/docker-compose.redis.yml",
     ROOT / "deploy/compose/docker-compose.mongo-backup.yml",
     ROOT / "deploy/compose/docker-compose.loadtest.yml",
 )
@@ -22,7 +23,14 @@ COMPOSE_FILES = (
 def test_server_only_settings_are_separate_from_application_templates():
     app_keys = set(dotenv_values(TEMPLATE, interpolate=False))
     mongo_keys = set(dotenv_values(ROOT / "deploy/env/example.mongo-server.env", interpolate=False))
-    shared = {"COYOTE4_APP_NETWORK", "COYOTE4_DB", "IDENTITY_DB", "KNOWLEDGEBASE_DB", "BAM_DB"}
+    shared = {
+        "ENV_NAME",
+        "COYOTE4_APP_NETWORK",
+        "COYOTE4_DB",
+        "IDENTITY_DB",
+        "KNOWLEDGEBASE_DB",
+        "BAM_DB",
+    }
     assert app_keys & mongo_keys == shared
     assert {"MONGO_ROOT_PASSWORD", "MONGO_UID", "COYOTE4_MONGO_KEYFILE_HOST_PATH"} <= mongo_keys
     assert {"COYOTE4_MONGO_URI", "IDENTITY_MONGO_URI", "KNOWLEDGEBASE_MONGO_URI"} <= app_keys

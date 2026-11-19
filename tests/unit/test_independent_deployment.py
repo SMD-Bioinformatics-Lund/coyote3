@@ -204,6 +204,7 @@ def test_native_infrastructure_controls_only_the_explicit_unit(tmp_path, monkeyp
 def test_docker_infrastructure_starts_only_its_server_and_initializer(
     tmp_path, monkeypatch, service
 ):
+    monkeypatch.setenv("ENV_NAME", "production")
     path = tmp_path / "server.env"
     path.write_text("ENV_NAME=stage\n")
     engine = Mock()
@@ -255,7 +256,7 @@ def test_native_build_refreshes_local_wheels_or_keeps_editable_development(profi
         assert "watch" in command
     else:
         assert "--no-editable" in command
-        assert set(refreshed) == {"coyote-server", "coyote-core", "coyote-atlas"}
+        assert set(refreshed) == {"coyote-server", "coyote-core", "coyote-relay"}
         assert "watch" not in command
 
 

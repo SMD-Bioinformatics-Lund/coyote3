@@ -9,6 +9,7 @@ import os
 import re
 import shlex
 import tomllib
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -145,6 +146,7 @@ class Profile:
         service_profiles: list[str] | None = None,
         mode: str = "docker",
         directory: Path | None = None,
+        process_environment: Mapping[str, str] | None = None,
     ) -> Profile:
         """Resolve one target, rejecting profile mismatches before any subprocess runs.
 
@@ -156,6 +158,8 @@ class Profile:
             overlays: Additional ordered files appended to the selection.
             legacy: Select the maintained Compose definitions for older Docker hosts.
             service_profiles: Optional Compose service groups such as mongo or docs.
+            process_environment: Explicit child environment for isolated server operations.
+                None retains ordinary Compose shell overrides.
 
         Returns:
             Resolved metadata and child environment without changing the parent process.
@@ -172,7 +176,11 @@ class Profile:
             raise ValueError("--directory selects native application state only")
         env_file = env_file.expanduser().resolve(strict=True)
         values = read_environment(env_file)
-        process_env = native_environment(env_file) if mode == "native" else dict(os.environ)
+        process_env = (
+            native_environment(env_file)
+            if mode == "native"
+            else dict(os.environ if process_environment is None else process_environment)
+        )
         configured = process_env.get("ENV_NAME", values.get("ENV_NAME"))
         selected = environment_name(environment or configured or "production")
         if environment and configured and selected != environment_name(configured):
