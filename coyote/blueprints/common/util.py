@@ -221,11 +221,14 @@ class BPCommonUtility:
                 if tumwgs_summary:
                     # WGS: always show the heading, with a default sentence when
                     # no clinically relevant CNVs have been reported.
+                    # summarize_cnv always appends "\n", even when no CNV is
+                    # interesting, so check for real content with strip().
                     cnv_text = BPCommonUtility.summarize_cnv(cnvs) if cnvs else ""
                     text += "**Kopietalsprofil:**\n"
                     text += (
                         cnv_text
-                        or "Vid analysen påvisas inga kopietalsförändringar av klinisk signifikans.\n"
+                        if cnv_text.strip()
+                        else "Vid analysen påvisas inga kopietalsförändringar av klinisk signifikans.\n"
                     )
                     text += "\n"
                 elif len(cnvs) > 0:
@@ -245,7 +248,8 @@ class BPCommonUtility:
                     text += "**Fusionsgener:**\n"
                     text += (
                         transloc_text
-                        or "Vid analysen finner man inga kliniskt relevanta fusionsgener.\n"
+                        if transloc_text.strip()
+                        else "Vid analysen finner man inga kliniskt relevanta fusionsgener.\n"
                     )
                     text += "\n"
                 elif len(translocs) > 0:
@@ -353,6 +357,29 @@ class BPCommonUtility:
         return text
 
     @staticmethod
+    def supporting_read_percent(ref_reads, alt_reads) -> float:
+        """
+        Percentage of reads supporting the alternative allele, rounded to one decimal.
+
+        Multiplies by 100 before rounding: rounding the fraction first and then
+        multiplying (e.g. ``round(0.229, 3) * 100``) gives float artefacts such as
+        ``22.900000000000002`` in the summary text.
+
+        Args:
+            ref_reads: Number of reads supporting the reference (str or number).
+            alt_reads: Number of reads supporting the alternative (str or number).
+
+        Returns:
+            float: Percentage of supporting reads, or 0 when there are no reads.
+        """
+        ref = float(ref_reads)
+        alt = float(alt_reads)
+        total = ref + alt
+        if total <= 0:
+            return 0
+        return round(100 * alt / total, 1)
+
+    @staticmethod
     def summarize_transloc(variants: list) -> str:
         """
         Generates a summary text for DNA fusions (translocations).
@@ -387,24 +414,12 @@ class BPCommonUtility:
                             interesting[genes[0] + " och " + genes[1]] = af_dict
                         if "PR" in gt:
                             pr = gt["PR"].split(",")
-                            af_pr = (
-                                round(
-                                    float(pr[1]) / (float(pr[1]) + float(pr[0])),
-                                    ndigits=3,
-                                )
-                                * 100
-                            )
+                            af_pr = BPCommonUtility.supporting_read_percent(pr[0], pr[1])
                             if af_pr > interesting[genes[0] + " och " + genes[1]]["af_pr"]:
                                 interesting[genes[0] + " och " + genes[1]]["af_pr"] = af_pr
                         if "SR" in gt:
                             sr = gt["SR"].split(",")
-                            af_sr = (
-                                round(
-                                    float(sr[1]) / (float(sr[1]) + float(sr[0])),
-                                    ndigits=3,
-                                )
-                                * 100
-                            )
+                            af_sr = BPCommonUtility.supporting_read_percent(sr[0], sr[1])
                             if af_sr > interesting[genes[0] + " och " + genes[1]]["af_sr"]:
                                 interesting[genes[0] + " och " + genes[1]]["af_sr"] = af_sr
                     if "UR" in var["INFO"]:
@@ -420,12 +435,14 @@ class BPCommonUtility:
                 "Vidare finner man en genfusion mellan generna " + voi,
                 "Slutligen finner man en genfusion mellan generna " + voi,
             ]
-            if len(interesting) == 1 or cl == 1:
+            # First fusion: "Vid analysen...", last of three or more: "Slutligen...",
+            # every other fusion: "Vidare..." (same as summarize_cnv).
+            if cl == 1:
                 text += "\n" + intro[0] + " ("
-            elif len(interesting) == 2 and (cl > 1 and cl < len(interesting)):
-                text += "\n" + intro[1] + " ("
             elif len(interesting) > 2 and cl == len(interesting):
                 text += "\n" + intro[2] + " ("
+            else:
+                text += "\n" + intro[1] + " ("
             af = 0
             if interesting[voi]["af_pr"] > 0 and interesting[voi]["af_sr"] > 0:
                 text += (
@@ -516,23 +533,11 @@ class BPCommonUtility:
                     if "manta" in var["callers"]:
                         if var["SR"] != 0:
                             sr = var["SR"].split("/")
-                            af_sr = (
-                                round(
-                                    float(sr[1]) / (float(sr[1]) + float(sr[0])),
-                                    ndigits=3,
-                                )
-                                * 100
-                            )
+                            af_sr = BPCommonUtility.supporting_read_percent(sr[0], sr[1])
                             interesting[goi + ":" + suffix]["af_sr"] = af_sr
                         if var["PR"] != 0:
                             pr = var["PR"].split("/")
-                            af_pr = (
-                                round(
-                                    float(pr[1]) / (float(pr[1]) + float(pr[0])),
-                                    ndigits=3,
-                                )
-                                * 100
-                            )
+                            af_pr = BPCommonUtility.supporting_read_percent(pr[0], pr[1])
                             interesting[goi + ":" + suffix]["af_pr"] = af_pr
         text = ""
         cl = 0
