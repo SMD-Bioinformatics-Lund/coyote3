@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "Coyote3"
-version = "3.4.3"
+version = "3.4.4"
 description = "A Bioinformatics Interpretation and Analysis Tool built for Section for Molecular Diagnostics, Region Skåne, Lund, Sweden"
 dependencies = [
   "smd-reports==0.5.3",
@@ -95,3 +95,7 @@ exclude = ".git,__pycache__,build,dist"
 
 [tool.isort]
 profile = "black"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
