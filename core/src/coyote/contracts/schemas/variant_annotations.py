@@ -13,6 +13,7 @@ from pydantic import Field, field_validator, model_validator
 
 from coyote.contracts.schemas.base import (
     _CollectionDocBase,
+    _DataDocBase,
     _DocBase,
     _StrictCollectionDocBase,
     _StrictDocBase,
@@ -36,8 +37,22 @@ class AnnotationRuleSource(_StrictDocBase):
     tier: Literal[1, 2, 3]
 
 
-class AnnotationDoc(_StrictCollectionDocBase):
+class AnnotationDoc(_StrictDocBase):
     """Classification or text annotation with nomenclature-specific finding identity."""
+
+    id_: Any | None = Field(default=None, alias="_id")
+
+    @model_validator(mode="before")
+    @classmethod
+    def remove_generic_attribution(cls, data: Any) -> Any:
+        """Keep annotation author provenance without duplicate generic attribution."""
+        if not isinstance(data, dict):
+            return data
+        return {
+            key: value
+            for key, value in data.items()
+            if key not in {"created_by", "updated_by", "system_installed"}
+        }
 
     variant: str
     hgvsp: str | None = None
@@ -186,7 +201,7 @@ class VepAnnoTranscriptDoc(_DocBase):
         return normalize_ampersand_terms(value)
 
 
-class AnnoVepDoc(_CollectionDocBase):
+class AnnoVepDoc(_DataDocBase):
     """Immutable transcript consequence vault keyed by variant identity and VEP version."""
 
     simple_id: str

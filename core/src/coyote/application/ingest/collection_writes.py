@@ -50,7 +50,9 @@ def upsert_collection_document(
     existing = service.collection_gateway.find_document(collection, match, session=session)
     if isinstance(existing, dict):
         reject_system_managed_change(existing, resource=collection)
-    document = attribute_record(document, actor=ingested_by, previous=existing)
+    document = attribute_record(
+        document, actor=ingested_by, previous=existing, collection=collection
+    )
     if collection == "samples":
         document = {**document, "ingested_by": ingested_by, "ingest_source": "collection_import"}
         if existing is not None:
@@ -80,7 +82,7 @@ def attribute_sample_import(
     Returns:
         A copy with server-owned actors; samples also receive initial ingest attribution.
     """
-    document = attribute_record(document, actor=actor)
+    document = attribute_record(document, actor=actor, collection=collection)
     if collection != "samples":
         return document
     return {**document, "ingested_by": actor, "ingest_source": "collection_import"}

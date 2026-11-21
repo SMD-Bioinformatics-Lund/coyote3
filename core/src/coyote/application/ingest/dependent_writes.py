@@ -75,7 +75,8 @@ def write_dependents(
             "Writing annotation vault: documents=%s (transaction pending)", len(anno_vep_docs)
         )
         service.anno_vep_repository.upsert_many(
-            [attribute_record(doc, actor=actor) for doc in anno_vep_docs], session=session
+            [attribute_record(doc, actor=actor, collection="anno_vep") for doc in anno_vep_docs],
+            session=session,
         )
         logger.info("Annotation vault writes complete (transaction pending)")
     dependent_preload = {
@@ -90,7 +91,7 @@ def write_dependents(
         if key in INGEST_SINGLE_DOCUMENT_KEYS:
             if not isinstance(payload, dict):
                 raise TypeError(f"{key} expected dict, got {type(payload).__name__}")
-            doc = attribute_record(payload, actor=actor)
+            doc = attribute_record(payload, actor=actor, collection=col_name)
             doc["SAMPLE_ID"] = sid
             if key == "cov":
                 doc["sample"] = sample_name
@@ -106,7 +107,7 @@ def write_dependents(
         for item in payload:
             if not isinstance(item, dict):
                 raise TypeError(f"{key} contains non-dict item")
-            doc = attribute_record(item, actor=actor)
+            doc = attribute_record(item, actor=actor, collection=col_name)
             doc["SAMPLE_ID"] = sid
             if key == "snvs":
                 doc = ensure_variant_identity_fields(doc)

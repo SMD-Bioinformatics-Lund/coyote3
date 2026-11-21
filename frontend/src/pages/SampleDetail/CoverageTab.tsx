@@ -15,14 +15,16 @@ import { useQuery } from "@tanstack/react-query"
 import { ColumnDef } from "@tanstack/react-table"
 import { icon } from "@/lib/assets"
 import { useEffect, useMemo, useState } from "react"
-import { coverageNumber, flattenCoverageTable, metric } from "./coverage-presentation"
+import { coverageNumber, flattenCoverageTable, metric, usesLegacyIntervalCoverage } from "./coverage-presentation"
 import { CoverageGeneView } from "./CoverageGeneView"
+import { IntervalCoverageView } from "./IntervalCoverageView"
 
 type CoverageViewPayload = CoverageSamplePayload & {
   coverage: { genes?: Record<string, Record<string, unknown>> }
 }
 
 export function CoverageTab({ sampleId, sample }: { sampleId: string; sample?: any }) {
+  const legacyIntervals = usesLegacyIntervalCoverage(sample)
   const configuredCutoff = Number(sampleFilterSection(sample, "coverage").warn_cov)
   const cutoff = Number.isFinite(configuredCutoff) && configuredCutoff > 0 ? configuredCutoff : 500
   const [selectedGene, setSelectedGene] = useState<string | null>(null)
@@ -33,7 +35,7 @@ export function CoverageTab({ sampleId, sample }: { sampleId: string; sample?: a
     setGeneSearch("")
     setSelectedGene(null)
   }
-  const geneListId = selection?.sampleId === sampleId ? selection.id : ""
+  const geneListId = !legacyIntervals && selection?.sampleId === sampleId ? selection.id : ""
   const [listOptions, setListOptions] = useState<{ sampleId: string; lists: CoverageGeneListOption[] } | null>(null)
   const { data, isLoading, error } = useQuery({
     queryKey: ["sample-coverage", sampleId, cutoff, geneListId],
@@ -44,7 +46,7 @@ export function CoverageTab({ sampleId, sample }: { sampleId: string; sample?: a
     if (data) setListOptions({ sampleId, lists: data.gene_lists || [] })
   }, [data, sampleId])
   const availableLists = listOptions?.sampleId === sampleId ? listOptions.lists : []
-  const scopeControl = <div className="space-y-1">
+  const scopeControl = legacyIntervals || data?.coverage_format === "interval" ? null : <div className="space-y-1">
     <p className="type-label">Coverage scope</p>
     <Select label="Coverage gene list" value={geneListId}
       options={[{ value: "", label: "Assay scope" }, ...availableLists.map(list => ({ value: list.id, label: list.label }))]}
@@ -151,6 +153,10 @@ export function CoverageTab({ sampleId, sample }: { sampleId: string; sample?: a
         {error instanceof Error ? error.message : "Error loading coverage"}
       </Notice></div>
     )
+  }
+
+  if (data?.coverage_format === "interval") {
+    return <IntervalCoverageView intervals={data.intervals || []} cutoff={data.cov_cutoff} sampleId={sampleId} />
   }
 
   return (

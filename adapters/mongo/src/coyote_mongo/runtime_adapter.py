@@ -35,6 +35,7 @@ from coyote_mongo.repositories.clinical_rule_sets import (
 )
 from coyote_mongo.repositories.configuration_profiles import ConfigurationProfileRepository
 from coyote_mongo.repositories.copy_number_variants import CNVsRepository
+from coyote_mongo.repositories.coverage import CoverageRepository
 from coyote_mongo.repositories.d4_coverage import D4CoverageRepository
 from coyote_mongo.repositories.d4_coverage_blacklist import D4CoverageBlacklistRepository
 from coyote_mongo.repositories.edit_leases import MongoEditLeaseRepository
@@ -91,6 +92,7 @@ CORE_REPOSITORIES: tuple[tuple[str, type[Any], str], ...] = (
     ("biomarker_repository", BiomarkerRepository, "biomarkers"),
     ("pgx_repository", PgxRepository, "pgx"),
     ("d4_coverage_repository", D4CoverageRepository, "d4_coverage"),
+    ("coverage_repository", CoverageRepository, "coverage"),
     ("d4_coverage_blacklist_repository", D4CoverageBlacklistRepository, "d4_coverage_blacklist"),
     ("assay_configuration_repository", ASPConfigRepository, "aspc"),
     ("roles_repository", RolesRepository, "roles"),

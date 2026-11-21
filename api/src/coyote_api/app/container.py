@@ -89,6 +89,7 @@ class MongoStore:
     cosmic_repository: Any
     knowledgebase_version_repository: Any
     d4_coverage_repository: Any
+    coverage_repository: Any
     expression_repository: Any
     fusion_repository: Any
     d4_coverage_blacklist_repository: Any
@@ -139,6 +140,7 @@ class MongoStore:
         "cosmic_repository",
         "knowledgebase_version_repository",
         "d4_coverage_repository",
+        "coverage_repository",
         "expression_repository",
         "fusion_repository",
         "d4_coverage_blacklist_repository",

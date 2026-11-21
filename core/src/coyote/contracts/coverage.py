@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -17,9 +17,22 @@ class CoverageGeneListOption(BaseModel):
     label: str
 
 
-class CoverageSamplePayload(BaseModel):
-    """Represent the coverage sample payload."""
+class CoverageIntervalPayload(BaseModel):
+    """Stored legacy interval evidence; endpoints and null depth remain unchanged."""
 
+    id: str
+    chr: str
+    start: int
+    end: int
+    avg_cov: float | None
+    amplicon: str | None = None
+
+
+class CoverageSamplePayload(BaseModel):
+    """D4 gene coverage or legacy interval evidence for an authorized sample."""
+
+    coverage_format: Literal["d4", "interval"] = "d4"
+    intervals: list[CoverageIntervalPayload] = Field(default_factory=list)
     coverage: dict[str, Any]
     cov_cutoff: int
     sample: dict[str, Any]

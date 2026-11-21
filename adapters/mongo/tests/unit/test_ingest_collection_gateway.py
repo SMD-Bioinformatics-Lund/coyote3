@@ -35,6 +35,7 @@ def test_from_store_uses_repository_database_bindings() -> None:
         "pgx_repository",
         "translocation_repository",
         "d4_coverage_repository",
+        "coverage_repository",
         "fusion_repository",
         "rna_expression_repository",
         "rna_classification_repository",
@@ -75,6 +76,7 @@ def test_from_store_uses_repository_database_bindings() -> None:
 
     gateway = IngestCollectionGateway.from_store(store)
 
+    assert gateway.collection("coverage") == "coverage_repository"
     assert gateway.collection("brcaexchange") == "brca_repository"
     assert gateway.collection("civic_genes") == "knowledgebase:civic_genes"
     assert gateway.collection("oncokb_actionable") == "knowledgebase:oncokb_actionable"

@@ -31,6 +31,7 @@ from coyote.contracts.schemas.diagnoses import (
 from coyote.contracts.schemas.dna import (
     BiomarkersDoc,
     CnvsDoc,
+    CoverageDoc,
     D4CoverageBlacklistDoc,
     D4CoverageDoc,
     PgxDoc,
@@ -108,6 +109,7 @@ COLLECTION_MODEL_ADAPTERS: dict[str, TypeAdapter[Any]] = {
     "translocations": TypeAdapter(TranslocationsDoc),
     "biomarkers": TypeAdapter(BiomarkersDoc),
     "pgx": TypeAdapter(PgxDoc),
+    "coverage": TypeAdapter(CoverageDoc),
     "d4_coverage": TypeAdapter(D4CoverageDoc),
     "fusions": TypeAdapter(FusionsDoc),
     "rna_expression": TypeAdapter(RnaExpressionDoc),
@@ -173,6 +175,7 @@ INGEST_DEPENDENT_COLLECTIONS: dict[str, str] = {
     "pgx": "pgx",
     "transloc": "translocations",
     "cov": "d4_coverage",
+    "coverage": "coverage",
     "fusions": "fusions",
     "rna_expr": "rna_expression",
     "rna_class": "rna_classification",

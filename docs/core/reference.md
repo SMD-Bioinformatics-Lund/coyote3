@@ -4753,11 +4753,11 @@ Sample.coverage(self, *, cutoff: 'int' = 500, gene_list_id: 'str | None' = None)
 ```
 
 ```text
-Read coverage within the assay scope and an optional captured gene list.
+Read legacy v2 intervals or D4 coverage in the captured assay scope.
 
 Args:
     cutoff: Positive minimum-depth cutoff.
-    gene_list_id: Captured gene-list identity, or None for full assay scope.
+    gene_list_id: Captured D4 gene-list identity; must be None for v2 intervals.
 
 Returns:
     Coverage measurements, scope and available gene lists.

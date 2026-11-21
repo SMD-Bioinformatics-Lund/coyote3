@@ -15,7 +15,7 @@ Immutable transcript consequence vault keyed by variant identity and VEP version
 
 Shared transcript vault in PRIMARY, not the knowledgebase database. Unique index: (simple_id_hash, vep_version). Not owned by one sample; never delete it just because one sample is removed.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `simple_id`, `simple_id_hash`, `vep_version`, `variant_class`, `CSQ`.
+Declared top-level fields: `created_by`, `updated_by`, `simple_id`, `simple_id_hash`, `vep_version`, `variant_class`, `CSQ`.
 
 [Field types and validation](../mongodb-collections.md#anno_vep). `_id` may also be retained by an open collection model.
 
@@ -50,7 +50,7 @@ Classification or text annotation with nomenclature-specific finding identity.
 
 New annotations record optional source_sample_id and source_finding_id provenance; older records may have neither. Reusable interpretation matching still uses nomenclature-specific identity: p/c/g uses protein/cDNA/genomic identity; cn uses variant; f/t use ordered gene1/gene2 plus variant. Deactivation retains records with is_active false; missing is_active means active. Preserve namespace, assay scope, author, timestamps, source links and class versus text. VEP 103 is a migration-specific source requirement, not a universal runtime version.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`, `variant`, `hgvsp`, `hgvsc`, `genomic`, `genomic_hash`, `gene`, `gene1`, `gene2`, `asp_group`, `diagnosis_id`, `asp_id`, `namespace`, `author`, `nomenclature`, `transcript`, `time_created`, `class`, `text`, `rule_source`, `is_active`, `deactivated_at`, `deactivated_by`, `source_sample_id`, `source_finding_id`.
+Declared top-level fields: `_id`, `variant`, `hgvsp`, `hgvsc`, `genomic`, `genomic_hash`, `gene`, `gene1`, `gene2`, `asp_group`, `diagnosis_id`, `asp_id`, `namespace`, `author`, `nomenclature`, `transcript`, `time_created`, `class`, `text`, `rule_source`, `is_active`, `deactivated_at`, `deactivated_by`, `source_sample_id`, `source_finding_id`.
 
 [Field types and validation](../mongodb-collections.md#annotation). `_id` may also be retained by an open collection model.
 
@@ -91,7 +91,7 @@ Binding: `biomarkers_collection`.
 
 Sample biomarker results with absent optional assays removed after validation.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `SAMPLE_ID`, `name`, `MSIS`, `MSIP`, `HRD`, `TMB`.
+Declared top-level fields: `created_by`, `updated_by`, `SAMPLE_ID`, `name`, `MSIS`, `MSIP`, `HRD`, `TMB`.
 
 [Field types and validation](../mongodb-collections.md#biomarkers). `_id` may also be retained by an open collection model.
 
@@ -118,7 +118,7 @@ Binding: `cnvs_collection`.
 
 Sample-scoped copy-number interval with ratio, genes, probes, and callers.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `SAMPLE_ID`, `chr`, `start`, `end`, `size`, `ratio`, `type`, `nprobes`, `genes`, `callers`.
+Declared top-level fields: `created_by`, `updated_by`, `SAMPLE_ID`, `chr`, `start`, `end`, `size`, `ratio`, `type`, `nprobes`, `genes`, `callers`.
 
 [Field types and validation](../mongodb-collections.md#cnvs). `_id` may also be retained by an open collection model.
 
@@ -141,6 +141,47 @@ Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `SAMP
 | [primary.finding_comments](clinical.md#primary-finding-comments): `finding_oid` | [primary.cnvs](clinical.md#primary-cnvs): `_id` | polymorphic reference; many → one | Only when finding_type=cnv; verify the finding's SAMPLE_ID also equals str(sample_oid). | [S8](#s8) |
 | [primary.reported_variants](clinical.md#primary-reported-variants): `var_oid` | [primary.cnvs](clinical.md#primary-cnvs): `_id` | optional polymorphic reference; many → one | Target depends on analysis_type/finding_type. Snapshot-only measurements can have no var_oid; preserve the captured result. | [S19](#s19) |
 
+## primary.coverage
+
+<a id="primary-coverage"></a>
+
+Binding: `coverage_collection` in the primary database.
+
+One legacy interval per document. `chr`, `start`, `end`, `avg_cov` and optional
+`amplicon` retain the stored evidence; numeric chromosome labels become strings.
+Endpoints are not shifted. Legacy Coyote displays size as `end - start + 1`;
+this contract does not infer or convert the originating file's coordinate convention.
+Mean depth is nonnegative and finite, with zero distinct from explicit null.
+Missing depth and reversed or fractional endpoints fail validation.
+
+Declared fields: `_id`, `SAMPLE_ID`, `chr`, `start`, `end`, `avg_cov`, `amplicon`,
+`created_by`, `updated_by`. [Field types](../mongodb-collections.md#coverage).
+Read-time COSMIC matches are not stored fields. D4 transcript/exon coverage remains
+in its existing collection; these intervals are not aggregated into that shape.
+
+![Interval coverage sample relationship](../../assets/diagrams/collection-dependencies/primary-coverage.svg)
+
+| Source field | Target key | Relationship | Migration semantics |
+| --- | --- | --- | --- |
+| `SAMPLE_ID` | [primary.samples](#primary-samples): `_id` | many intervals → one sample | Store `str(samples._id)`. Preserve each interval's original `_id`. HOP accepts legacy `sample` only as an exact ObjectId link; conflicting links hold the affected samples. |
+| `created_by`, `updated_by` | [identity.users](identity.md#identity-users): `username` | optional historical actors | Retain supplied authors, including historical users without current accounts. |
+
+The sample bundle writes intervals and its audit receipt in the existing transaction.
+Sample deletion removes them in the same transaction and includes their count in
+the `sample.deleted` audit receipt. Its result key is `coverage_intervals`; the
+existing `coverage` deletion-count key continues to refer to D4 records.
+
+Upgrade: include `coverage_collection = "coverage"` in custom primary collection
+bindings. The adapter's index plan adds the sample/interval lookup index; imports
+do not install indexes. Existing interval records require explicit HOP migration
+to validate their fields and parent links. Samples marked `legacy: true` and
+`legacy_source: "v2"` display these intervals in Coverage, with original coordinates,
+mean depth and amplicon labels. Their interval view does not require D4 gene
+resources or apply D4 blacklists. Migrated v3 and native samples retain the D4 view.
+The coverage API identifies the returned shape with `coverage_format` (`interval`
+or `d4`); interval records are in `intervals`. Sample permissions, scope and access
+auditing apply to both formats.
+
 ## primary.d4_coverage
 
 <a id="primary-d4-coverage"></a>
@@ -149,7 +190,7 @@ Binding: `d4_coverage_collection`.
 
 D4-derived transcript, exon, CDS, and probe coverage for one sample.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `genes`, `SAMPLE_ID`, `sample`.
+Declared top-level fields: `created_by`, `updated_by`, `genes`, `SAMPLE_ID`, `sample`.
 
 [Field types and validation](../mongodb-collections.md#d4_coverage). `_id` may also be retained by an open collection model.
 
@@ -176,7 +217,7 @@ Binding: `finding_comments_collection`.
 
 Finding-level comment with retained display identity and hiding metadata.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `sample_oid`, `sample_name`, `finding_oid`, `finding_type`, `nomenclature`, `variant`, `hgvsp`, `hgvsc`, `genomic`, `genomic_hash`, `gene`, `transcript`, `gene1`, `gene2`, `author`, `text`, `hidden`, `hidden_by`, `time_created`, `time_hidden`.
+Declared top-level fields: `created_by`, `updated_by`, `sample_oid`, `sample_name`, `finding_oid`, `finding_type`, `nomenclature`, `variant`, `hgvsp`, `hgvsc`, `genomic`, `genomic_hash`, `gene`, `transcript`, `gene1`, `gene2`, `author`, `text`, `hidden`, `hidden_by`, `time_created`, `time_hidden`.
 
 [Field types and validation](../mongodb-collections.md#finding_comments). `_id` may also be retained by an open collection model.
 
@@ -207,7 +248,7 @@ Binding: `fusions_collection`.
 
 Sample-scoped gene-pair fusion with caller evidence and review flags.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `SAMPLE_ID`, `gene1`, `gene2`, `genes`, `fp`, `irrelevant`, `interesting`, `blacklisted`, `calls`.
+Declared top-level fields: `created_by`, `updated_by`, `SAMPLE_ID`, `gene1`, `gene2`, `genes`, `fp`, `irrelevant`, `interesting`, `blacklisted`, `calls`.
 
 [Field types and validation](../mongodb-collections.md#fusions). `_id` may also be retained by an open collection model.
 
@@ -238,7 +279,7 @@ Binding: `pgx_collection`.
 
 Sample-scoped PGX payload preserved from the declared ingest result.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `SAMPLE_ID`.
+Declared top-level fields: `created_by`, `updated_by`, `SAMPLE_ID`.
 
 [Field types and validation](../mongodb-collections.md#pgx). `_id` may also be retained by an open collection model.
 
@@ -265,7 +306,7 @@ Binding: `reported_variants_collection`.
 
 Immutable, explicitly typed finding included in a saved report.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`, `report_id`, `report_num`, `sample_name`, `report_oid`, `sample_oid`, `assay`, `assay_group`, `diagnosis`, `environment`, `analysis_type`, `analysis_intent`, `finding_type`, `var_oid`, `annotation_oid`, `annotation_text_oid`, `sample_comment_oid`, `simple_id`, `simple_id_hash`, `genes`, `gene`, `gene1`, `gene2`, `transcript`, `hgvsc`, `hgvsp`, `genomic`, `nomenclature`, `variant`, `var_type`, `tier`, `region`, `chromosome`, `start`, `end`, `size`, `cnv_type`, `ratio`, `nprobes`, `source_id`, `position`, `ref`, `alt`, `breakpoint`, `breakpoint_1`, `breakpoint_2`, `fusion`, `effect`, `spanning_pairs`, `spanning_reads`, `longest_anchor`, `callers`, `classification`, `text`, `biomarker`, `result`, `pgx_result`, `diplotype`, `phenotype`, `activity_score`, `recommendation`, `created_on`.
+Declared top-level fields: `created_by`, `updated_by`, `_id`, `report_id`, `report_num`, `sample_name`, `report_oid`, `sample_oid`, `assay`, `assay_group`, `diagnosis`, `environment`, `analysis_type`, `analysis_intent`, `finding_type`, `var_oid`, `annotation_oid`, `annotation_text_oid`, `sample_comment_oid`, `simple_id`, `simple_id_hash`, `genes`, `gene`, `gene1`, `gene2`, `transcript`, `hgvsc`, `hgvsp`, `genomic`, `nomenclature`, `variant`, `var_type`, `tier`, `region`, `chromosome`, `start`, `end`, `size`, `cnv_type`, `ratio`, `nprobes`, `source_id`, `position`, `ref`, `alt`, `breakpoint`, `breakpoint_1`, `breakpoint_2`, `fusion`, `effect`, `spanning_pairs`, `spanning_reads`, `longest_anchor`, `callers`, `classification`, `text`, `biomarker`, `result`, `pgx_result`, `diplotype`, `phenotype`, `activity_score`, `recommendation`, `created_on`.
 
 [Field types and validation](../mongodb-collections.md#reported_variants). `_id` may also be retained by an open collection model.
 
@@ -301,7 +342,7 @@ Binding: `reports_collection`.
 
 Saved report reference with sample scope and filter/configuration snapshots.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `sample_oid`, `sample_name`, `asp_id`, `diagnosis_id`, `environment`, `report_num`, `report_id`, `report_type`, `report_name`, `filepath`, `author`, `time_created`, `filters_snapshot`, `aspc`, `clinical_rule_source`, `resolution_snapshot`, `artifacts`, `sample_version`.
+Declared top-level fields: `created_by`, `updated_by`, `sample_oid`, `sample_name`, `asp_id`, `diagnosis_id`, `environment`, `report_num`, `report_id`, `report_type`, `report_name`, `filepath`, `author`, `time_created`, `filters_snapshot`, `aspc`, `clinical_rule_source`, `resolution_snapshot`, `artifacts`, `sample_version`.
 
 [Field types and validation](../mongodb-collections.md#reports). `_id` may also be retained by an open collection model.
 
@@ -335,7 +376,7 @@ Binding: `rna_classification_collection`.
 
 Sample classifier results tied to the classifier version.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `classifier_results`, `classifier_version`, `SAMPLE_ID`.
+Declared top-level fields: `created_by`, `updated_by`, `classifier_results`, `classifier_version`, `SAMPLE_ID`.
 
 [Field types and validation](../mongodb-collections.md#rna_classification). `_id` may also be retained by an open collection model.
 
@@ -362,7 +403,7 @@ Binding: `rna_expression_collection`.
 
 Sample and reference gene-expression entries tied to an expression version.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `sample`, `reference`, `expression_version`, `SAMPLE_ID`.
+Declared top-level fields: `created_by`, `updated_by`, `sample`, `reference`, `expression_version`, `SAMPLE_ID`.
 
 [Field types and validation](../mongodb-collections.md#rna_expression). `_id` may also be retained by an open collection model.
 
@@ -389,7 +430,7 @@ Binding: `rna_qc_collection`.
 
 RNA alignment, splicing, gene-body coverage, and provider-genotype metrics.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `tot_reads`, `mapped_pct`, `multimap_pct`, `mismatch_pct`, `canon_splice`, `non_canon_splice`, `splice_ratio`, `genebody_cov`, `genebody_cov_slope`, `provider_genotypes`, `provider_called_genotypes`, `flendist`, `sample_id`, `SAMPLE_ID`.
+Declared top-level fields: `created_by`, `updated_by`, `tot_reads`, `mapped_pct`, `multimap_pct`, `mismatch_pct`, `canon_splice`, `non_canon_splice`, `splice_ratio`, `genebody_cov`, `genebody_cov_slope`, `provider_genotypes`, `provider_called_genotypes`, `flendist`, `sample_id`, `SAMPLE_ID`.
 
 [Field types and validation](../mongodb-collections.md#rna_qc). `_id` may also be retained by an open collection model.
 
@@ -416,7 +457,7 @@ Binding: `sample_comments_collection`.
 
 Sample-level comment with authorship and hiding metadata.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `sample_oid`, `sample_name`, `author`, `text`, `hidden`, `hidden_by`, `time_created`, `time_hidden`.
+Declared top-level fields: `created_by`, `updated_by`, `sample_oid`, `sample_name`, `author`, `text`, `hidden`, `hidden_by`, `time_created`, `time_hidden`.
 
 [Field types and validation](../mongodb-collections.md#sample_comments). `_id` may also be retained by an open collection model.
 
@@ -447,7 +488,7 @@ Sample ingest contract linking clinical scope, files, filters, and case/control 
 
 case_id, control_id, case.id and control.id describe sample material/case-control identifiers; they are not self-references to samples._id. The primary samples collection and BAM-service samples collection are different namespaces.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `name`, `version`, `asp_id`, `diagnosis_id`, `environment`, `current_aspc_id`, `current_aspc_name`, `aspc_resolution`, `genome_build`, `database_versions`, `case_id`, `control_id`, `sample_no`, `paired`, `asp_family`, `asp_category`, `sex`, `platform`, `read_mode`, `read_technology`, `pipeline`, `pipeline_version`, `files`, `missing_expected_files`, `analysis_intents`, `filters`, `case`, `control`, `ingest_status`, `reported`, `latest_report_id`, `latest_report_on`, `time_added`, `ingested_by`, `ingest_source`.
+Declared top-level fields: `created_by`, `updated_by`, `name`, `version`, `asp_id`, `diagnosis_id`, `environment`, `current_aspc_id`, `current_aspc_name`, `aspc_resolution`, `genome_build`, `database_versions`, `case_id`, `control_id`, `sample_no`, `paired`, `asp_family`, `asp_category`, `sex`, `platform`, `read_mode`, `read_technology`, `pipeline`, `pipeline_version`, `files`, `missing_expected_files`, `analysis_intents`, `filters`, `case`, `control`, `ingest_status`, `reported`, `latest_report_id`, `latest_report_on`, `time_added`, `ingested_by`, `ingest_source`.
 
 [Field types and validation](../mongodb-collections.md#samples). `_id` may also be retained by an open collection model.
 
@@ -483,6 +524,7 @@ Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `name
 | [primary.fusions](clinical.md#primary-fusions): `SAMPLE_ID` | [primary.samples](clinical.md#primary-samples): `_id` | string ObjectId; many → one | SAMPLE_ID stores str(samples._id), not samples.name. Multiple evidence rows may share a sample; preserve the original sample ObjectId and remap only with a complete identity map. | [S21](#s21) |
 | [primary.biomarkers](clinical.md#primary-biomarkers): `SAMPLE_ID` | [primary.samples](clinical.md#primary-samples): `_id` | string ObjectId; 0..1 per ingest payload | SAMPLE_ID stores str(samples._id), not samples.name. Multiple evidence rows may share a sample; preserve the original sample ObjectId and remap only with a complete identity map. | [S21](#s21) |
 | [primary.pgx](clinical.md#primary-pgx): `SAMPLE_ID` | [primary.samples](clinical.md#primary-samples): `_id` | string ObjectId; 0..1 per ingest payload | SAMPLE_ID stores str(samples._id), not samples.name. Multiple evidence rows may share a sample; preserve the original sample ObjectId and remap only with a complete identity map. | [S21](#s21) |
+| [primary.coverage](clinical.md#primary-coverage): `SAMPLE_ID` | [primary.samples](clinical.md#primary-samples): `_id` | string ObjectId; many → one | Preserve interval identities and exact sample ownership; never join by sample name. | [Coverage contract](#primary-coverage) |
 | [primary.d4_coverage](clinical.md#primary-d4-coverage): `SAMPLE_ID` | [primary.samples](clinical.md#primary-samples): `_id` | string ObjectId; 0..1 per ingest payload | SAMPLE_ID stores str(samples._id), not samples.name. Multiple evidence rows may share a sample; preserve the original sample ObjectId and remap only with a complete identity map. | [S21](#s21) |
 | [primary.rna_expression](clinical.md#primary-rna-expression): `SAMPLE_ID` | [primary.samples](clinical.md#primary-samples): `_id` | string ObjectId; 0..1 per ingest payload | SAMPLE_ID stores str(samples._id), not samples.name. Multiple evidence rows may share a sample; preserve the original sample ObjectId and remap only with a complete identity map. | [S21](#s21) |
 | [primary.rna_classification](clinical.md#primary-rna-classification): `SAMPLE_ID` | [primary.samples](clinical.md#primary-samples): `_id` | string ObjectId; 0..1 per ingest payload | SAMPLE_ID stores str(samples._id), not samples.name. Multiple evidence rows may share a sample; preserve the original sample ObjectId and remap only with a complete identity map. | [S21](#s21) |
@@ -503,7 +545,7 @@ Binding: `transloc_collection`.
 
 Sample-scoped structural variant with breakend, genotype, and annotation fields.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `SAMPLE_ID`, `CHROM`, `POS`, `END`, `source_records`, `REF`, `ALT`, `FILTER`, `FORMAT`, `ID`, `QUAL`, `GT`, `INFO`, `fp`, `irrelevant`, `interesting`, `blacklisted`.
+Declared top-level fields: `created_by`, `updated_by`, `SAMPLE_ID`, `CHROM`, `POS`, `END`, `source_records`, `REF`, `ALT`, `FILTER`, `FORMAT`, `ID`, `QUAL`, `GT`, `INFO`, `fp`, `irrelevant`, `interesting`, `blacklisted`.
 
 [Field types and validation](../mongodb-collections.md#translocations). `_id` may also be retained by an open collection model.
 
@@ -534,7 +576,7 @@ Binding: `variants_collection`.
 
 Sample-scoped small variant with selected consequence and hashed genomic identity.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `SAMPLE_ID`, `CHROM`, `POS`, `REF`, `ALT`, `ID`, `QUAL`, `FILTER`, `INFO`, `GT`, `gnomad_frequency`, `gnomad_max`, `exac_frequency`, `thousandG_frequency`, `variant_class`, `selected_csq_feature`, `genes`, `transcripts`, `HGVSc`, `HGVSp`, `consequence_terms`, `simple_id`, `simple_id_hash`, `cosmic_ids`, `dbsnp_id`, `pubmed_ids`, `hotspots`, `fp`, `irrelevant`, `interesting`.
+Declared top-level fields: `created_by`, `updated_by`, `SAMPLE_ID`, `CHROM`, `POS`, `REF`, `ALT`, `ID`, `QUAL`, `FILTER`, `INFO`, `GT`, `gnomad_frequency`, `gnomad_max`, `exac_frequency`, `thousandG_frequency`, `variant_class`, `selected_csq_feature`, `genes`, `transcripts`, `HGVSc`, `HGVSp`, `consequence_terms`, `simple_id`, `simple_id_hash`, `cosmic_ids`, `dbsnp_id`, `pubmed_ids`, `hotspots`, `fp`, `irrelevant`, `interesting`.
 
 [Field types and validation](../mongodb-collections.md#variants). `_id` may also be retained by an open collection model.
 

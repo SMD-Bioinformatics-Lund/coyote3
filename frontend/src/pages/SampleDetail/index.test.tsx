@@ -204,6 +204,13 @@ describe("SampleDetail", () => {
     expect(screen.getByRole("tab", { name: "Coverage" })).toBeVisible()
   })
 
+  it("exposes migrated v2 intervals independently of the current D4 assay setting", () => {
+    mocks.context = { ...sampleContext({ legacy: true, legacy_source: "v2", data_counts: { coverage: 2 } }), analysis_sections: [] }
+    renderWithRouter(<SampleDetail />, "/samples/DNA_001?tab=coverage")
+    expect(screen.getByRole("tab", { name: "Coverage" })).toBeVisible()
+    expect(screen.getByText("Coverage content")).toBeVisible()
+  })
+
   it("recognizes historical mixed-case coverage data-count keys", () => {
     mocks.context = sampleContext({ data_counts: { snvs: 12, Cov: true } })
     renderWithRouter(<SampleDetail />, "/samples/DNA_001")

@@ -265,6 +265,20 @@ describe("sample analysis table tabs", () => {
     expect(await screen.findByText(message)).toBeVisible()
   })
 
+  it("opens migrated v2 interval coverage without D4 gene or blacklist controls", async () => {
+    mocks.get.mockResolvedValue({ data: {
+      coverage_format: "interval", cov_cutoff: 500, coverage: {}, cov_table: {},
+      intervals: [{ id: "old", chr: "7", start: 0, end: 9, avg_cov: 0, amplicon: "LEGACY" }],
+    } })
+    mount(<CoverageTab sampleId="V2" sample={{ legacy: true, legacy_source: "v2" }} />, "/samples/V2?tab=coverage")
+    expect(await screen.findByText("Legacy interval coverage")).toBeVisible()
+    expect(screen.getByText("0.0")).toBeVisible()
+    expect(screen.queryByRole("combobox", { name: "Coverage gene list" })).not.toBeInTheDocument()
+    expect(screen.queryByText("Low-Coverage Genes")).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /Blacklist/ })).not.toBeInTheDocument()
+    expect(mocks.get).toHaveBeenCalledWith("/samples/V2/coverage?cov_cutoff=500")
+  })
+
   it("renders coverage metrics, low-gene navigation, and a flattened coverage table", async () => {
     mocks.get.mockResolvedValue({ data: {
       smp_grp: "hematology",

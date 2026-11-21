@@ -1,9 +1,22 @@
 # Coverage Review
 
-The coverage workspace identifies assay regions below a selected depth cutoff
-and provides the transcript, exon, CDS, and probe context needed for technical
-review. Coverage is a DNA quality analysis and appears only when it is enabled
-by the sample's recorded ASPC revision and coverage data was ingested for the sample.
+The coverage workspace shows DNA sequencing depth. Migrated v2 samples use their
+original interval measurements; v3 and native samples use D4 transcript, exon,
+CDS and probe coverage. The DNA analysis module must be enabled and coverage data
+available. D4 also requires Coverage in the sample's applied configuration.
+
+## Migrated v2 Coverage
+
+For a migrated v2 DNA sample, open **Coverage** to see all stored intervals,
+including intervals above the warning cutoff. The table shows chromosome and
+coordinates, size (`end - start + 1`), average depth and amplicon label. Coordinates
+remain as recorded in the original analysis. The summary counts stored intervals,
+intervals below the sample's warning depth, and intervals with unknown depth.
+Zero is a measured depth; a dash means the depth was unknown.
+
+Use the table search and **Export to CSV** to inspect and export the filtered rows.
+This view has no D4 gene-list selection, transcript plots or D4 blacklist controls.
+The sections below describe D4 coverage.
 
 ## Open Coverage Review
 

@@ -170,7 +170,7 @@ def main() -> int:
         optional = []
         for name, field in fields.items():
             ftype = _field_type_name(field.annotation)
-            entry = f"`{name}` ({ftype})"
+            entry = f"`{field.alias or name}` ({ftype})"
             if field.is_required():
                 required.append(entry)
             else:

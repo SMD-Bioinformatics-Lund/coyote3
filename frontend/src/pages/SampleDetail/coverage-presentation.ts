@@ -3,6 +3,9 @@
 
 import { shortCount } from "@/lib/detail-formatters"
 
+export function usesLegacyIntervalCoverage(sample?: { legacy?: unknown; legacy_source?: unknown } | null) {
+  return sample?.legacy === true && sample.legacy_source === "v2"
+}
 
 export function flattenCoverageTable(covTable: any) {
   return Object.entries(covTable || {}).flatMap(([gene, regions]: [string, any]) =>

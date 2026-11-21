@@ -11,7 +11,7 @@ from pydantic import Field, field_validator, model_validator
 
 from coyote.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from coyote.contracts.schemas.base import (
-    _CollectionDocBase,
+    _DataDocBase,
     _DocBase,
     _FindingDocBase,
 )
@@ -161,7 +161,7 @@ class ExpressionReferenceEntryDoc(_DocBase):
         return cleaned
 
 
-class RnaExpressionDoc(_CollectionDocBase):
+class RnaExpressionDoc(_DataDocBase):
     """Sample and reference gene-expression entries tied to an expression version."""
 
     sample: list[ExpressionSampleEntryDoc]
@@ -193,7 +193,7 @@ class ClassifierResultDoc(_DocBase):
         return self
 
 
-class RnaClassificationDoc(_CollectionDocBase):
+class RnaClassificationDoc(_DataDocBase):
     """Sample classifier results tied to the classifier version."""
 
     classifier_results: list[ClassifierResultDoc]
@@ -201,7 +201,7 @@ class RnaClassificationDoc(_CollectionDocBase):
     SAMPLE_ID: str
 
 
-class RnaQcDoc(_CollectionDocBase):
+class RnaQcDoc(_DataDocBase):
     """RNA alignment, splicing, gene-body coverage, and provider-genotype metrics."""
 
     tot_reads: int

@@ -37,6 +37,7 @@ from coyote.config.sequencing import resolve_read_technology
 from coyote.contracts.schemas.base import (
     _CollectionDocBase,
     _StrictCollectionDocBase,
+    _StrictDataDocBase,
     _StrictDocBase,
 )
 from coyote.contracts.schemas.clinical_rules import ClinicalRuleSetDoc
@@ -1003,7 +1004,7 @@ class InsilicoGenelistsDoc(_StrictCollectionDocBase):
         return len(self.genes)
 
 
-class BlacklistDoc(_StrictCollectionDocBase):
+class BlacklistDoc(_StrictDataDocBase):
     """One blacklisted allele with group scopes and per-assay normal-sample measurements."""
 
     simple_id: str

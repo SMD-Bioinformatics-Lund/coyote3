@@ -24,6 +24,7 @@ import {
 } from "@/lib/user-settings"
 import { CNVTab } from "./CNVTab"
 import { CoverageTab } from "./CoverageTab"
+import { usesLegacyIntervalCoverage } from "./coverage-presentation"
 import { BiomarkersTab } from "./BiomarkersTab"
 import { FiltersSidebar } from "./FiltersSidebar"
 import {
@@ -87,7 +88,8 @@ function visibleTabs(sample: any, context: any, modules?: any) {
     if (tab.id === "coverage") {
       const isDna = String(sample?.asp_category || "").toLowerCase() === "dna"
       const hasResource = hasSampleFile(sample, "cov") || hasSampleFile(sample, "coverage") || hasCount("cov") || hasCount("coverage")
-      return isDna && hasResource && hasAnalysis("COVERAGE")
+      const hasLegacyIntervals = usesLegacyIntervalCoverage(sample) && hasCount("coverage")
+      return isDna && hasResource && (hasAnalysis("COVERAGE") || hasLegacyIntervals)
     }
     if (!("analysis" in tab)) return true
     if (tab.id === "snvs" || tab.id === "germline-snvs") {

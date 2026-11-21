@@ -280,6 +280,7 @@ def test_sample_deletion_is_atomic_and_preserves_other_owners(
         "variant": "variants",
         "copy_number_variant": "cnvs",
         "d4_coverage": "d4_coverage",
+        "coverage": "coverage",
         "translocation": "translocations",
         "fusion": "fusions",
         "biomarker": "biomarkers",

@@ -25,9 +25,9 @@ def test_sample_import_replaces_forged_actor_without_mutating_input():
         "ingest_source": "collection_import",
         "created_by": "operator",
         "updated_by": "operator",
-        "system_installed": False,
     }
     assert document["ingested_by"] == "forged"
     variant = attribute_sample_import("variants", document, "operator")
     assert variant["created_by"] == variant["updated_by"] == "operator"
+    assert "system_installed" not in variant
     assert variant is not document

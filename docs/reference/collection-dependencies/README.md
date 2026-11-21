@@ -23,7 +23,7 @@ when this reference is generated.
 | [Complete collection inventory](inventory.md) | Every database-qualified collection, its binding and detailed dependency section. |
 | [Assays, diagnoses and gene lists](configuration.md) | ASP/ASPC, assay groups, named diagnoses, associations, lists, blacklist and coverage exclusions. |
 | [Drafts, publications and revision history](workflows.md) | Setup staging, configuration profiles/promotions, rule versions, revision snapshots and public catalogs. |
-| [Samples, findings, annotations and reports](clinical.md) | All ten sample evidence collections, shared VEP records, comments, clinical annotations and report-time snapshots. |
+| [Samples, findings, annotations and reports](clinical.md) | Sample evidence collections, shared VEP records, comments, clinical annotations and report-time snapshots. |
 | [Identity, permissions and audit](identity.md) | User/role/permission identifiers, sessions, historical actors and integrity chains. |
 | [Knowledgebase and reference evidence](knowledgebase.md) | HGNC/VEP, provider identifiers, coordinate/transcript lookups, COSMIC product payloads and release manifests. |
 | [Operational state and BAM records](operations.md) | Ingest jobs, notifications, cursors, edit leases, artifact cleanup and external BAM identifiers. |

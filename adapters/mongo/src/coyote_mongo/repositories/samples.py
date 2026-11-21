@@ -695,6 +695,7 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
                 {**sample_doc, "version": expected_version + 1},
                 actor=current_username("") or sample_doc.get("updated_by"),
                 previous=previous,
+                collection="samples",
             )
         )
         result = self.write(

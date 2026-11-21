@@ -41,6 +41,7 @@ class IngestCollectionGateway:
                 "pgx": store.pgx_repository.get_collection(),
                 "translocations": store.translocation_repository.get_collection(),
                 "d4_coverage": store.d4_coverage_repository.get_collection(),
+                "coverage": store.coverage_repository.get_collection(),
                 "fusions": store.fusion_repository.get_collection(),
                 "rna_expression": store.rna_expression_repository.get_collection(),
                 "rna_classification": store.rna_classification_repository.get_collection(),

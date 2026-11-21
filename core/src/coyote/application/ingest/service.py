@@ -562,7 +562,10 @@ class InternalIngestService:
         merged_doc = dict(current_doc)
         merged_doc.update(parsed_payload)
         merged_doc = attribute_record(
-            merged_doc, actor=current_username("") or None, previous=current_doc
+            merged_doc,
+            actor=current_username("") or None,
+            previous=current_doc,
+            collection="samples",
         )
         merged_doc["version"] = int(current_doc["version"]) + 1
         for field in ("ingested_by", "ingest_source"):
@@ -751,7 +754,9 @@ class InternalIngestService:
         if uploaded_checksums:
             meta["uploaded_file_checksums"] = uploaded_checksums
         document = SamplesDoc.model_validate(meta).to_persistence_document()
-        document = attribute_record(document, actor=ingested_by or current_username("") or None)
+        document = attribute_record(
+            document, actor=ingested_by or current_username("") or None, collection="samples"
+        )
         document["_id"] = sample_id
 
         def create(session):

@@ -13,6 +13,8 @@ from coyote.application.common.access import enforce_assay_group
 from coyote.application.common.assay_config import get_formatted_assay_config
 from coyote.application.common.release_resources import assay_resource, gene_list_resources
 from coyote.application.coverage.processing import CoverageProcessingService
+from coyote.contracts.coverage import CoverageIntervalPayload
+from coyote.contracts.schemas.dna import CoverageDoc
 from coyote.domain.common.errors import setup_error, validation_error
 
 
@@ -26,6 +28,7 @@ class CoverageService:
             assay_configuration_repository=store.assay_configuration_repository,
             assay_panel_repository=store.assay_panel_repository,
             d4_coverage_repository=store.d4_coverage_repository,
+            coverage_repository=store.coverage_repository,
             d4_coverage_blacklist_repository=store.d4_coverage_blacklist_repository,
         )
 
@@ -35,28 +38,32 @@ class CoverageService:
         assay_configuration_repository: Any,
         assay_panel_repository: Any,
         d4_coverage_repository: Any,
+        coverage_repository: Any,
         d4_coverage_blacklist_repository: Any,
     ) -> None:
         """Create the service with explicit injected repositories."""
         self.assay_configuration_repository = assay_configuration_repository
         self.assay_panel_repository = assay_panel_repository
         self.d4_coverage_repository = d4_coverage_repository
+        self.coverage_repository = coverage_repository
         self.d4_coverage_blacklist_repository = d4_coverage_blacklist_repository
 
     def sample_payload(
         self, *, sample: dict, cov_cutoff: int, gene_list_id: str | None = None
     ) -> dict[str, Any]:
-        """Return low coverage within the sample's captured assay scope.
+        """Read v2 intervals or D4 low coverage within the captured assay scope.
 
         Args:
             sample: Sample payload to inspect.
             cov_cutoff: Coverage threshold for low-coverage detection.
-            gene_list_id: Optional captured gene list narrowing the assay scope.
+            gene_list_id: Optional captured gene list narrowing D4 assay scope.
                 None uses the complete assay scope; a selected list containing
                 no genes matches no measurements.
 
         Returns:
-            Coverage charts, summary rows and gene scope. A nonempty assay
+            Migrated v2 samples return stored intervals without requiring D4
+            gene resources or fabricating exon coverage. Other samples return
+            coverage charts, summary rows and gene scope. A nonempty assay
             covered_genes list defines scope; otherwise use ingested coverage genes.
             Finding filters do not affect coverage eligibility.
 
@@ -64,6 +71,11 @@ class CoverageService:
             AppError: The applied configuration or its captured assay is unavailable
                 or fails integrity validation, or the selected list is unavailable.
         """
+        if sample.get("legacy") is True and sample.get("legacy_source") == "v2":
+            if gene_list_id is not None:
+                raise validation_error("Gene-list filtering is unavailable for legacy intervals")
+            return self._interval_payload(sample=sample, cov_cutoff=cov_cutoff)
+
         sample_assay = sample.get("asp_id", "unknown")
         assay_config = get_formatted_assay_config(
             sample,
@@ -115,6 +127,7 @@ class CoverageService:
         filtered_dict = CoverageProcessingService.organize_data_for_d3(filtered_dict)
 
         return {
+            "coverage_format": "d4",
             "coverage": filtered_dict,
             "cov_cutoff": cov_cutoff,
             "sample": sample_payload,
@@ -126,6 +139,41 @@ class CoverageService:
             ],
             "smp_grp": assay_group,
             "cov_table": cov_table,
+        }
+
+    def _interval_payload(self, *, sample: dict, cov_cutoff: int) -> dict[str, Any]:
+        """Read every stored v2 interval by sample ID, preserving unknown and zero depth.
+
+        The caller has already enforced sample permission and assay/environment
+        scope. This view does not apply D4 blacklists or infer genes from amplicon
+        labels. The cutoff highlights rows; it does not discard stored evidence.
+        """
+        intervals = []
+        for row in self.coverage_repository.get_sample_intervals(str(sample["_id"])):
+            record = CoverageDoc.model_validate(row)
+            intervals.append(
+                CoverageIntervalPayload(
+                    id=str(record.id_),
+                    chr=record.chr,
+                    start=record.start,
+                    end=record.end,
+                    avg_cov=record.avg_cov,
+                    amplicon=record.amplicon,
+                ).model_dump()
+            )
+        sample_payload = deepcopy(sample)
+        sample_payload.pop("_id", None)
+        return {
+            "coverage_format": "interval",
+            "intervals": intervals,
+            "coverage": {},
+            "cov_table": {},
+            "cov_cutoff": cov_cutoff,
+            "sample": sample_payload,
+            "gene_scope": [],
+            "gene_lists": [],
+            "gene_list_id": None,
+            "smp_grp": "",
         }
 
     def blacklisted_payload(self, *, group: str, user) -> dict[str, Any]:

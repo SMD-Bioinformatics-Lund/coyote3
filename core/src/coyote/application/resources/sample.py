@@ -170,7 +170,7 @@ class ResourceSampleService:
         updated_sample["updated_by"] = current_actor(actor_username)
         for field in ("created_by", "ingested_by", "ingest_source"):
             updated_sample[field] = sample_doc.get(field)
-        updated_sample["system_installed"] = bool(sample_doc.get("system_installed"))
+        updated_sample.pop("system_installed", None)
         if "current_aspc_id" in updated_sample and str(updated_sample["current_aspc_id"]) == str(
             sample_doc.get("current_aspc_id")
         ):

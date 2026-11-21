@@ -4486,9 +4486,41 @@ export type CoverageGeneListOption = {
 };
 
 /**
+ * CoverageIntervalPayload
+ *
+ * Stored legacy interval evidence; endpoints and null depth remain unchanged.
+ */
+export type CoverageIntervalPayload = {
+    /**
+     * Amplicon
+     */
+    amplicon?: string | null;
+    /**
+     * Avg Cov
+     */
+    avg_cov: number | null;
+    /**
+     * Chr
+     */
+    chr: string;
+    /**
+     * End
+     */
+    end: number;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Start
+     */
+    start: number;
+};
+
+/**
  * CoverageSamplePayload
  *
- * Represent the coverage sample payload.
+ * D4 gene coverage or legacy interval evidence for an authorized sample.
  */
 export type CoverageSamplePayload = {
     /**
@@ -4510,6 +4542,10 @@ export type CoverageSamplePayload = {
         [key: string]: unknown;
     };
     /**
+     * Coverage Format
+     */
+    coverage_format?: 'd4' | 'interval';
+    /**
      * Gene List Id
      */
     gene_list_id?: string | null;
@@ -4521,6 +4557,10 @@ export type CoverageSamplePayload = {
      * Gene Scope
      */
     gene_scope: Array<string>;
+    /**
+     * Intervals
+     */
+    intervals?: Array<CoverageIntervalPayload>;
     /**
      * Sample
      */
@@ -10485,10 +10525,6 @@ export type SamplesDoc = {
      * Sex
      */
     sex?: 'female' | 'male' | 'unknown' | null;
-    /**
-     * System Installed
-     */
-    system_installed?: boolean;
     /**
      * Time Added
      */

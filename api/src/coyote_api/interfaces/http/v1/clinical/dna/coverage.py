@@ -27,7 +27,7 @@ def coverage_sample_read(
     service: Sample = Depends(get_sample),
     gene_list_id: str | None = None,
 ):
-    """Return coverage data for a sample.
+    """Return stored v2 coverage intervals or D4 gene/exon coverage for a sample.
 
     \u000c
 
@@ -36,7 +36,7 @@ def coverage_sample_read(
         cov_cutoff: Coverage threshold for low-coverage detection.
         user: Authenticated user requesting coverage data.
         service: Coverage workflow service.
-        gene_list_id: Optional captured list narrowing the assay coverage scope.
+        gene_list_id: Optional captured D4 gene list; unavailable for v2 interval data.
 
     Returns:
         dict: Coverage payload for the requested sample.

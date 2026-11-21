@@ -71,6 +71,7 @@ is listed below. Database labels are logical services, not deployment database n
 | `primary.cnvs` | [primary.cnvs](clinical.md#primary-cnvs) | `cnvs_collection` |
 | `primary.configuration_profiles` | [primary.configuration_profiles](workflows.md#primary-configuration-profiles) | `configuration_profiles_collection` |
 | `primary.configuration_promotions` | [primary.configuration_promotions](workflows.md#primary-configuration-promotions) | `configuration_promotions_collection` |
+| `primary.coverage` | [primary.coverage](clinical.md#primary-coverage) | `coverage_collection` |
 | `primary.d4_coverage` | [primary.d4_coverage](clinical.md#primary-d4-coverage) | `d4_coverage_collection` |
 | `primary.d4_coverage_blacklist` | [primary.d4_coverage_blacklist](configuration.md#primary-d4-coverage-blacklist) | `d4_coverage_blacklist_collection` |
 | `primary.diagnoses` | [primary.diagnoses](configuration.md#primary-diagnoses) | `diagnoses_collection` |

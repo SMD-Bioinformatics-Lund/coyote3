@@ -44,7 +44,29 @@ class _CollectionDocBase(_DocBase):
     )
 
 
-class _FindingDocBase(_CollectionDocBase):
+class _DataDocBase(_DocBase):
+    """Clinical data attribution, without installation ownership flags."""
+
+    created_by: str | None = Field(default=None, exclude_if=lambda value: value is None)
+    updated_by: str | None = Field(default=None, exclude_if=lambda value: value is None)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _remove_installation_flag(cls, data: Any) -> Any:
+        """Discard obsolete installation metadata without mutating input."""
+        if not isinstance(data, dict):
+            return data
+        return {key: value for key, value in data.items() if key != "system_installed"}
+
+
+class _StrictDataDocBase(_DataDocBase):
+    """Clinical data with a strict contract and a Mongo identity alias."""
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    id_: Any | None = Field(default=None, alias="_id")
+
+
+class _FindingDocBase(_DataDocBase):
     """Finding document base that prevents embedded comment persistence."""
 
     @model_validator(mode="before")

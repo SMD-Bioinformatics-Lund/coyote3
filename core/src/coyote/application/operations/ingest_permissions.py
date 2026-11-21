@@ -38,6 +38,7 @@ _SAMPLE_LINKED_COLLECTIONS: frozenset[str] = frozenset(
         "translocations",
         "biomarkers",
         "d4_coverage",
+        "coverage",
         "fusions",
         "rna_expression",
         "rna_classification",

@@ -11,10 +11,10 @@ from typing import Any, Dict, Literal, Optional
 from pydantic import AliasChoices, Field, field_validator, model_validator
 
 from coyote.contracts.schemas.base import (
-    _CollectionDocBase,
+    _DataDocBase,
     _DocBase,
     _FindingDocBase,
-    _StrictCollectionDocBase,
+    _StrictDataDocBase,
 )
 from coyote.contracts.schemas.normalizers import normalize_ampersand_terms
 from coyote.domain.dna.allele_frequency import allele_fraction
@@ -492,7 +492,7 @@ class BiomarkersTmbDoc(_DocBase):
     )
 
 
-class BiomarkersDoc(_CollectionDocBase):
+class BiomarkersDoc(_DataDocBase):
     """Sample biomarker results with absent optional assays removed after validation."""
 
     SAMPLE_ID: str
@@ -528,13 +528,13 @@ class BiomarkersDoc(_CollectionDocBase):
         return self
 
 
-class PgxDoc(_CollectionDocBase):
+class PgxDoc(_DataDocBase):
     """Sample-scoped PGX payload preserved from the declared ingest result."""
 
     SAMPLE_ID: str
 
 
-class ReportedVariantsDoc(_StrictCollectionDocBase):
+class ReportedVariantsDoc(_StrictDataDocBase):
     """Immutable, explicitly typed finding included in a saved report."""
 
     report_id: str
@@ -686,6 +686,45 @@ class ReportedVariantsDoc(_StrictCollectionDocBase):
         return v
 
 
+class CoverageDoc(_StrictDataDocBase):
+    """One legacy coverage interval owned by ``str(samples._id)``.
+
+    Coordinates retain the source endpoints without a BED/VCF offset conversion.
+    Legacy Coyote displays their span as ``end - start + 1``. ``avg_cov`` is mean
+    read depth, not a fraction; explicit null means unknown, and zero is measured
+    absence of coverage. Missing depth is invalid. COSMIC overlaps are computed
+    when reading reference data and are not persisted in this collection.
+    """
+
+    SAMPLE_ID: str = Field(min_length=1)
+    chr: str = Field(min_length=1)
+    start: int = Field(ge=0, strict=True)
+    end: int = Field(ge=0, strict=True)
+    avg_cov: float | None = Field(ge=0, allow_inf_nan=False, strict=True)
+    amplicon: str | None = None
+
+    @field_validator("chr", mode="before")
+    @classmethod
+    def _chromosome_text(cls, value: Any) -> Any:
+        """Normalize legacy integer chromosomes without changing their labels."""
+        return str(value) if type(value) is int else value
+
+    @field_validator("SAMPLE_ID", "chr")
+    @classmethod
+    def _nonblank_identifier(cls, value: str) -> str:
+        """Reject whitespace-only identifiers rather than silently repairing them."""
+        if not value.strip():
+            raise ValueError("Coverage identifiers must not be blank")
+        return value
+
+    @model_validator(mode="after")
+    def _ordered_interval(self) -> "CoverageDoc":
+        """Reject reversed endpoints; never swap or shift recorded coordinates."""
+        if self.end < self.start:
+            raise ValueError("Coverage end must be greater than or equal to start")
+        return self
+
+
 class CoverageRegionDoc(_DocBase):
     """Genomic coverage interval with optional region number and depth."""
 
@@ -724,7 +763,7 @@ class GeneCoverageDoc(_DocBase):
     probes: Dict[str, ProbeRegionDoc] = Field(default_factory=dict)
 
 
-class D4CoverageDoc(_CollectionDocBase):
+class D4CoverageDoc(_DataDocBase):
     """D4-derived transcript, exon, CDS, and probe coverage for one sample."""
 
     genes: Dict[str, GeneCoverageDoc] = Field(default_factory=dict)
@@ -732,7 +771,7 @@ class D4CoverageDoc(_CollectionDocBase):
     sample: str
 
 
-class D4CoverageBlacklistDoc(_CollectionDocBase):
+class D4CoverageBlacklistDoc(_DataDocBase):
     """Gene or region excluded from D4 coverage evaluation for an assay group."""
 
     group: str = Field(min_length=1)

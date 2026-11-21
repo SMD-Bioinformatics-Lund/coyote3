@@ -35,6 +35,7 @@
     biomarkers_collection = "biomarkers"
     pgx_collection = "pgx"
     d4_coverage_collection = "d4_coverage"
+    coverage_collection = "coverage"
     d4_coverage_blacklist_collection = "d4_coverage_blacklist"
     rna_expression_collection = "rna_expression"
     rna_qc_collection = "rna_qc"

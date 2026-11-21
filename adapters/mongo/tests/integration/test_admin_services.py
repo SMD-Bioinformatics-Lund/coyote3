@@ -557,6 +557,7 @@ def _build_store(repo: _AdminRepoStub) -> SimpleNamespace:
         variant_repository=SimpleNamespace(),
         copy_number_variant_repository=SimpleNamespace(),
         d4_coverage_repository=SimpleNamespace(),
+        coverage_repository=SimpleNamespace(),
         translocation_repository=SimpleNamespace(),
         fusion_repository=SimpleNamespace(),
         biomarker_repository=SimpleNamespace(),

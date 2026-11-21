@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
+from types import SimpleNamespace
+from unittest.mock import Mock
+
 import pytest
 from api_test_support import application_sdk as sdk_fixtures
 from api_test_support import mock_collections as fx
@@ -48,13 +52,17 @@ def _coverage_service() -> CoverageService:
         assay_configuration_repository=store.assay_configuration_repository,
         assay_panel_repository=store.assay_panel_repository,
         d4_coverage_repository=store.d4_coverage_repository,
+        coverage_repository=store.coverage_repository,
         d4_coverage_blacklist_repository=store.d4_coverage_blacklist_repository,
     )
 
 
 @pytest.mark.parametrize("gene_list_id", [None, "GL1"])
-def test_coverage_sample_read_builds_payload(monkeypatch, gene_list_id):
+@pytest.mark.parametrize("legacy_source", [None, "v3"])
+def test_coverage_sample_read_builds_payload(monkeypatch, gene_list_id, legacy_source):
     sample = fx.sample_doc()
+    if legacy_source:
+        sample.update(legacy=True, legacy_source=legacy_source)
     sample["filters"] = {"somatic": {"snv": {"snvlists": ["GL1"]}}}
     sample["asp_id"] = "wgs"
     sample["diagnosis_id"] = "myeloid"
@@ -117,6 +125,7 @@ def test_coverage_sample_read_builds_payload(monkeypatch, gene_list_id):
     )
 
     assert payload["cov_cutoff"] == 500
+    assert payload["coverage_format"] == "d4"
     assert payload["smp_grp"] == "dna"
     expected_scope = ["TP53"] if gene_list_id else ["NPM1", "TP53"]
     assert payload["gene_scope"] == expected_scope
@@ -124,6 +133,103 @@ def test_coverage_sample_read_builds_payload(monkeypatch, gene_list_id):
     assert payload["cov_table"]["TP53"]["1"]["cov"] == 700
     assert requested_diagnoses == ["myeloid", "base"]
     assert requested_gene_scopes == [expected_scope]
+
+
+def test_migrated_v2_coverage_returns_all_intervals_without_d4_resources(monkeypatch):
+    sample = {**fx.sample_doc(), "legacy": True, "legacy_source": "v2", "current_aspc_id": None}
+    records = [
+        {
+            "_id": f"interval-{index}",
+            "SAMPLE_ID": str(sample["_id"]),
+            "chr": "7",
+            "start": index * 10,
+            "end": index * 10 + 9,
+            "avg_cov": depth,
+            "amplicon": "SYNTHETIC",
+        }
+        for index, depth in enumerate([0, 1000.5, None])
+    ]
+    before = deepcopy(records)
+    service = _coverage_service()
+    intervals = Mock(return_value=records)
+    monkeypatch.setattr(service.coverage_repository, "get_sample_intervals", intervals)
+    d4 = Mock(side_effect=AssertionError("v2 intervals must not query D4"))
+    monkeypatch.setattr(service.d4_coverage_repository, "get_sample_coverage", d4)
+    config = Mock(side_effect=AssertionError("Interval reads do not require a D4 configuration"))
+    monkeypatch.setattr(coverage_service_module, "get_formatted_assay_config", config)
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
+    result = coverage.coverage_sample_read(
+        "S1",
+        cov_cutoff=500,
+        gene_list_id=None,
+        user=fx.api_user(),
+        service=sdk_fixtures.sample_operations(service, fx.api_user()),
+    )
+    body = CoverageSamplePayload.model_validate(result)
+    assert body.coverage_format == "interval"
+    assert [row.avg_cov for row in body.intervals] == [0, 1000.5, None]
+    assert body.intervals[0].start == 0 and body.intervals[0].end == 9
+    assert body.intervals[0].id == "interval-0"
+    assert body.gene_scope == body.gene_lists == []
+    assert body.coverage == body.cov_table == {}
+    intervals.assert_called_once_with(str(sample["_id"]))
+    assert records == before
+
+
+def test_v2_interval_view_reports_absence_and_rejects_unsupported_gene_filter(monkeypatch):
+    sample = {"_id": "synthetic", "legacy": True, "legacy_source": "v2"}
+    service = _coverage_service()
+    intervals = Mock(return_value=[])
+    monkeypatch.setattr(service.coverage_repository, "get_sample_intervals", intervals)
+    result = service.sample_payload(sample=sample, cov_cutoff=500)
+    assert result["coverage_format"] == "interval" and result["intervals"] == []
+    with pytest.raises(AppError, match="Gene-list filtering"):
+        service.sample_payload(sample=sample, cov_cutoff=500, gene_list_id="not-applicable")
+    assert intervals.call_count == 1
+
+
+@pytest.mark.parametrize("denied_check", ["permission", "scope"])
+def test_legacy_coverage_denial_is_audited_before_reading_intervals(monkeypatch, denied_check):
+    sample = {**fx.sample_doc(), "legacy": True, "legacy_source": "v2"}
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
+    user = fx.api_user()
+    user.roles = ["reviewer"]
+    service = _coverage_service()
+    intervals = Mock(return_value=[])
+    monkeypatch.setattr(service.coverage_repository, "get_sample_intervals", intervals)
+    operation = sdk_fixtures.sample_operations(service, user, "legacy-sample")
+    policy = SimpleNamespace(
+        permission_allowed=lambda *args, **kwargs: denied_check != "permission",
+        scope_allowed=lambda *args, **kwargs: denied_check != "scope",
+    )
+    operation._runtime.policy_factory = lambda actor: policy
+
+    with pytest.raises(AppError) as error:
+        operation.coverage()
+
+    assert error.value.status_code == 403
+    intervals.assert_not_called()
+    audit = operation._runtime.audit_access
+    audit.assert_called_once()
+    event = audit.call_args.args[0]
+    assert event.operation == "sample.coverage"
+    assert event.sample_id == "legacy-sample"
+    assert event.allowed is False
+
+
+def test_legacy_coverage_read_stops_when_access_audit_fails(monkeypatch):
+    sample = {**fx.sample_doc(), "legacy": True, "legacy_source": "v2"}
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
+    service = _coverage_service()
+    intervals = Mock(return_value=[])
+    monkeypatch.setattr(service.coverage_repository, "get_sample_intervals", intervals)
+    operation = sdk_fixtures.sample_operations(service, fx.api_user())
+    operation._runtime.audit_access = Mock(side_effect=RuntimeError("Audit unavailable"))
+
+    with pytest.raises(RuntimeError, match="Audit unavailable"):
+        operation.coverage()
+
+    intervals.assert_not_called()
 
 
 @pytest.mark.parametrize(

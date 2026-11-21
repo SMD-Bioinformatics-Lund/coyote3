@@ -154,7 +154,7 @@ One blacklisted allele with group scopes and per-assay normal-sample measurement
 
 pos matches variants.simple_id, not variants._id. The repository queries and indexes (assay,pos); assay stores the biological group identifier. Coverage exclusions use d4_coverage_blacklist instead.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`, `simple_id`, `simple_id_hash`, `chrom`, `pos`, `ref`, `alt`, `assay_groups`, `in_normal_perc`.
+Declared top-level fields: `created_by`, `updated_by`, `_id`, `simple_id`, `simple_id_hash`, `chrom`, `pos`, `ref`, `alt`, `assay_groups`, `in_normal_perc`.
 
 [Field types and validation](../mongodb-collections.md#blacklist). `_id` may also be retained by an open collection model.
 
@@ -183,7 +183,7 @@ Binding: `d4_coverage_blacklist_collection`.
 
 Gene or region excluded from D4 coverage evaluation for an assay group.
 
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `group`, `gene`, `region`, `coord`, `group_region_id`.
+Declared top-level fields: `created_by`, `updated_by`, `group`, `gene`, `region`, `coord`, `group_region_id`.
 
 [Field types and validation](../mongodb-collections.md#d4_coverage_blacklist). `_id` may also be retained by an open collection model.
 

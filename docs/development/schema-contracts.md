@@ -17,7 +17,7 @@ DB contracts are organized in `core/src/coyote/contracts/schemas/`:
 
 - `base.py`: shared permissive base (`extra="allow"`) and version-history entry model.
 - `samples.py`: clinical sample model extending `coyote.contracts.sample_manifest.SampleManifest`.
-- `dna.py`: variants, CNVs, translocations, biomarkers, coverage-related models.
+- `dna.py`: variants, CNVs, translocations, biomarkers, interval `coverage` and D4 coverage models.
 - `rna.py`: fusions, RNA expression/classification/QC models.
 - `assay.py`: ASP/ASPC/ISGL and assay-linked blacklist models.
 - `governance.py`: users, roles, permissions, schema-definition documents.
@@ -196,3 +196,16 @@ permission, audit, and versioning flow used by all admin writes.
 6. Add/update tests in `tests/unit/test_db_documents.py` and admin-service tests.
 7. Run `bash scripts/quality/check_contract_integrity.sh` before merge.
 8. For breaking key changes, add migration script and guide entry.
+
+
+### Clinical record attribution
+
+Samples, findings, measurements, blacklist entries and the VEP vault retain
+`created_by` and `updated_by`. Clinical annotations use their existing `author`
+field instead of duplicate generic actor fields. Clinical data does not declare
+`system_installed`; installation ownership remains available for configuration
+and catalog records. Audit events continue to record operation actors.
+
+On upgrade, normalization omits `system_installed` from affected clinical records
+and generic actor fields from annotations, preserving `author`. Existing database
+documents are not bulk-rewritten; historical audit events remain unchanged.
