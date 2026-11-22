@@ -1,4 +1,4 @@
-"""Inactive annotations retain sample history without becoming reusable interpretations."""
+"""Immutable annotations retain earlier records and saved report references."""
 
 from datetime import datetime, timezone
 from types import SimpleNamespace
@@ -7,8 +7,6 @@ import mongomock
 import pytest
 from bson import ObjectId
 from coyote.application.interpretation.annotation_enrichment import add_global_annotations
-from coyote.application.reporting.dna.variants import filter_variants_for_report
-from coyote.application.reporting.eligibility import classification_is_usable
 from coyote_mongo.repositories.annotations import AnnotationsRepository
 from mongo_test_support.settings import mongo_runtime
 
@@ -62,80 +60,33 @@ def read_classification(repository, sample_id):
     )[1]
 
 
-def test_deactivation_retains_records_and_is_idempotent(repository, monkeypatch):
-    """Only the selected scope/tier changes and repeating the action retains first attribution."""
-    docs = [annotation(), annotation(**{"class": 1})]
-    repository.get_collection().insert_many(docs)
+def test_recreating_annotation_preserves_original_and_uses_latest(repository, monkeypatch):
+    old = annotation()
+    repository.get_collection().insert_one(old)
+    original = repository.get_annotation_by_oid(str(old["_id"]))
     monkeypatch.setattr(
-        "coyote_mongo.repositories.annotations.current_username", lambda: "reviewer"
+        repository, "write", lambda collection, method, doc: collection.insert_one(doc)
     )
-    result = repository.deactivate_classified_variant(
-        docs[0]["variant"],
-        "p",
-        docs[0],
-        class_num=2,
-    )
-    saved = repository.get_annotation_by_oid(str(docs[0]["_id"]))
-    assert result.modified_count == 1
-    assert result.deleted_count == 0
+    context = {**old, "hgvsc": None, "genomic": None, "genomic_hash": None}
+    repository.insert_classified_variant(old["variant"], "p", 1, context)
     assert repository.get_collection().count_documents({}) == 2
-    assert saved["is_active"] is False
-    assert saved["deactivated_by"] == "reviewer"
-    assert saved["class"] == 2
-    assert "is_active" not in repository.get_annotation_by_oid(str(docs[1]["_id"]))
-    repeated = repository.deactivate_classified_variant(
-        docs[0]["variant"], "p", docs[0], class_num=2
-    )
-    assert repeated.modified_count == 0
-    assert repository.get_annotation_by_oid(str(docs[0]["_id"])) == saved
-
-
-def test_group_deactivation_includes_all_diagnoses_and_assays_but_not_other_scope(repository):
-    """Group retirement includes authored text and all tiers but excludes other identities/namespaces."""
-    docs = [
-        annotation(),
-        annotation(asp_id="panel-b", diagnosis_id="breast", **{"class": 1}),
-        annotation(diagnosis_id="base", text="Stored text"),
-        annotation(namespace="sandboxed"),
-        annotation(asp_group="hematology"),
-        annotation(gene="OTHER"),
-        annotation(transcript="NM_OTHER"),
-    ]
-    docs[2].pop("class")
-    repository.get_collection().insert_many(docs)
-    result = repository.deactivate_classified_variant(docs[0]["variant"], "p", docs[0], group=True)
-    assert result.modified_count == 3
-    assert repository.get_collection().count_documents({"is_active": False}) == 3
-    assert repository.get_collection().count_documents({}) == len(docs)
-    assert all(
-        repository.get_annotation_by_oid(str(doc["_id"])).get("is_active", True) for doc in docs[3:]
-    )
-
-
-def test_source_sample_retains_inactive_tier_when_another_sample_is_retiered(repository):
-    """An inactive original assignment stays pinned while a later assignment applies elsewhere."""
-    original = annotation(is_active=False, source_sample_id="original")
-    current = annotation(
-        source_sample_id="new",
-        time_created=datetime(2026, 2, 1, tzinfo=timezone.utc),
-        **{"class": 1},
-    )
-    repository.get_collection().insert_many([original, current])
-    historical = read_classification(repository, "original")
-    assert historical["_id"] == original["_id"]
-    assert historical["historical_sample_match"] is True
-    assert classification_is_usable(historical)
-    assert read_classification(repository, "new")["_id"] == current["_id"]
-    assert read_classification(repository, "unrelated")["_id"] == current["_id"]
-    repository.get_collection().update_one({"_id": current["_id"]}, {"$set": {"is_active": False}})
-    assert read_classification(repository, "unrelated") == {"class": 999}
+    assert repository.get_annotation_by_oid(str(old["_id"])) == original
+    assert read_classification(repository, "new")["class"] == 1
+    newest = read_classification(repository, "new")
+    assert not {
+        "rule_source",
+        "is_active",
+        "deactivated_at",
+        "deactivated_by",
+        "source_sample_id",
+        "source_finding_id",
+    }.intersection(newest)
 
 
 @pytest.mark.parametrize("native_reference", [True, False])
-def test_report_reference_preserves_exact_inactive_annotation(repository, native_reference):
-    """A report link preserves a historical version instead of attaching the newest global tier."""
+def test_saved_report_preserves_original_after_new_annotation(repository, native_reference):
     sample_id = ObjectId()
-    old = annotation(is_active=False)
+    old = annotation()
     newest = annotation(time_created=datetime(2026, 2, 1, tzinfo=timezone.utc), **{"class": 4})
     repository.get_collection().insert_many([old, newest])
     repository.adapter.reported_variants_collection.insert_one(
@@ -144,58 +95,16 @@ def test_report_reference_preserves_exact_inactive_annotation(repository, native
             "annotation_oid": old["_id"] if native_reference else str(old["_id"]),
         }
     )
-    historical = read_classification(repository, str(sample_id))
-    assert historical["_id"] == old["_id"]
-    assert historical["historical_sample_match"] is True
-    assert read_classification(repository, "unrelated")["_id"] == newest["_id"]
-
-
-def test_latest_inactive_legacy_version_does_not_assign_an_analysis_tier(repository):
-    """Inactive legacy matches neither assign a tier nor resurrect an older active version."""
-    older = annotation(**{"class": 1})
-    newest = annotation(is_active=False, time_created=datetime(2026, 2, 1, tzinfo=timezone.utc))
-    repository.get_collection().insert_many([older, newest])
-    legacy = read_classification(repository, "legacy")
-    assert legacy == {"class": 999}
-    assert (
-        filter_variants_for_report(
-            [{"classification": legacy}],
-            [],
-            [1, 2, 3, 4],
-        )
-        == []
-    )
-
-
-@pytest.mark.parametrize("active", [None, True, False])
-def test_analysis_enrichment_only_assigns_reusable_active_tiers(repository, active):
-    """Missing lifecycle flags retain active behavior; explicit false cannot auto-select a finding."""
-    document = annotation(**({} if active is None else {"is_active": active}))
-    repository.get_collection().insert_one(document)
-    variants, selected = add_global_annotations(
-        [
-            {
-                "SAMPLE_ID": "new-sample",
-                "INFO": {"selected_CSQ": {"SYMBOL": "TP53", "HGVSp": "p.Arg1Gly"}},
-            }
-        ],
-        "solid",
-        "lung",
-        annotation_repository=repository,
-        sample_context={"assay_id": "panel-a", "environment": "production"},
-    )
-    assert variants[0]["classification"]["class"] == (999 if active is False else 2)
-    assert len(selected) == (0 if active is False else 1)
-    assert variants[0]["additional_classification"] is None
+    assert read_classification(repository, str(sample_id))["_id"] == old["_id"]
+    assert read_classification(repository, "other")["_id"] == newest["_id"]
 
 
 def test_detail_history_uses_matching_scope_and_preserves_versions_newest_first(repository):
-    """History includes inactive versions but excludes other identities and clinical scopes."""
+    """History includes previous versions but excludes other identities and clinical scopes."""
     oldest = annotation(author="first-reviewer", text="First reasoning", **{"class": 1})
     previous = annotation(
         author="second-reviewer",
         text="Revised reasoning",
-        is_active=False,
         time_created=datetime(2026, 2, 1, tzinfo=timezone.utc),
     )
     current = annotation(time_created=datetime(2026, 3, 1, tzinfo=timezone.utc), **{"class": 3})
@@ -227,30 +136,17 @@ def test_detail_history_uses_matching_scope_and_preserves_versions_newest_first(
     assert [row["_id"] for row in latest["history"]] == [previous["_id"], oldest["_id"]]
     assert latest["history"][0]["author"] == "second-reviewer"
     assert latest["history"][0]["text"] == "Revised reasoning"
-    assert latest["history"][0]["is_active"] is False
     assert "history" not in read_classification(repository, "review-sample")
 
 
-@pytest.mark.parametrize(
-    ("active", "source_sample", "selected", "expected_tier"),
-    [
-        (True, None, True, 1),
-        (False, "rna-sample", True, 1),
-        (False, None, True, 999),
-        (True, None, False, 999),
-    ],
-)
-def test_fusion_list_and_detail_match_the_same_selected_call(
-    repository, active, source_sample, selected, expected_tier
-):
-    """List enrichment uses the selected caller identity and retains sample-linked history."""
+@pytest.mark.parametrize("selected,expected_tier", [(True, 1), (False, 999)])
+def test_fusion_list_and_detail_match_the_same_selected_call(repository, selected, expected_tier):
+    """List enrichment uses the selected caller identity and matches the immutable annotation."""
     record = annotation(
         nomenclature="f",
         variant="22:100^9:200",
         gene1="BCR",
         gene2="ABL1",
-        is_active=active,
-        source_sample_id=source_sample,
         **{"class": 1},
     )
     repository.get_collection().insert_one(record)

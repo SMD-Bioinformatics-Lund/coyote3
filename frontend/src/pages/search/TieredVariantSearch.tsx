@@ -197,19 +197,6 @@ export function TieredVariantSearch() {
       cell: ({ row }) => <TierBadge tier={row.getValue("tier")} />,
     },
     {
-      id: "annotation_status",
-      header: "Annotation status",
-      accessorFn: (row) => row.is_active === false ? "Inactive" : "Active",
-      cell: ({ row }) => (
-        <div className="space-y-1">
-          <TableBadge className={row.original.is_active === false ? "badge-warning" : "badge-info"}>
-            {row.getValue("annotation_status")}
-          </TableBadge>
-          {row.original.legacy_fallback && <p className="type-caption text-muted-foreground">Legacy fallback</p>}
-        </div>
-      ),
-    },
-    {
       id: "analysis_type",
       header: "Type",
       accessorFn: (row) => row.analysis_type || row.finding_type || "FINDING",
@@ -511,13 +498,6 @@ export function TieredVariantSearch() {
           </Notice>
         ) : (
           <>
-            {(data?.docs || []).some((row: { legacy_fallback?: boolean }) => row.legacy_fallback) && (
-              <Notice tone="warning" role="note" className="mb-3 type-body-sm text-foreground">
-                Legacy annotation history: where no saved tier-assignment or report link exists,
-                the latest matching annotation is shown, even if inactive. This does not confirm
-                the tier used on a particular sample. Only recorded links identify historical samples.
-              </Notice>
-            )}
             <DataTable
               columns={columns}
               data={data?.docs || []}

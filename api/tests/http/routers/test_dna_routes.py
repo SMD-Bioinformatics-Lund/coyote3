@@ -741,14 +741,12 @@ def test_set_variant_tier_bulk_apply_defaults_to_classification_only(monkeypatch
         "hgvsc",
         "genomic",
         "genomic_hash",
-        "source_sample_id",
-        "source_finding_id",
     }
     assert captured["docs"][0]["variant_data"]["hgvsp"] == "p.V600E"
     assert captured["docs"][0]["variant_data"]["hgvsc"] is None
 
 
-def test_set_variant_tier_bulk_remove_deactivates_requested_classification(monkeypatch):
+def test_set_variant_tier_bulk_remove_rejects_immutable_annotation(monkeypatch):
     sample = fx.sample_doc()
     sample["_id"] = "sample-1"
     captured: list[dict] = []
@@ -773,34 +771,27 @@ def test_set_variant_tier_bulk_remove_deactivates_requested_classification(monke
     monkeypatch.setattr(store.variant_repository, "get_variant", lambda variant_id: variant)
     monkeypatch.setattr(
         store.annotation_repository,
-        "deactivate_classified_variant",
-        lambda **kwargs: captured.append(kwargs),
-    )
-    monkeypatch.setattr(
-        store.annotation_repository,
         "insert_annotation_bulk",
         lambda docs: pytest.fail("insert_annotation_bulk must not be called on tier remove"),
     )
     monkeypatch.setattr(classification_router, "convert_to_serializable", lambda payload: payload)
 
-    payload = classification_router.set_resource_tier_bulk(
-        "S1",
-        payload={
-            "apply": False,
-            "resource_ids": ["v1"],
-            "resource_type": "small_variant",
-            "assay_group": "solid",
-            "diagnosis": "A",
-            "tier": 3,
-        },
-        user=fx.api_user(),
-        service=sdk_fixtures.sample_operations(_classification_service(), fx.api_user()),
-    )
-
-    assert payload["status"] == "ok"
-    assert len(captured) == 1
-    assert captured[0]["class_num"] == 3
-    assert captured[0]["annotation_text"] is None
+    with pytest.raises(AppError, match="immutable") as error:
+        classification_router.set_resource_tier_bulk(
+            "S1",
+            payload={
+                "apply": False,
+                "resource_ids": ["v1"],
+                "resource_type": "small_variant",
+                "assay_group": "solid",
+                "diagnosis": "A",
+                "tier": 3,
+            },
+            user=fx.api_user(),
+            service=sdk_fixtures.sample_operations(_classification_service(), fx.api_user()),
+        )
+    assert error.value.status_code == 409
+    assert captured == []
 
 
 def test_bulk_flag_routes_use_non_colliding_paths():

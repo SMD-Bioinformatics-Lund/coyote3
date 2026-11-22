@@ -62,7 +62,7 @@ automatic assignment. RNA fusion matching uses the selected caller's finding ide
 
 Deactivation preserves annotation history. Inactive annotations do not automatically
 tier new samples, but recorded assignments and report links can retain an earlier
-classification. See [deactivation and history](actions-and-record-changes.md#inactive-annotations-and-sample-history).
+classification. See [annotation history](actions-and-record-changes.md#immutable-annotations-and-sample-history).
 Knowledgebase labels such as **CGC Tier 1** describe their source's evidence, not a Coyote tier.
 
 ### Search previous interpretations

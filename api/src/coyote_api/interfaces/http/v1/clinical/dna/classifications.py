@@ -32,10 +32,9 @@ def set_resource_tier_bulk(
     user: ApiUser = Depends(require_access(permission="snv:manage")),
     service: Sample = Depends(get_sample),
 ):
-    """Assign tiers or deactivate annotations while preserving sample and report history.
+    """Create tier annotations while retaining existing records and report history.
 
-    Group deactivation requires tier:remove:global and affects every diagnosis and
-    assay in the finding's biological group, within its current namespace.
+    Removal requests are rejected; changes require creating a new annotation.
     """
     resource_type = str(payload.get("resource_type", "small_variant"))
     resource_ids = payload.get("resource_ids", payload.get("variant_ids", [])) or []

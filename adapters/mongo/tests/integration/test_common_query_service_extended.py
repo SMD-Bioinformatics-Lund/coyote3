@@ -402,25 +402,22 @@ def test_tiered_search_normalizes_fusion_identity_and_genes() -> None:
     assert result["docs"][0]["genes"] == ["KMT2A", "AFF1"]
 
 
-def test_tiered_search_keeps_inactive_origin_links_and_latest_unlinked_legacy_record():
-    """Source IDs attach exact samples; uncertain legacy history keeps only its newest version."""
+def test_tiered_search_uses_latest_unlinked_record_without_inventing_sample_links():
+    """Without report references, search keeps the latest version and no sample links."""
     rows = [
-        {"_id": "legacy-new", "gene": "LEGACY", "variant": "p.L1", "class": 2, "is_active": False},
+        {"_id": "legacy-new", "gene": "LEGACY", "variant": "p.L1", "class": 2},
         {"_id": "legacy-old", "gene": "LEGACY", "variant": "p.L1", "class": 1},
         {
             "_id": "original",
             "gene": "TP53",
             "variant": "p.R1",
             "class": 2,
-            "is_active": False,
-            "source_sample_id": "sample-a",
         },
         {
             "_id": "new",
             "gene": "TP53",
             "variant": "p.R1",
             "class": 1,
-            "source_sample_id": "sample-b",
         },
     ]
     annotations = AnnotationRepository()
@@ -442,11 +439,10 @@ def test_tiered_search_keeps_inactive_origin_links_and_latest_unlinked_legacy_re
     )
     by_id = {row["_id"]: row for row in result["docs"]}
     assert "legacy-old" not in by_id
-    assert by_id["legacy-new"]["is_active"] is False
     assert by_id["legacy-new"]["legacy_fallback"] is True
     assert by_id["legacy-new"]["samples"] == {}
-    assert set(by_id["original"]["samples"]) == {"sample-a"}
-    assert set(by_id["new"]["samples"]) == {"sample-b"}
+    assert by_id["original"]["samples"] == {}
+    assert "new" not in by_id
     restricted = service.tiered_variant_search_payload(
         search_str="",
         search_mode="all",
@@ -455,7 +451,7 @@ def test_tiered_search_keeps_inactive_origin_links_and_latest_unlinked_legacy_re
         limit_entries=50,
         sample_is_visible=lambda oid: oid == "sample-b",
     )
-    assert all(row["_id"] != "original" for row in restricted["docs"])
+    assert {row["_id"] for row in restricted["docs"]} == set(by_id)
     assert all("sample-a" not in row["samples"] for row in restricted["docs"])
 
 

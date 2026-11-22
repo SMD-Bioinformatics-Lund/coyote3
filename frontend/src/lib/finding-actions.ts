@@ -57,16 +57,7 @@ const FINDING_ACTION_LABELS: Record<FindingAction, string> = {
   clear_override_blacklist: "Clear Blacklist Override",
 }
 
-const TIER_ACTIONS: FindingAction[] = [
-  "tier_1",
-  "tier_2",
-  "tier_3",
-  "tier_4",
-  "remove_tier_1",
-  "remove_tier_2",
-  "remove_tier_3",
-  "remove_tier_4",
-]
+const TIER_ACTIONS: FindingAction[] = ["tier_1", "tier_2", "tier_3", "tier_4"]
 
 const DEFAULT_TIERING_ENABLED: Record<FindingResourceType, boolean> = {
   small_variant: true,

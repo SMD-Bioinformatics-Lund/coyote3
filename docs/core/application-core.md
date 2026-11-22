@@ -114,11 +114,8 @@ the first write. Production tier changes additionally require
 `annotation:publish`. Publication and review operations retain their existing
 revision, content-hash, assignment and distinct-reviewer requirements.
 
-`TierChange(apply=False)` deactivates matching annotations while retaining their
-identity, tier and history. `deactivation_scope="group"` applies to all diagnoses
-and assays for this finding in the biological group and requires
-`tier:remove:global`. The default `diagnosis` scope affects the selected tier in the
-current assay and diagnosis only. Both scopes remain within the sample's namespace.
+Annotations are immutable. `TierChange(apply=False)` is rejected; corrections
+create new annotation records. Saved report references retain their original versions.
 
 `SampleSearch` validates sample catalog selections. Existing authoring contexts
 and administrative mutation results retain their structured dictionary contracts.

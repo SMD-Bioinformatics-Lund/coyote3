@@ -14,7 +14,6 @@ import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { tieringIsEnabled, useApplicationModules } from "@/lib/app-module-state"
 import { CommentCard } from "@/components/comments/CommentCard"
 import { DetailCard } from "@/components/detail/FindingDetailLayout"
-import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { TimeDisplay } from "@/components/ui/time-display"
 import { MarkdownText } from "@/components/comments/MarkdownText"
 
@@ -26,9 +25,6 @@ interface ClassificationVersion {
   text?: string
   author?: string
   time_created?: string
-  is_active?: boolean
-  historical_sample_match?: boolean
-  legacy_fallback?: boolean
   history?: ClassificationVersion[]
 }
 
@@ -75,22 +71,20 @@ export function ClassificationsCard({
 }) {
   const queryClient = useQueryClient()
   const controlsQuery = useApplicationModules()
-  const access = useCurrentUserAccess()
   const currentTier = Number(latest?.class ?? latest?.tier)
   const history = latest?.history || []
   const [pendingTierAction, setPendingTierAction] = useState<{
-    tier: number; apply: boolean; deactivation_scope?: "group"
+    tier: number; apply: true
   } | null>(null)
   const tierMutation = useMutation({
-    mutationFn: ({ tier, apply, deactivation_scope }: {
-      tier: number; apply: boolean; deactivation_scope?: "group"
+    mutationFn: ({ tier, apply }: {
+      tier: number; apply: true
     }) =>
       api.patch(`/samples/${sampleId}/classifications/tier`, {
         resource_type: resourceType,
         resource_ids: resourceId ? [resourceId] : [],
         tier,
         apply,
-        ...(deactivation_scope ? { deactivation_scope } : {}),
       }),
     onSuccess: (_result, variables) => {
       if (sampleId && resourceType) {
@@ -106,11 +100,8 @@ export function ClassificationsCard({
       queryClient.invalidateQueries({ queryKey: ["tiered-variant-context"] })
       setPendingTierAction(null)
       notifySuccess(
-        variables.apply ? "Classification updated" : "Annotations deactivated",
-        variables.apply ? `Finding classified as Tier ${variables.tier}.`
-          : variables.deactivation_scope === "group"
-            ? "Finding annotations deactivated across the biological group. History is retained."
-            : `Tier ${variables.tier} classification deactivated. History is retained.`,
+        "Classification created",
+        `Finding classified as Tier ${variables.tier}.`,
         "Classification",
       )
     },
@@ -142,31 +133,6 @@ export function ClassificationsCard({
                   Tier {tier}
                 </button>
               ))}
-              {latest?.is_active !== false && [1, 2, 3, 4].includes(Number(latest?.class || latest?.tier)) && (
-                <button
-                  type="button"
-                  onClick={() => setPendingTierAction({
-                    tier: Number(latest?.class || latest?.tier),
-                    apply: false,
-                  })}
-                  disabled={tierMutation.isPending}
-                  className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-muted disabled:opacity-50"
-                >
-                  Deactivate
-                </button>
-              )}
-              {hasPermission(access.data, "tier:remove:global") && (
-                <button
-                  type="button"
-                  onClick={() => setPendingTierAction({
-                    tier: [1, 2, 3, 4].includes(Number(latest?.class || latest?.tier))
-                      ? Number(latest?.class || latest?.tier) : 3,
-                    apply: false, deactivation_scope: "group",
-                  })}
-                  disabled={tierMutation.isPending}
-                  className="rounded-lg border border-warn/50 bg-warn/10 px-2.5 py-1.5 text-xs font-semibold text-warn hover:bg-warn/20 disabled:opacity-50"
-                >Deactivate group annotations</button>
-              )}
             </div>
           </Surface>
         )}
@@ -175,19 +141,12 @@ export function ClassificationsCard({
             <div className="mb-2 flex items-center gap-2">
               <TierBadge tier={latest.class || latest.tier} />
               <span className="text-sm font-semibold">Latest classification</span>
-              {latest.is_active === false && <span className="type-label text-warn">Inactive</span>}
             </div>
             <p className="text-sm text-muted-foreground">{latest.reason || latest.text || "No reason provided."}</p>
             <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 type-meta text-muted-foreground">
               <span>{latest.author || "Unknown author"}</span>
               <TimeDisplay value={latest.time_created} mode="full" fallback="Time not recorded" />
             </div>
-            {latest.historical_sample_match && (
-              <p className="mt-2 type-caption text-muted-foreground">Historical annotation linked to this sample. It is inactive for reuse on other samples.</p>
-            )}
-            {latest.legacy_fallback && (
-              <p className="mt-2 type-caption text-warn">Legacy fallback: this is the latest matching annotation, including inactive records. No saved sample link confirms which tier was used. Re-tier before reporting.</p>
-            )}
           </Surface>
         ) : (
           <p className="text-sm text-muted-foreground">{unavailableReason || "Not currently classified."}</p>
@@ -199,7 +158,6 @@ export function ClassificationsCard({
               <article key={item._id} className="rounded-lg border border-border bg-muted/30 p-3">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <TierBadge tier={item.class ?? item.tier} />
-                  {item.is_active === false && <span className="type-label text-warn">Inactive</span>}
                   <span className="type-meta text-muted-foreground">{item.author || "Unknown author"}</span>
                   <TimeDisplay value={item.time_created} mode="full" fallback="Time not recorded" className="type-meta text-muted-foreground" />
                 </div>
@@ -229,15 +187,9 @@ export function ClassificationsCard({
       </div>
       <ConfirmationDialog
         open={Boolean(pendingTierAction)}
-        title={pendingTierAction?.apply ? `Classify finding as Tier ${pendingTierAction.tier}?`
-          : pendingTierAction?.deactivation_scope === "group" ? "Deactivate group annotations?"
-            : `Deactivate Tier ${pendingTierAction?.tier} classification?`}
-        description={pendingTierAction?.apply
-          ? `This will persist a Tier ${pendingTierAction.tier} classification for the finding.`
-          : pendingTierAction?.deactivation_scope === "group"
-            ? "This deactivates all annotations for this finding across every assay and diagnosis in the biological group, within the current namespace. Annotation records and sample/report history are retained."
-            : "This deactivates the selected tier in the current assay and diagnosis context. Annotation records and sample/report history are retained."}
-        confirmLabel={pendingTierAction?.apply ? "Set classification" : "Deactivate annotations"}
+        title={`Classify finding as Tier ${pendingTierAction?.tier}?`}
+        description={`This creates a new Tier ${pendingTierAction?.tier} annotation. Existing annotations are retained.`}
+        confirmLabel="Set classification"
         isPending={tierMutation.isPending}
         onConfirm={() => {
           if (pendingTierAction) tierMutation.mutate(pendingTierAction)

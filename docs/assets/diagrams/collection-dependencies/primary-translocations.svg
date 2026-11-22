@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="862" viewBox="0 0 1360 862" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="674" viewBox="0 0 1360 674" role="img" aria-labelledby="title description">
 <title id="title">primary.translocations field dependencies</title>
 <desc id="description">Each arrow goes from the stored source field to its referenced key or lookup target. Arrows are not MongoDB foreign-key constraints.</desc>
 <defs>
@@ -26,14 +26,8 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
 </defs>
 <text x="40" y="36" class="figure-title">primary.translocations</text>
 <text x="40" y="68" class="figure-subtitle">Source field → target key · See the relationship table for conditions and migration rules.</text>
-<g class="entity blue" data-namespace="primary.annotation"><title>primary.annotation</title><use href="#icon-database" x="271" y="110" width="58" height="58" aria-hidden="true"/><text x="300" y="194" text-anchor="middle" class="entity-title">primary.annotation</text>
-<text x="300" y="219" text-anchor="middle" class="entity-detail">source_finding_id</text>
-</g>
-<g class="entity purple" data-namespace="primary.translocations"><title>primary.translocations</title><use href="#icon-database" x="1031" y="110" width="58" height="58" aria-hidden="true"/><text x="1060" y="194" text-anchor="middle" class="entity-title">primary.translocations</text>
-<text x="1060" y="219" text-anchor="middle" class="entity-detail">_id</text>
-</g>
-<g class="purple"><path d="M600 139H760" class="connection" marker-end="url(#arrow-purple)"/></g>
-<text x="40" y="252" class="figure-note">optional polymorphic provenance · many → one</text>
+
+<g transform="translate(0 -188)">
 <g class="entity purple" data-namespace="primary.translocations"><title>primary.translocations</title><use href="#icon-database" x="271" y="298" width="58" height="58" aria-hidden="true"/><text x="300" y="382" text-anchor="middle" class="entity-title">primary.translocations</text>
 <text x="300" y="407" text-anchor="middle" class="entity-detail">SAMPLE_ID</text>
 </g>
@@ -42,6 +36,8 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
 </g>
 <g class="purple"><path d="M600 327H760" class="connection" marker-end="url(#arrow-purple)"/></g>
 <text x="40" y="440" class="figure-note">string ObjectId · many → one</text>
+</g>
+<g transform="translate(0 -188)">
 <g class="entity blue" data-namespace="primary.finding_comments"><title>primary.finding_comments</title><use href="#icon-database" x="271" y="486" width="58" height="58" aria-hidden="true"/><text x="300" y="570" text-anchor="middle" class="entity-title">primary.finding_comments</text>
 <text x="300" y="595" text-anchor="middle" class="entity-detail">finding_oid</text>
 </g>
@@ -50,6 +46,8 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
 </g>
 <g class="purple"><path d="M600 515H760" class="connection" marker-end="url(#arrow-purple)"/></g>
 <text x="40" y="628" class="figure-note">polymorphic reference · many → one</text>
+</g>
+<g transform="translate(0 -188)">
 <g class="entity blue" data-namespace="primary.reported_variants"><title>primary.reported_variants</title><use href="#icon-database" x="271" y="674" width="58" height="58" aria-hidden="true"/><text x="300" y="758" text-anchor="middle" class="entity-title">primary.reported_variants</text>
 <text x="300" y="783" text-anchor="middle" class="entity-detail">var_oid</text>
 </g>
@@ -58,4 +56,5 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
 </g>
 <g class="purple"><path d="M600 703H760" class="connection" marker-end="url(#arrow-purple)"/></g>
 <text x="40" y="816" class="figure-note">optional polymorphic reference · many → one</text>
+</g>
 </svg>

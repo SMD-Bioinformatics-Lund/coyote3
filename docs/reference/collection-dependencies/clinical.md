@@ -48,9 +48,9 @@ Binding: `annotations_collection`.
 
 Classification or text annotation with nomenclature-specific finding identity.
 
-New annotations record optional source_sample_id and source_finding_id provenance; older records may have neither. Reusable interpretation matching still uses nomenclature-specific identity: p/c/g uses protein/cDNA/genomic identity; cn uses variant; f/t use ordered gene1/gene2 plus variant. Deactivation retains records with is_active false; missing is_active means active. Preserve namespace, assay scope, author, timestamps, source links and class versus text. VEP 103 is a migration-specific source requirement, not a universal runtime version.
+Annotations are immutable. Corrections create new records. Matching uses nomenclature-specific identity: p/c/g uses protein/cDNA/genomic identity; cn uses variant; f/t uses ordered gene1/gene2 plus variant. Preserve namespace, assay scope, author, timestamps and class versus text. Saved report references identify historical versions. VEP 103 is a migration-specific source requirement, not a universal runtime version.
 
-Declared top-level fields: `_id`, `variant`, `hgvsp`, `hgvsc`, `genomic`, `genomic_hash`, `gene`, `gene1`, `gene2`, `asp_group`, `diagnosis_id`, `asp_id`, `namespace`, `author`, `nomenclature`, `transcript`, `time_created`, `class`, `text`, `rule_source`, `is_active`, `deactivated_at`, `deactivated_by`, `source_sample_id`, `source_finding_id`.
+Declared top-level fields: `_id`, `variant`, `hgvsp`, `hgvsc`, `genomic`, `genomic_hash`, `gene`, `gene1`, `gene2`, `asp_group`, `diagnosis_id`, `asp_id`, `namespace`, `author`, `nomenclature`, `transcript`, `time_created`, `class`, `text`.
 
 [Field types and validation](../mongodb-collections.md#annotation). `_id` may also be retained by an open collection model.
 
@@ -62,11 +62,6 @@ Declared top-level fields: `_id`, `variant`, `hgvsp`, `hgvsc`, `genomic`, `genom
 
 | Source field | Target key | Relationship / multiplicity | Migration and resolution semantics | Evidence |
 | --- | --- | --- | --- | --- |
-| [primary.annotation](clinical.md#primary-annotation): `source_sample_id` | [primary.samples](clinical.md#primary-samples): `_id` | optional provenance; many → one | Sample where this annotation was authored or tiered. Missing legacy origins are not inferred; retain this link after deactivation. | [S23](#s23) |
-| [primary.annotation](clinical.md#primary-annotation): `source_finding_id` | [primary.variants](clinical.md#primary-variants): `_id` | optional polymorphic provenance; many → one | Originating finding; p/c/g annotations reference a small variant. Older annotations may lack this link. | [S14](#s14) |
-| [primary.annotation](clinical.md#primary-annotation): `source_finding_id` | [primary.cnvs](clinical.md#primary-cnvs): `_id` | optional polymorphic provenance; many → one | Originating finding for cn annotations. Older annotations may lack this link. | [S14](#s14) |
-| [primary.annotation](clinical.md#primary-annotation): `source_finding_id` | [primary.translocations](clinical.md#primary-translocations): `_id` | optional polymorphic provenance; many → one | Originating finding for t annotations. Older annotations may lack this link. | [S14](#s14) |
-| [primary.annotation](clinical.md#primary-annotation): `source_finding_id` | [primary.fusions](clinical.md#primary-fusions): `_id` | optional polymorphic provenance; many → one | Originating finding for f annotations. Older annotations may lack this link. | [S14](#s14) |
 | [primary.annotation](clinical.md#primary-annotation): `asp_id` | [primary.assay_specific_panels](configuration.md#primary-assay-specific-panels): `asp_id` | scope; many → one | Annotation scope also includes namespace (clinical/sandboxed). asp_id may be null; base diagnosis is implicit. | [S24](#s24) |
 | [primary.annotation](clinical.md#primary-annotation): `asp_group` | [primary.assay_groups](configuration.md#primary-assay-groups): `group_id` | scope; many → one | Annotation scope also includes namespace (clinical/sandboxed). asp_id may be null; base diagnosis is implicit. | [S24](#s24) |
 | [primary.annotation](clinical.md#primary-annotation): `diagnosis_id` | [primary.diagnoses](configuration.md#primary-diagnoses): `diagnosis_id` | scope; many → one | Annotation scope also includes namespace (clinical/sandboxed). asp_id may be null; base diagnosis is implicit. | [S24](#s24) |
@@ -137,7 +132,6 @@ Declared top-level fields: `created_by`, `updated_by`, `SAMPLE_ID`, `chr`, `star
 
 | Source field | Target key | Relationship / multiplicity | Migration and resolution semantics | Evidence |
 | --- | --- | --- | --- | --- |
-| [primary.annotation](clinical.md#primary-annotation): `source_finding_id` | [primary.cnvs](clinical.md#primary-cnvs): `_id` | optional polymorphic provenance; many → one | Originating finding for cn annotations. Older annotations may lack this link. | [S14](#s14) |
 | [primary.finding_comments](clinical.md#primary-finding-comments): `finding_oid` | [primary.cnvs](clinical.md#primary-cnvs): `_id` | polymorphic reference; many → one | Only when finding_type=cnv; verify the finding's SAMPLE_ID also equals str(sample_oid). | [S8](#s8) |
 | [primary.reported_variants](clinical.md#primary-reported-variants): `var_oid` | [primary.cnvs](clinical.md#primary-cnvs): `_id` | optional polymorphic reference; many → one | Target depends on analysis_type/finding_type. Snapshot-only measurements can have no var_oid; preserve the captured result. | [S19](#s19) |
 
@@ -267,7 +261,6 @@ Declared top-level fields: `created_by`, `updated_by`, `SAMPLE_ID`, `gene1`, `ge
 
 | Source field | Target key | Relationship / multiplicity | Migration and resolution semantics | Evidence |
 | --- | --- | --- | --- | --- |
-| [primary.annotation](clinical.md#primary-annotation): `source_finding_id` | [primary.fusions](clinical.md#primary-fusions): `_id` | optional polymorphic provenance; many → one | Originating finding for f annotations. Older annotations may lack this link. | [S14](#s14) |
 | [primary.finding_comments](clinical.md#primary-finding-comments): `finding_oid` | [primary.fusions](clinical.md#primary-fusions): `_id` | polymorphic reference; many → one | Only when finding_type=fusion; verify the finding's SAMPLE_ID also equals str(sample_oid). | [S8](#s8) |
 | [primary.reported_variants](clinical.md#primary-reported-variants): `var_oid` | [primary.fusions](clinical.md#primary-fusions): `_id` | optional polymorphic reference; many → one | Target depends on analysis_type/finding_type. Snapshot-only measurements can have no var_oid; preserve the captured result. | [S19](#s19) |
 
@@ -517,7 +510,6 @@ Declared top-level fields: `created_by`, `updated_by`, `name`, `version`, `asp_i
 
 | Source field | Target key | Relationship / multiplicity | Migration and resolution semantics | Evidence |
 | --- | --- | --- | --- | --- |
-| [primary.annotation](clinical.md#primary-annotation): `source_sample_id` | [primary.samples](clinical.md#primary-samples): `_id` | optional provenance; many → one | Sample where this annotation was authored or tiered. Missing legacy origins are not inferred; retain this link after deactivation. | [S23](#s23) |
 | [primary.variants](clinical.md#primary-variants): `SAMPLE_ID` | [primary.samples](clinical.md#primary-samples): `_id` | string ObjectId; many → one | SAMPLE_ID stores str(samples._id), not samples.name. Multiple evidence rows may share a sample; preserve the original sample ObjectId and remap only with a complete identity map. | [S21](#s21) |
 | [primary.cnvs](clinical.md#primary-cnvs): `SAMPLE_ID` | [primary.samples](clinical.md#primary-samples): `_id` | string ObjectId; many → one | SAMPLE_ID stores str(samples._id), not samples.name. Multiple evidence rows may share a sample; preserve the original sample ObjectId and remap only with a complete identity map. | [S21](#s21) |
 | [primary.translocations](clinical.md#primary-translocations): `SAMPLE_ID` | [primary.samples](clinical.md#primary-samples): `_id` | string ObjectId; many → one | SAMPLE_ID stores str(samples._id), not samples.name. Multiple evidence rows may share a sample; preserve the original sample ObjectId and remap only with a complete identity map. | [S21](#s21) |
@@ -564,7 +556,6 @@ Declared top-level fields: `created_by`, `updated_by`, `SAMPLE_ID`, `CHROM`, `PO
 
 | Source field | Target key | Relationship / multiplicity | Migration and resolution semantics | Evidence |
 | --- | --- | --- | --- | --- |
-| [primary.annotation](clinical.md#primary-annotation): `source_finding_id` | [primary.translocations](clinical.md#primary-translocations): `_id` | optional polymorphic provenance; many → one | Originating finding for t annotations. Older annotations may lack this link. | [S14](#s14) |
 | [primary.finding_comments](clinical.md#primary-finding-comments): `finding_oid` | [primary.translocations](clinical.md#primary-translocations): `_id` | polymorphic reference; many → one | Only when finding_type=translocation; verify the finding's SAMPLE_ID also equals str(sample_oid). | [S8](#s8) |
 | [primary.reported_variants](clinical.md#primary-reported-variants): `var_oid` | [primary.translocations](clinical.md#primary-translocations): `_id` | optional polymorphic reference; many → one | Target depends on analysis_type/finding_type. Snapshot-only measurements can have no var_oid; preserve the captured result. | [S19](#s19) |
 
@@ -605,7 +596,6 @@ Declared top-level fields: `created_by`, `updated_by`, `SAMPLE_ID`, `CHROM`, `PO
 
 | Source field | Target key | Relationship / multiplicity | Migration and resolution semantics | Evidence |
 | --- | --- | --- | --- | --- |
-| [primary.annotation](clinical.md#primary-annotation): `source_finding_id` | [primary.variants](clinical.md#primary-variants): `_id` | optional polymorphic provenance; many → one | Originating finding; p/c/g annotations reference a small variant. Older annotations may lack this link. | [S14](#s14) |
 | [primary.finding_comments](clinical.md#primary-finding-comments): `finding_oid` | [primary.variants](clinical.md#primary-variants): `_id` | polymorphic reference; many → one | Only when finding_type=small_variant; verify the finding's SAMPLE_ID also equals str(sample_oid). | [S8](#s8) |
 | [primary.reported_variants](clinical.md#primary-reported-variants): `var_oid` | [primary.variants](clinical.md#primary-variants): `_id` | optional polymorphic reference; many → one | Target depends on analysis_type/finding_type. Snapshot-only measurements can have no var_oid; preserve the captured result. | [S19](#s19) |
 | [primary.annotation](clinical.md#primary-annotation): `genomic + genomic_hash` | [primary.variants](clinical.md#primary-variants): `simple_id + simple_id_hash` | clinical identity match; many ↔ many | Not a foreign key to one finding: match according to nomenclature, gene/transcript and interpretation scope. An annotation can apply across samples. | [S24](#s24) |

@@ -43,7 +43,7 @@ describe("finding detail cards", () => {
   it("emphasizes the current tier and shows matching history with author, text and date", () => {
     renderWithQuery(<ClassificationsCard
       latest={{ class: 2, author: "current-reviewer", time_created: "2026-03-01T10:00:00Z", history: [
-        { _id: "previous", class: 1, text: "Previous reasoning", author: "previous-reviewer", time_created: "2026-02-01T10:00:00Z", is_active: false },
+        { _id: "previous", class: 1, text: "Previous reasoning", author: "previous-reviewer", time_created: "2026-02-01T10:00:00Z" },
         { _id: "oldest", class: 3, text: "Original reasoning", author: "first-reviewer", time_created: "2026-01-01T10:00:00Z" },
       ] }}
       sampleId="S1" resourceType="small_variant" resourceId="V1"
@@ -55,7 +55,6 @@ describe("finding detail cards", () => {
     expect(entries).toHaveLength(2)
     expect(entries[0]).toHaveTextContent("Previous reasoning")
     expect(entries[0]).toHaveTextContent("previous-reviewer")
-    expect(entries[0]).toHaveTextContent("Inactive")
     expect(entries[0]).toHaveTextContent("2026")
     expect(entries[1]).toHaveTextContent("Original reasoning")
     expect(screen.getByText("current-reviewer")).toBeVisible()
@@ -106,7 +105,7 @@ describe("finding detail cards", () => {
     )
     const user = userEvent.setup()
     await user.click(screen.getByRole("button", { name: "Tier 3" }))
-    expect(screen.getByText("This will persist a Tier 3 classification for the finding.")).toBeInTheDocument()
+    expect(screen.getByText("This creates a new Tier 3 annotation. Existing annotations are retained.")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Set classification" }))
 
     await waitFor(() => expect(patch).toHaveBeenCalledWith("/samples/S1/classifications/tier", {
@@ -118,26 +117,14 @@ describe("finding detail cards", () => {
     expect(onUpdate).toHaveBeenCalled()
     expect(client.invalidateQueries).toHaveBeenCalled()
     expect(notifySuccess).toHaveBeenCalledWith(
-      "Classification updated",
+      "Classification created",
       "Finding classified as Tier 3.",
       "Classification",
     )
   })
 
-  it("confirms removal and hides mutation controls without a complete identity", async () => {
-    patch.mockResolvedValueOnce({ ok: true })
-    const user = userEvent.setup()
-    const { rerender } = renderWithQuery(
-      <ClassificationsCard latest={{ tier: 4 }} sampleId="S1" resourceType="small_variant" resourceId="V1" />,
-    )
-    await user.click(screen.getByRole("button", { name: "Deactivate" }))
-    await user.click(screen.getByRole("button", { name: "Deactivate annotations" }))
-    await waitFor(() => expect(patch).toHaveBeenCalledWith(
-      "/samples/S1/classifications/tier",
-      expect.objectContaining({ tier: 4, apply: false }),
-    ))
-
-    rerender(<QueryClientProvider client={new QueryClient()}><ClassificationsCard /></QueryClientProvider>)
+  it("hides mutation controls without a complete identity", () => {
+    renderWithQuery(<ClassificationsCard />)
     expect(screen.getByText("Not currently classified.")).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Tier 1" })).not.toBeInTheDocument()
   })
@@ -157,22 +144,10 @@ describe("finding detail cards", () => {
     expect(screen.queryByRole("button", { name: "Deactivate" })).not.toBeInTheDocument()
   })
 
-  it("confirms group deactivation with its scope and retains historical status", async () => {
-    patch.mockClear()
-    patch.mockResolvedValueOnce({ ok: true })
-    renderWithQuery(<ClassificationsCard latest={{ class: 2, is_active: false, historical_sample_match: true }}
+  it("offers new classifications without annotation withdrawal controls", () => {
+    renderWithQuery(<ClassificationsCard latest={{ class: 2 }}
       sampleId="S1" resourceType="small_variant" resourceId="V1" />)
-    expect(screen.getByText("Inactive")).toBeVisible()
-    expect(screen.getByText(/Historical annotation linked to this sample/)).toBeVisible()
-    expect(screen.queryByRole("button", { name: "Deactivate" })).not.toBeInTheDocument()
-    const user = userEvent.setup()
-    await user.click(screen.getByRole("button", { name: "Deactivate group annotations" }))
-    expect(screen.getByText(/every assay and diagnosis in the biological group/)).toBeVisible()
-    expect(patch).not.toHaveBeenCalled()
-    await user.click(screen.getByRole("button", { name: "Deactivate annotations" }))
-    await waitFor(() => expect(patch).toHaveBeenCalledWith("/samples/S1/classifications/tier", {
-      resource_type: "small_variant", resource_ids: ["V1"], tier: 2, apply: false,
-      deactivation_scope: "group",
-    }))
+    expect(screen.getByRole("button", { name: "Tier 1" })).toBeVisible()
+    expect(screen.queryByRole("button", { name: /Deactivate/ })).not.toBeInTheDocument()
   })
 })

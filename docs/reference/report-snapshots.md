@@ -39,12 +39,10 @@ an exact classification without being copied into every assay. There are no rati
 record links. Ordering uses `time_created`, then MongoDB `_id` to break timestamp ties.
 Saved report artifacts retain their original tier and text.
 
-Inactive versions require an explicit assignment or report link to remain effective
-for a sample. Unlinked inactive legacy versions are available for historical search,
-not automatic analysis tiering or new-report eligibility. The full selection and
-deactivation rules are in
+Saved report references preserve the original annotation versions after a new
+annotation is created. Existing annotations are not edited or deactivated. See
 [annotation matching](../architecture/clinical-data-and-reporting.md#53-annotation-identity-and-matching)
-and [historical provenance](../architecture/clinical-data-and-reporting.md#deactivation-and-historical-provenance).
+and [annotation history](../architecture/clinical-data-and-reporting.md#immutable-annotations-and-report-history).
 
 The effective ASPC's `reporting.reportable_tiers` selects report candidates:
 
@@ -693,18 +691,15 @@ variant snapshots:
 
 1. Search annotation records by gene, variant, or text.
 2. For each annotation hit, find reported snapshot rows using
-   `annotation_oid` or `annotation_text_oid`, and retain its recorded
-   `source_sample_id` origin when present.
+   `annotation_oid` or `annotation_text_oid`.
 3. Restrict sample links to samples visible to the actor, then group them by sample
    and report id. A direct snapshot result uses its saved tier.
 4. Optionally include annotation text.
 5. Return sample/report mapping for UI search results.
 
-Both active and inactive versions can appear. Unlinked legacy annotation versions
-are reduced to the newest record for each exact finding identity, scope and record
-kind (class or text), with `legacy_fallback: true`. Missing sample permissions do not
-turn a record with known provenance into a legacy fallback. No origin links are
-inferred or backfilled. The UI displays a disclaimer when legacy fallback rows occur.
+Annotations without report links are reduced to the newest record for each exact
+finding identity, scope and record kind (class or text). Report links identify
+historical samples; no sample origin is inferred from the annotation itself.
 
 This supports searches such as:
 

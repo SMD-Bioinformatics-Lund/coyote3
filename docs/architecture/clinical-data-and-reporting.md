@@ -293,33 +293,27 @@ Classification applicability is contextual:
 
 Free-text annotations use the same assay/diagnosis context. They are available
 as global annotation history. Current text is resolved independently by eligible
-scope specificity and recency; an inactive text requires a recorded sample link.
+scope specificity and recency.
 
-#### Deactivation and historical provenance
+#### Immutable annotations and report history
 
-New classifications and global text annotations retain `source_sample_id` and
-`source_finding_id`. Deactivation sets `is_active: false`, `deactivated_at` and
-`deactivated_by`, preserving the original annotation identity, author and time.
-Repeating deactivation does not replace its original actor or timestamp.
+Annotations are append-only. Changing a classification or text creates a new
+annotation; existing records retain their identity, author, and creation time.
+There are no lifecycle flags, source sample/finding IDs, or rule-source fields in
+an annotation document. Report references (`annotation_oid` and
+`annotation_text_oid`) preserve the versions used in saved reports. Without a
+saved report reference, matching uses the latest annotation in the eligible scope.
 
-Diagnosis deactivation affects the matching tier in the current assay and diagnosis.
-Group deactivation affects matching class and text records across all assays and
-diagnoses in the same biological group and namespace, and requires
-`tier:remove:global`. Assigning a tier again creates a new record.
-
-`reported_variants.annotation_oid` and `annotation_text_oid` can establish which
-versions a sample used, including inactive versions. Such versions remain usable
-for that linked sample. Legacy records without origin or report links cannot prove
-a sample's historical tier. Tiered search can display their latest matching version
-with a disclaimer; analysis does not automatically assign an inactive legacy tier.
-Saved report artifacts and snapshots retain their report-time content.
+Upgrade impact: the annotation contract rejects the removed fields. Existing
+stored documents are not rewritten automatically. Review existing data before
+applying the updated collection validator; no historical sample links are inferred.
 
 The implementation owners are `domain/annotation_scope.py`,
 `application/interpretation/annotation_enrichment.py` and
 `application/common/query_service.py` under `core/src/coyote/`, and
 `adapters/mongo/src/coyote_mongo/repositories/annotations.py`. See the
 [search provenance reference](../reference/report-snapshots.md#tiered-variant-search)
-and [user action reference](../user-guide/actions-and-record-changes.md#inactive-annotations-and-sample-history).
+and [user action reference](../user-guide/actions-and-record-changes.md#immutable-annotations-and-sample-history).
 
 ## Investigate a discrepancy
 

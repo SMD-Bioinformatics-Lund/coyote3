@@ -186,7 +186,7 @@ variants, CNVs and translocations, and RNA fusions.
 ```
 
 The flag evaluates published `bulk_annotation_rules` and saves matching text as a
-separate annotation with its rule-version provenance. Omitting the flag stores only
+separate immutable annotation. Omitting the flag stores only
 the classification. Automatic text is rejected for removal, Tier IV and finding
 types incompatible with the sample's analyte.
 `POST /api/v1/samples/{sample_id}/classifications/tier/preview` accepts the same

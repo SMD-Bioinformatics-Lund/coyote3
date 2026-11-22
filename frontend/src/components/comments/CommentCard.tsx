@@ -104,11 +104,6 @@ export function CommentCard({
                 Hidden
               </Badge>
             )}
-            {comment?.is_active === false && (
-              <Badge variant="outline" className="inline-flex items-center border-warn/50 bg-warn/10 text-warn">
-                Inactive annotation
-              </Badge>
-            )}
           </div>
           {createdAt && (
             <TimeDisplay

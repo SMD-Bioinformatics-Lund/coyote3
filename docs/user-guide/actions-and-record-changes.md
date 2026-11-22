@@ -26,9 +26,6 @@ This reference maps UI controls to backend endpoints, persistent state changes, 
 |---|---|---|---|---|
 | **Mark False Positive** | Detail Views | `PATCH .../flags/false-positive` | `fp` flag status | finding removal from prioritized review streams. |
 | **Classify (Tier)** | Classification Panel | `POST .../classifications` | `annotations.class` | Formal clinical tier assignment applied. |
-| **Deactivate** | Classification Panel or bulk tier actions | `PATCH .../classifications/tier` with `apply: false` | `annotations.is_active: false`, `deactivated_at`, `deactivated_by` | Retains matching tier records in the current assay, diagnosis and namespace. Recorded sample/report links continue to resolve the historical annotation. |
-| **Deactivate group annotations** | Classification Panel | Same endpoint with `apply: false`, `deactivation_scope: group` | Same lifecycle fields on all matching classifications and text annotations | Deactivates this finding across all assays and diagnoses in its biological group, within the current namespace. Requires `tier:remove:global`; no records are deleted. |
-| **Deactivate classification (API)** | API clients | `DELETE .../classifications` | Marks matching classifications inactive | Preserves annotation records and their historical sample links. |
 | **Save Comment** | Annotation Form | `POST .../annotations` | `annotations` collection record | Persistence of review notes and diagnostic audit trail. |
 | **Add to Blacklist** | Variant Details | `POST .../blacklist_entries` | `blacklist` collection update | Systematic exclusion from future center-level findings. |
 
@@ -61,36 +58,13 @@ Comment behavior is intentionally different between sample-level review and find
 
 Global finding annotations and sample-specific finding annotations are shown in separate cards so reviewers can distinguish center-wide interpretation knowledge from comments tied to the active sample.
 
-### Inactive annotations and sample history
+### Immutable annotations and sample history
 
-New tier assignments store `source_sample_id` and `source_finding_id` on the annotation.
-Deactivation preserves the original annotation ID, tier, author, text and creation time.
-Repeated deactivation leaves the original deactivation actor and time unchanged.
-Assigning a tier again creates a new annotation; it does not reactivate an old record.
-
-Sample views retain an inactive version when a tier assignment or saved
-`reported_variants.annotation_oid` links that version to the sample. Other samples
-use the newest reusable interpretation in their exact clinical scope. An inactive
-assignment from another sample is not adopted, and an older active tier is not
-resurrected after its newer replacement is deactivated.
-Analysis tables do not automatically assign tiers from inactive, unlinked annotations,
-including legacy annotations. The latest inactive legacy fallback is available in
-tiered variant search for historical review, not as an automatic analysis tier.
-Finding detail cards show the current matched classification and its classification
-history, newest first, with the recorded tier, text, author and time. History uses
-the same finding identity, namespace, assay, biological group and diagnosis matching
-as the current classification; it includes inactive versions without reapplying them.
-
-Tiered variant search shows **Active** or **Inactive** and attaches only recorded
-sample links. For legacy annotations without assignment or report links, it shows
-the latest matching version, including inactive versions, with a disclaimer above
-the table. Such a fallback cannot establish the tier used on a particular sample.
-An uncertain inactive legacy fallback must be re-tiered before a new report can
-include it. Existing saved report artifacts and snapshots remain unchanged.
-
-Existing annotations without `is_active` are treated as active. No historical
-sample links are inferred or backfilled. Deployed collection validators must accept
-the current annotation contract before lifecycle writes are enabled.
+To change a tier or annotation text, create a new annotation. Existing records
+remain unchanged. The latest matching annotation applies within its clinical
+scope; saved report references continue to identify their original versions.
+Finding details show previous annotations with their author and creation time.
+Annotations cannot be deactivated or removed.
 
 ### Bulk classification text
 
@@ -98,8 +72,7 @@ Bulk classification always stores the requested Tier I-IV classification.
 For supported Tier I–III assignments, the confirmation dialog offers **Include automatic
 text**, unchecked by default. Preview matching published annotation templates
 before confirming. Findings with no matching template receive the chosen tier
-without generated text. Matching text is saved as a separate annotation with its
-rule-version provenance. Sample measurements are not inserted into reusable text.
+without generated text. Matching text is saved as a separate annotation without storing rule-source fields in the annotation. Sample measurements are not inserted into reusable text.
 
 DNA templates support small variants, CNVs and translocations; RNA templates
 support fusions. Tier actions remain subject to permissions and enabled tiering

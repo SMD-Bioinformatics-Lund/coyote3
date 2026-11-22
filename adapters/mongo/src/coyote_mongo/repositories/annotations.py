@@ -17,7 +17,6 @@ from urllib.parse import unquote
 
 from coyote.application.common.execution_context import current_username
 from coyote.config.constants import DIAGNOSIS_BASE_ID
-from coyote.contracts.operations import OperationResult
 from coyote.contracts.schemas.registry import normalize_collection_document
 from coyote.domain.annotation_identity import (
     ANNOTATION_IDENTITY_FIELDS,
@@ -45,7 +44,6 @@ from coyote_mongo.repository_utils import utc_now
 from coyote_mongo.results import (
     operation_from_insert_many,
     operation_from_insert_one,
-    operation_from_update,
 )
 
 
@@ -165,14 +163,13 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         return None
 
     def get_matching_annotation_text(self, annotation: dict[str, Any]) -> str | None:
-        """Return scoped text, preserving a recorded source sample's annotation version.
+        """Return the latest matching scoped annotation text.
 
         Args:
-            annotation: Classification identity, scope, and optional originating sample.
+            annotation: Classification identity and scope.
 
         Returns:
-            Matching active or sample-linked historical text, or None. Unlinked
-            inactive text is never presented as a verified classification explanation.
+            Matching text, or None when no annotation matches the scope.
         """
         query = _classification_text_lookup_query(annotation)
         if query is None:
@@ -195,7 +192,7 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         versions = AnnotationsRepository._sample_annotation_versions(
             self,
             list(self.get_collection().find(query).sort([("time_created", 1), ("_id", 1)])),
-            annotation.get("source_sample_id"),
+            None,
         )
         for row in reversed(versions):
             if row.get("legacy_fallback"):
@@ -270,9 +267,8 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         visible-namespace classifications are effective. Broader interpretations are
         ordered by specificity, including nearest biological ancestors, and
         require re-tiering before they can qualify for reporting.
-        Inactive classifications are matched only when explicitly linked to this
-        sample's assignment or report history. Unlinked inactive legacy records
-        remain available in historical search but cannot automatically tier analysis.
+        Saved report references retain their recorded annotation versions.
+        Otherwise the latest matching immutable annotation is used.
 
         Args:
             variant (dict): A dictionary containing variant details, including
@@ -385,8 +381,6 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         annotations_arr = [row for row in all_annotations if row.get("text") is not None]
         text_candidates = []
         for anno in annotations:
-            if anno.get("is_active") is False and not anno.get("historical_sample_match"):
-                continue
             match = annotation_scope_match(
                 anno, group_path=group_path, diagnosis=diagnosis, context=sample_context or {}
             )
@@ -402,9 +396,7 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
                         **match,
                     }
             if anno.get("text") is not None:
-                if (match["effective"] or match["fallback_eligible"]) and (
-                    anno.get("is_active", True) or anno.get("historical_sample_match")
-                ):
+                if match["effective"] or match["fallback_eligible"]:
                     text_candidates.append((anno, match))
 
         # Oldest-first query order makes reverse order newest-first. Stable
@@ -457,8 +449,8 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             sample_id: Sample owner, or None when no sample-specific history is available.
 
         Returns:
-            Selected records in creation order. Inactive unlinked legacy records are
-            explicitly marked as uncertain display fallbacks and cannot qualify reports.
+            Selected immutable records in creation order, retaining versions
+            referenced by this sample's saved reports.
         """
         references: set[str] = set()
         if not annotations:
@@ -662,9 +654,6 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             "diagnosis_id": variant_data.get("diagnosis_id"),
             "namespace": variant_data.get("namespace"),
         }
-        for key in ("source_sample_id", "source_finding_id"):
-            if variant_data.get(key):
-                document[key] = variant_data[key]
 
         if "text" in kwargs:
             document["text"] = kwargs["text"]
@@ -679,80 +668,6 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             self.write(self.get_collection(), "insert_one", document)
         )
         if _annotation_class_value(document.get("class")) is not None:
-            self.invalidate_dashboard_metrics()
-        return result
-
-    def deactivate_classified_variant(
-        self,
-        variant: str,
-        nomenclature: str,
-        variant_data: dict,
-        class_num: int | None = None,
-        annotation_text: str | None = None,
-        group: bool = False,
-    ) -> OperationResult:
-        """
-        Deactivate matching classifications while retaining their identities and history.
-
-        This method retains classification documents in the MongoDB collection.
-        Deactivation is limited to the exact assay, diagnosis, nomenclature, and
-        finding context supplied by the current workflow.
-
-        Args:
-            variant (str): The variant identifier (e.g., genomic location or variant ID).
-            nomenclature (str): The nomenclature type ('p', 'c', 'g', or 'f').
-            variant_data (dict): A dictionary containing additional variant details, such as:
-                - asp_group (str): Biological group identifier.
-                - asp_id (str | None): Assay identifier, or null for group scope.
-                - namespace (str): Clinical or sandboxed interpretation scope.
-                - diagnosis_id (str): Diagnosis identifier.
-                - gene (str): The gene symbol (if applicable).
-            class_num: Selected tier; None deactivates all classifications in the scope.
-            annotation_text: Matching generated text to deactivate alongside the tier, if any.
-            group: Deactivate all classes and text across assays and diagnoses in this
-                biological group, retaining the exact finding identity and namespace.
-
-        Returns:
-            Matched and modified counts for the scoped deactivation.
-        """
-        query = {
-            "variant": variant,
-            "asp_group": variant_data.get("asp_group"),
-            "nomenclature": nomenclature,
-            "diagnosis_id": variant_data.get("diagnosis_id"),
-            **annotation_context_fields(nomenclature=nomenclature, source=variant_data),
-        }
-
-        class_filter: dict = {"class": {"$exists": True}}
-        if class_num is not None:
-            class_filter["class"] = class_num
-
-        deactivation_clause: list[dict] = [class_filter]
-        if annotation_text:
-            deactivation_clause.append({"text": annotation_text})
-
-        scoped_query = {**query, "$or": deactivation_clause}
-        scoped_query["asp_id"] = variant_data["asp_id"]
-        scoped_query["namespace"] = variant_data["namespace"]
-        if group:
-            scoped_query.pop("asp_id")
-            scoped_query.pop("diagnosis_id")
-            scoped_query.pop("$or")
-        scoped_query["is_active"] = {"$ne": False}
-        result = operation_from_update(
-            self.update_many_atomic(
-                scoped_query,
-                {
-                    "$set": {
-                        "is_active": False,
-                        "deactivated_at": utc_now(),
-                        "deactivated_by": current_username(),
-                        "updated_by": current_username(),
-                    }
-                },
-            )
-        )
-        if result.modified_count:
             self.invalidate_dashboard_metrics()
         return result
 
