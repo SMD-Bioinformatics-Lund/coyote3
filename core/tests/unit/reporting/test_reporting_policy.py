@@ -62,9 +62,8 @@ def test_renderer_does_not_mutate_aspc_or_duplicate_metadata_in_summary():
         ({"interesting": True, "classification": {"class": 4}}, [], True),
         ({"fp": True, "interesting": True}, [1, 2, 3], False),
         ({"irrelevant": True, "classification": {"class": 1}}, [1], False),
-        ({"classification": {"class": 1, "is_active": False}}, [1], False),
         (
-            {"classification": {"class": 1, "is_active": False, "historical_sample_match": True}},
+            {"classification": {"class": 1}},
             [1],
             True,
         ),

@@ -514,33 +514,13 @@ class CommonQueryService:
                 )
                 or []
             )
-            has_recorded_history = bool(reported_docs) or bool(doc.get("source_sample_id"))
+            has_recorded_history = bool(reported_docs)
             if sample_is_visible is not None:
                 reported_docs = [
                     row
                     for row in reported_docs
                     if row.get("sample_oid") and sample_is_visible(str(row["sample_oid"]))
                 ]
-            source_sample_id = doc.get("source_sample_id")
-            if source_sample_id and (
-                sample_is_visible is None or sample_is_visible(str(source_sample_id))
-            ):
-                source_sample = self.sample_repository.get_sample_by_oid(source_sample_id)
-                if source_sample:
-                    sample_oids[str(source_sample_id)] = {
-                        **self._sample_reference(
-                            sample_oid=source_sample_id,
-                            sample_doc=source_sample,
-                            sample_name=source_sample.get("name"),
-                        ),
-                        "annotation_link": "tier_assignment",
-                    }
-            elif source_sample_id:
-                merged_doc.pop("source_sample_id", None)
-                merged_doc.pop("source_finding_id", None)
-                if not reported_docs and doc.get("is_active") is False:
-                    continue
-
             for reported_doc in reported_docs:
                 if reported_doc.get("_id") is not None:
                     reported_docs_seen.add(str(reported_doc.get("_id")))
@@ -662,13 +642,6 @@ class CommonQueryService:
                 },
                 "reported_docs": [reported_doc],
             }
-            if (
-                sample_is_visible is not None
-                and merged_doc.get("source_sample_id")
-                and not sample_is_visible(str(merged_doc["source_sample_id"]))
-            ):
-                merged_doc.pop("source_sample_id", None)
-                merged_doc.pop("source_finding_id", None)
             merged_doc["assay_group"] = (
                 (sample_doc or {}).get("assay_group")
                 or merged_doc.get("assay_group")

@@ -64,11 +64,10 @@ class Sample:
     def set_tiers(
         self, change: TierChange, *, preview: bool = False
     ) -> list[dict[str, Any]] | None:
-        """Assign tiers or deactivate annotations with curation and publication grants.
+        """Create immutable tier annotations with curation and publication grants.
 
         Args:
-            change: Tier, finding family, identifiers and assignment/deactivation intent.
-                Group deactivation additionally requires tier:remove:global.
+            change: Tier, finding family and identifiers. Removal requests are rejected.
             preview: Render bulk annotation text without writing clinical state.
 
         Returns:
@@ -171,8 +170,6 @@ class Sample:
                 form_data={
                     **authored,
                     **service.classification_context(sample),
-                    "source_sample_id": str(sample["_id"]),
-                    "source_finding_id": resource_id,
                 },
                 get_tier_classification_fn=get_tier_classification,
                 get_variant_nomenclature_fn=get_variant_nomenclature,
@@ -191,7 +188,7 @@ class Sample:
     def remove_classification(
         self, resource_type: FindingKind, resource_id: str, form_data: dict[str, Any]
     ) -> None:
-        """Deactivate classifications through the sample-owned identity workflow.
+        """Reject removal of immutable annotations through the sample-owned workflow.
 
         Args:
             resource_type: Canonical finding family.

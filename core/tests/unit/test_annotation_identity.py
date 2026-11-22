@@ -211,3 +211,33 @@ def test_context_fields_follow_nomenclature_without_null_placeholders():
         "gene1": "EML4",
         "gene2": "ALK",
     }
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "rule_source",
+        "is_active",
+        "deactivated_at",
+        "deactivated_by",
+        "source_sample_id",
+        "source_finding_id",
+    ],
+)
+def test_annotation_contract_rejects_lifecycle_and_origin_fields(field):
+    from coyote.contracts.schemas.variant_annotations import AnnotationDoc
+
+    document = {
+        "variant": "gain",
+        "nomenclature": "cn",
+        "asp_group": "solid",
+        "asp_id": "panel",
+        "diagnosis_id": "base",
+        "namespace": "clinical",
+        "author": "reviewer",
+        "text": "Reviewed finding",
+    }
+    validated = AnnotationDoc.model_validate(document).model_dump(by_alias=True)
+    assert field not in validated
+    with pytest.raises(ValueError, match="Extra inputs"):
+        AnnotationDoc.model_validate({**document, field: None})

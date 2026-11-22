@@ -316,8 +316,6 @@ def test_resource_classification_service_supports_fusion_bulk_tiering(monkeypatc
         "diagnosis_id",
         "gene1",
         "gene2",
-        "source_sample_id",
-        "source_finding_id",
     }
 
 
@@ -387,10 +385,7 @@ def test_structural_bulk_annotation_preview_and_persistence(
     assert repo.annotation_repository.inserted_bulk is None
     service.set_tier_bulk(**arguments, annotation_rule_hash=release.content_hash)
     assert repo.annotation_repository.inserted_bulk[1]["text"] == expected
-    assert (
-        repo.annotation_repository.inserted_bulk[1]["rule_source"]["content_hash"]
-        == release.content_hash
-    )
+    assert "rule_source" not in repo.annotation_repository.inserted_bulk[1]
 
 
 def test_resource_classification_service_persists_tier_three_classification_only():
@@ -503,14 +498,7 @@ def test_resource_classification_service_adds_bulk_annotation_template_when_requ
         None,
         "Reviewed SRSF2",
     ]
-    assert repo.annotation_repository.inserted_bulk[1]["rule_source"] == {
-        "rule_set_id": release.rule_set_id,
-        "content_version": release.content_version,
-        "revision": release.revision,
-        "content_hash": release.content_hash,
-        "rule_id": "reviewed_text",
-        "tier": tier,
-    }
+    assert "rule_source" not in repo.annotation_repository.inserted_bulk[1]
 
     repo.annotation_repository.inserted_bulk = None
     preview = service.set_tier_bulk(
@@ -675,43 +663,30 @@ def test_automatic_annotation_requires_published_terminology(monkeypatch):
     assert repo.annotation_repository.inserted_bulk is None
 
 
-def test_tier_removal_deletes_only_the_matching_classification():
-    """Removing a tier deletes only its matching classification."""
+@pytest.mark.parametrize("resource_type", ["small_variant", "cnv", "fusion", "translocation"])
+def test_tier_removal_is_rejected_without_writing(resource_type):
     repo = _RepoStub()
     service = _classification_service(repo)
+    with pytest.raises(AppError, match="immutable") as error:
+        service.set_tier_bulk(
+            sample={"_id": "S1", "asp_id": "assay", "environment": "production"},
+            resource_type=resource_type,
+            resource_ids=["finding-1"],
+            apply=False,
+            class_num=2,
+            create_classified_variant_doc_fn=_classification_doc,
+        )
+    assert error.value.status_code == 409
+    assert repo.annotation_repository.deleted == []
+    assert repo.annotation_repository.inserted_bulk is None
 
-    service.set_tier_bulk(
-        sample={"_id": "S1", "asp_id": "assay", "environment": "production"},
-        resource_type="small_variant",
-        resource_ids=["var-1"],
-        apply=False,
-        class_num=2,
-        create_classified_variant_doc_fn=_classification_doc,
-    )
 
-    assert len(repo.annotation_repository.deleted) == 1
-    assert repo.annotation_repository.deleted[0]["class_num"] == 2
-    assert repo.annotation_repository.deleted[0]["annotation_text"] is None
-
-
-def test_resource_classification_service_supports_translocation_bulk_removal(monkeypatch):
+def test_individual_annotation_removal_is_rejected_without_writing():
     repo = _RepoStub()
-    service = _classification_service(repo)
-
-    service.set_tier_bulk(
-        sample={
-            "_id": "S1",
-            "asp_id": "assay",
-            "environment": "production",
-            "diagnosis_id": "solid",
-        },
-        resource_type="translocation",
-        resource_ids=["tl-1"],
-        apply=False,
-        class_num=3,
-        create_classified_variant_doc_fn=_classification_doc,
-    )
-
-    assert len(repo.annotation_repository.deleted) == 1
-    assert repo.annotation_repository.deleted[0]["nomenclature"] == "t"
-    assert repo.annotation_repository.deleted[0]["variant"] == "1:100^2:200"
+    with pytest.raises(AppError, match="immutable"):
+        _classification_service(repo).remove_resource(
+            resource_type="small_variant",
+            form_data={},
+            get_variant_nomenclature_fn=lambda data: ("p", "p.Arg1Gly"),
+        )
+    assert repo.annotation_repository.deleted == []

@@ -26,17 +26,6 @@ from coyote.domain.annotation_identity import (
 )
 
 
-class AnnotationRuleSource(_StrictDocBase):
-    """Immutable template identity captured when bulk annotation text is generated."""
-
-    rule_set_id: str
-    content_version: int = Field(ge=1)
-    revision: int = Field(ge=1)
-    content_hash: str
-    rule_id: str
-    tier: Literal[1, 2, 3]
-
-
 class AnnotationDoc(_StrictDocBase):
     """Classification or text annotation with nomenclature-specific finding identity."""
 
@@ -73,14 +62,6 @@ class AnnotationDoc(_StrictDocBase):
 
     class_: int | None = Field(default=None, alias="class")
     text: str | None = None
-    rule_source: AnnotationRuleSource | None = Field(
-        default=None, exclude_if=lambda value: value is None
-    )
-    is_active: bool = Field(default=True, exclude_if=lambda value: value is True)
-    deactivated_at: datetime | None = Field(default=None, exclude_if=lambda value: value is None)
-    deactivated_by: str | None = Field(default=None, exclude_if=lambda value: value is None)
-    source_sample_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
-    source_finding_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode="before")
     @classmethod
@@ -133,8 +114,6 @@ class AnnotationDoc(_StrictDocBase):
             self.class_ is not None and self.text is not None
         ):
             raise ValueError("Exactly one of 'class' or 'text' must be provided")
-        if self.rule_source is not None and self.text is None:
-            raise ValueError("Annotation rule provenance requires text")
 
         values = {
             "variant": self.variant,

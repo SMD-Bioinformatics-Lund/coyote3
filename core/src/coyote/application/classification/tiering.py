@@ -167,7 +167,6 @@ class ResourceClassificationService:
             key: classification_context[key]
             for key in ("asp_group", "asp_id", "diagnosis_id", "namespace")
         }
-        base_context.update(source_sample_id=str(sample["_id"]), source_finding_id=str(resource_id))
         if normalized_type == "small_variant":
             var = self.variant_repository.get_variant(str(resource_id))
             if not var or str(var.get("SAMPLE_ID")) != str(sample.get("_id")):
@@ -289,24 +288,26 @@ class ResourceClassificationService:
         preview_only: bool = False,
         annotation_rule_hash: str | None = None,
     ) -> list[dict[str, Any]] | None:
-        """Assign tiers or deactivate matching annotations in bulk.
+        """Create new immutable tier annotations in bulk.
 
         Args:
             sample: Sample payload containing ownership context.
             resource_type: Resource type to classify.
             resource_ids: Resource identifiers to update.
-            apply: Whether to add or remove the classification.
+            apply: Must be true; removal requests are rejected.
             class_num: Target tier/class number.
             create_classified_variant_doc_fn: Helper used to build classification documents.
             include_automatic_text: Whether to add supported application-generated text.
-            deactivation_scope: Diagnosis limits deactivation to the current assay/diagnosis/tier;
-                group retires all finding annotations across assays and diagnoses in the group.
+            deactivation_scope: Only the default diagnosis scope is accepted.
+                Withdrawal of stored annotations is not supported.
             preview_only: Return generated text per finding without any writes.
             annotation_rule_hash: Optional previewed release hash; reject a changed release.
 
         Returns:
             Preview rows when requested; None after a persisted action.
         """
+        if not apply:
+            raise api_error(409, "Annotations are immutable; create a new annotation instead")
         if deactivation_scope not in {"diagnosis", "group"} or (
             apply and deactivation_scope == "group"
         ):
@@ -365,7 +366,6 @@ class ResourceClassificationService:
                 continue
 
             automatic_text = None
-            rule_source = None
             if release is not None:
                 text_context = identity["automatic_text_context"]
                 gene = str(text_context.get("gene") or "").strip()
@@ -406,15 +406,6 @@ class ResourceClassificationService:
                         422, "Bulk annotation text could not be generated", str(error)
                     ) from error
                 automatic_text = rendered.text
-                if rendered.rule_id:
-                    rule_source = {
-                        "rule_set_id": release.rule_set_id,
-                        "content_version": release.content_version,
-                        "revision": release.revision,
-                        "content_hash": release.content_hash,
-                        "rule_id": rendered.rule_id,
-                        "tier": class_num,
-                    }
                 previews.append(
                     {
                         "resource_id": str(resource_id),
@@ -424,17 +415,6 @@ class ResourceClassificationService:
                     }
                 )
             if preview_only:
-                continue
-
-            if not apply:
-                self.annotation_repository.deactivate_classified_variant(
-                    variant=identity["variant"],
-                    nomenclature=identity["nomenclature"],
-                    variant_data=identity["variant_data"],
-                    class_num=class_num,
-                    annotation_text=automatic_text,
-                    group=deactivation_scope == "group",
-                )
                 continue
 
             bulk_docs.append(
@@ -457,7 +437,6 @@ class ResourceClassificationService:
                         text=automatic_text,
                     )
                 )
-                annotation["rule_source"] = rule_source
                 bulk_docs.append(annotation)
         if preview_only:
             return previews
@@ -487,9 +466,8 @@ class ResourceClassificationService:
         form_data: dict,
         get_variant_nomenclature_fn,
     ) -> None:
-        """Deactivate matching resource classifications while retaining their stored history."""
-        nomenclature, variant = get_variant_nomenclature_fn(form_data)
-        self.annotation_repository.deactivate_classified_variant(variant, nomenclature, form_data)
+        """Reject removal: stored annotations are immutable."""
+        raise api_error(409, "Annotations are immutable; create a new annotation instead")
 
 
 __all__ = ["ResourceClassificationService"]

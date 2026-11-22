@@ -43,7 +43,7 @@ class FlagChange(BaseModel):
 
 
 class TierChange(BaseModel):
-    """Explicit tier assignment or removal, retaining existing clinical validation."""
+    """Tier request; annotation workflows reject removal of stored records."""
 
     model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
 

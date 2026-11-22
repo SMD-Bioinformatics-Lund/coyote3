@@ -637,10 +637,7 @@ def test_generated_annotation_provenance_survives_the_storage_contract():
         "rule_id": "gene_annotation",
         "tier": 2,
     }
-    parsed = AnnotationDoc.model_validate(document)
-    assert parsed.rule_source.rule_id == "gene_annotation"
-    assert parsed.text == "Reviewed annotation."
-    document.pop("text")
-    document["class"] = 2
-    with pytest.raises(ValueError, match="provenance requires text"):
+    with pytest.raises(ValueError, match="Extra inputs"):
         AnnotationDoc.model_validate(document)
+    document.pop("rule_source")
+    assert AnnotationDoc.model_validate(document).text == "Reviewed annotation."

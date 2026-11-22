@@ -76,12 +76,6 @@ Optional keys:
 - `time_created` (datetime)
 - `class` (int | None)
 - `text` (str | None)
-- `rule_source` (coyote.contracts.schemas.variant_annotations.AnnotationRuleSource | None)
-- `is_active` (bool)
-- `deactivated_at` (datetime.datetime | None)
-- `deactivated_by` (str | None)
-- `source_sample_id` (str | None)
-- `source_finding_id` (str | None)
 
 ## `app_controls`
 

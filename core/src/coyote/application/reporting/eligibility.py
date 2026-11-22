@@ -42,17 +42,9 @@ def structural_report_inclusion(finding: dict, allowed_tiers: list[int]) -> bool
 
 
 def classification_is_usable(classification: dict | None) -> bool:
-    """Allow active classifications or inactive versions explicitly linked to this sample.
+    """Return whether a scoped classification is present.
 
-    Args:
-        classification: Scoped classification; None has no usable interpretation.
-
-    Returns:
-        False for uncertain legacy fallbacks and unrelated inactive interpretations.
+    Annotation documents are immutable. Scope matching and reportable-tier
+    selection are checked by the caller; there is no annotation lifecycle flag.
     """
-    if not classification:
-        return False
-    return (
-        classification.get("is_active", True)
-        or classification.get("historical_sample_match") is True
-    )
+    return bool(classification)

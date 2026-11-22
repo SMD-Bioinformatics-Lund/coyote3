@@ -4862,7 +4862,7 @@ Sample.remove_classification(self, resource_type: 'FindingKind', resource_id: 's
 ```
 
 ```text
-Deactivate classifications through the sample-owned identity workflow.
+Reject removal of immutable annotations through the sample-owned workflow.
 
 Args:
     resource_type: Canonical finding family.
@@ -4927,11 +4927,10 @@ Sample.set_tiers(self, change: 'TierChange', *, preview: 'bool' = False) -> 'lis
 ```
 
 ```text
-Assign tiers or deactivate annotations with curation and publication grants.
+Create immutable tier annotations with curation and publication grants.
 
 Args:
-    change: Tier, finding family, identifiers and assignment/deactivation intent.
-        Group deactivation additionally requires tier:remove:global.
+    change: Tier, finding family and identifiers. Removal requests are rejected.
     preview: Render bulk annotation text without writing clinical state.
 
 Returns:
@@ -5273,7 +5272,7 @@ TierChange(*, resource_type: Literal['small_variant', 'cnv', 'fusion', 'transloc
 ```
 
 ```text
-Explicit tier assignment or removal, retaining existing clinical validation.
+Tier request; annotation workflows reject removal of stored records.
 ```
 
 #### `TierChange.normalize_resource_type`
