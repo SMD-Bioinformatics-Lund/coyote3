@@ -15,7 +15,7 @@ to authoring and review; granting both roles does not waive the independence che
 
 | Role ID | Label | Responsibility | Grants |
 | --- | --- | --- | --- |
-| [`admin`](#admin) | Clinical administrator | Manages assays, assay configurations, gene lists, clinical reporting rules and catalog governance. Does not manage accounts or system controls. | 73 |
+| [`admin`](#admin) | Clinical administrator | Manages assays, assay configurations, gene lists, clinical reporting rules and catalog governance. Does not manage accounts or system controls. | 74 |
 | [`app_control_operator`](#app-control-operator) | Application Control Operator | Views and changes runtime controls and can run approved maintenance. | 4 |
 | [`asp_manager`](#asp-manager) | ASP Manager | Creates and manages assay panel definitions. | 5 |
 | [`aspc_manager`](#aspc-manager) | ASPC Manager | Creates and manages environment-specific assay configurations and filters. | 5 |
@@ -41,7 +41,7 @@ to authoring and review; granting both roles does not waive the independence che
 | [`query_rule_reviewer`](#query-rule-reviewer) | Query Rule Reviewer | Independently approves saved query-rule drafts without editing or publishing them. | 2 |
 | [`query_rule_tester`](#query-rule-tester) | Query Rule Tester | Tests query policies against samples within assigned assay and environment scopes without editing or publishing rules. | 2 |
 | [`query_rule_viewer`](#query-rule-viewer) | Query Rule Viewer | Inspects query-rule versions and previews effective inherited policies. | 1 |
-| [`superuser`](#superuser) | Superuser | Emergency platform access for initial setup and controlled recovery, not routine administration. | 104 |
+| [`superuser`](#superuser) | Superuser | Emergency platform access for initial setup and controlled recovery, not routine administration. | 105 |
 | [`sys_admin`](#sys-admin) | System administrator | Manages accounts, access assignments, application controls and operational health. Clinical access requires separate roles. | 37 |
 | [`tester`](#tester) | Tester | Can test full features except user, schema, or config-level access. | 46 |
 | [`user`](#user) | Standard User | Can view and interact with samples assigned to their group. No admin or config access. | 36 |
@@ -116,6 +116,7 @@ Role: `admin`. Manages assays, assay configurations, gene lists, clinical report
 - `sample:list:global`
 - `sample:view`
 - `sample:view:global`
+- `snv.blacklist:remove`
 - `snv:download`
 - `snv:manage`
 - `tier:assign`
@@ -527,6 +528,7 @@ Role: `superuser`. Emergency platform access for initial setup and controlled re
 - `schema:edit`
 - `schema:list`
 - `schema:view`
+- `snv.blacklist:remove`
 - `snv:download`
 - `snv:manage`
 - `tier:assign`

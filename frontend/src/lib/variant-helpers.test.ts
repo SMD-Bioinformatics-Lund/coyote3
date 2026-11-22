@@ -72,6 +72,13 @@ describe("variant display normalization", () => {
     expect(findingRowClass({})).toContain("hover:bg-primary")
   })
 
+  it("keeps group-only blacklist matches available for review", () => {
+    const finding = { blacklist_group_match: true }
+    expect(isFlaggedFinding(finding)).toBe(false)
+    expect(statusLabels(finding)).toBe("Group blacklist match")
+    expect(isFlaggedFinding({ ...finding, fp: true })).toBe(true)
+  })
+
   it("normalizes tiers, flags, and callers", () => {
     expect(tierValue({ classification: { class: "2" }, tier: 4 })).toBe(2)
     expect(tierValue({ classification: { tier: 3 } })).toBe(3)

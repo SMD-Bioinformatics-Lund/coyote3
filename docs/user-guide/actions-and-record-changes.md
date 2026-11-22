@@ -27,7 +27,7 @@ This reference maps UI controls to backend endpoints, persistent state changes, 
 | **Mark False Positive** | Detail Views | `PATCH .../flags/false-positive` | `fp` flag status | finding removal from prioritized review streams. |
 | **Classify (Tier)** | Classification Panel | `POST .../classifications` | `annotations.class` | Formal clinical tier assignment applied. |
 | **Save Comment** | Annotation Form | `POST .../annotations` | `annotations` collection record | Persistence of review notes and diagnostic audit trail. |
-| **Add to Blacklist** | Variant Details | `POST .../blacklist_entries` | `blacklist` collection update | Systematic exclusion from future center-level findings. |
+| **Add to Blacklist** | Variant Details | `POST .../blacklist_entries` | `blacklist` collection update | Group-level warning for matching findings; an ASP entry makes the match active for that assay. |
 
 ### Detail Page Action Rules
 
@@ -44,7 +44,14 @@ If calls are absent or the selected call lacks either breakpoint, they show
 **Missing fusion evidence**. Detail-page tier controls are unavailable until the
 selected call supplies both breakpoints; the first caller is never selected implicitly.
 
-Blacklist entry creation asks for confirmation because it changes center-level future filtering. Blacklist override is sample-scoped and is only available when a blacklist match is present.
+**Remove assay BL** on Variant Details requires `snv.blacklist:remove`. It removes
+only the current sample’s ASP ID from the shared record’s `in_normal_perc` map;
+the document, group scopes, and other assays remain. An ASP-ID match is shown
+as an active red blacklist state. Without an ASP-ID match, a matching group is
+shown as a yellow warning and remains editable; it does not exclude the finding. The mutation and its audit receipt commit together. Assign the
+permission through role administration after installing the updated permission catalog.
+
+Blacklist entry creation asks for confirmation because it records shared group-level evidence. Blacklist override is sample-scoped and is only available when a blacklist match is present.
 
 ### Comment Composer Rules
 

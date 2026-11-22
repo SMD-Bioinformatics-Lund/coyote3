@@ -67,6 +67,11 @@ def _request_for(path: str, method: str) -> Request:
         ("GET", "/api/v1/permissions", "permission.policy:list"),
         ("GET", "/api/v1/resources/aspc", "assay.config:list"),
         ("POST", "/api/v1/coverage/blacklist/entries", "coverage.blacklist:manage"),
+        (
+            "DELETE",
+            "/api/v1/samples/{sample_id}/small-variants/{var_id}/blacklist-entries",
+            "snv.blacklist:remove",
+        ),
         ("GET", "/api/v1/samples/{sample_id}/reports/{report_type}/preview", "report:preview"),
     ],
 )

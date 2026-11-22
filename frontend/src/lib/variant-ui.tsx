@@ -179,7 +179,8 @@ export function AnalysisIntentBadges({
 export type FindingRecord = {
   fp?: boolean | null
   blacklisted?: boolean | null
-  blacklist?: boolean | null
+  blacklist?: boolean | number | null
+  blacklist_group_match?: boolean | null
   override_blacklist?: boolean | null
   irrelevant?: boolean | null
   interesting?: boolean | null
@@ -244,6 +245,16 @@ export function StatusBadges({
           description="This finding matches the center blacklist. Blacklisted findings are de-prioritized and are normally excluded unless a sample-specific override is applied."
           severity="fail"
           ariaLabel="Blacklisted"
+        >
+          <icon.ban className="h-3.5 w-3.5" />
+        </VariantTooltipBadge>
+      )}
+      {finding?.blacklist_group_match && !finding?.blacklist && (
+        <VariantTooltipBadge
+          label="Group blacklist match"
+          description="This variant is recorded in the blacklist for this assay group, but not for the current assay. It remains available for review and editing."
+          severity="warn"
+          ariaLabel="Group blacklist match"
         >
           <icon.ban className="h-3.5 w-3.5" />
         </VariantTooltipBadge>

@@ -16,7 +16,9 @@ export function findingRowClass(finding: any) {
         "!bg-fail/5 text-muted-foreground hover:!bg-fail/10 dark:!bg-fail/10 dark:hover:!bg-fail/15",
         "[&_a]:text-muted-foreground [&_button]:text-muted-foreground",
       ].join(" ")
-    : "hover:bg-primary/10 dark:hover:bg-primary/20"
+    : finding?.blacklist_group_match
+      ? "!bg-warn/10 hover:!bg-warn/15 dark:!bg-warn/15 dark:hover:!bg-warn/20"
+      : "hover:bg-primary/10 dark:hover:bg-primary/20"
 }
 
 export function tierValue(finding: any) {
@@ -30,6 +32,7 @@ export function statusLabels(finding: any) {
   const labels: string[] = []
   if (finding?.fp) labels.push("False positive")
   if (finding?.blacklisted || (finding?.blacklist && finding?.override_blacklist !== true)) labels.push("Blacklisted")
+  if (finding?.blacklist_group_match && !finding?.blacklist) labels.push("Group blacklist match")
   if (finding?.irrelevant) labels.push("Irrelevant")
   if (finding?.interesting) labels.push("Interesting")
   if (Array.isArray(finding?.comments) && finding.comments.length > 0) labels.push("Has comments")

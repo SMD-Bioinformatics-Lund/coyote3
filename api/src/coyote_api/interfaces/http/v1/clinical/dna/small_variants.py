@@ -395,6 +395,31 @@ def add_variant_to_blacklist(
     )
 
 
+@router.delete(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/blacklist-entries",
+    response_model=SampleChangePayload,
+    summary="Remove the current assay from the variant blacklist",
+    dependencies=[Depends(RequireModules("dna_analysis"))],
+)
+def remove_variant_from_assay_blacklist(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access(permission="snv.blacklist:remove")),
+    service: SmallVariants = Depends(get_small_variants),
+):
+    """Retain the shared allele document and remove only the server-resolved assay."""
+    operation = service.remove_from_assay_blacklist(var_id)
+    return convert_to_serializable(
+        change_payload(
+            sample_id=sample_id,
+            resource="variant",
+            resource_id=var_id,
+            action="remove_assay_blacklist",
+            operation=operation,
+        )
+    )
+
+
 @router.patch(
     "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/override-blacklist",
     response_model=SampleChangePayload,

@@ -10847,7 +10847,7 @@ export type SomaticRnaFiltersDoc = {
 /**
  * TierChange
  *
- * Explicit tier assignment or removal, retaining existing clinical validation.
+ * Tier request; annotation workflows reject removal of stored records.
  */
 export type TierChange = {
     /**
@@ -27320,6 +27320,66 @@ export type Responses_showDnaVariantApiV1SamplesSampleIdSmallVariantsVarIdGet = 
 };
 
 export type Response_showDnaVariantApiV1SamplesSampleIdSmallVariantsVarIdGet = Responses_showDnaVariantApiV1SamplesSampleIdSmallVariantsVarIdGet[keyof Responses_showDnaVariantApiV1SamplesSampleIdSmallVariantsVarIdGet];
+
+export type Request_removeVariantFromAssayBlacklistApiV1SamplesSampleIdSmallVariantsVarIdBlacklistEntriesDelete = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Edit-Session
+         */
+        'x-edit-session'?: string | null;
+    };
+    path: {
+        /**
+         * Sample Id
+         */
+        sample_id: string;
+        /**
+         * Var Id
+         */
+        var_id: string;
+    };
+    query?: never;
+    url: '/api/v1/samples/{sample_id}/small-variants/{var_id}/blacklist-entries';
+};
+
+export type RemoveVariantFromAssayBlacklistApiV1SamplesSampleIdSmallVariantsVarIdBlacklistEntriesDeleteErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ApiErrorPayload;
+    /**
+     * Forbidden
+     */
+    403: ApiErrorPayload;
+    /**
+     * Validation Error
+     */
+    422: ApiErrorPayload;
+    /**
+     * Wait before retrying. Follow Retry-After when provided.
+     */
+    429: ApiErrorPayload;
+    /**
+     * Check the operation status before retrying. Contact support with the reference ID.
+     */
+    500: ApiErrorPayload;
+    /**
+     * The service is temporarily unavailable. Check the operation status before retrying.
+     */
+    503: ApiErrorPayload;
+};
+
+export type RemoveVariantFromAssayBlacklistApiV1SamplesSampleIdSmallVariantsVarIdBlacklistEntriesDeleteError = RemoveVariantFromAssayBlacklistApiV1SamplesSampleIdSmallVariantsVarIdBlacklistEntriesDeleteErrors[keyof RemoveVariantFromAssayBlacklistApiV1SamplesSampleIdSmallVariantsVarIdBlacklistEntriesDeleteErrors];
+
+export type Responses_removeVariantFromAssayBlacklistApiV1SamplesSampleIdSmallVariantsVarIdBlacklistEntriesDelete = {
+    /**
+     * Successful Response
+     */
+    200: SampleChangePayload;
+};
+
+export type Response_removeVariantFromAssayBlacklistApiV1SamplesSampleIdSmallVariantsVarIdBlacklistEntriesDelete = Responses_removeVariantFromAssayBlacklistApiV1SamplesSampleIdSmallVariantsVarIdBlacklistEntriesDelete[keyof Responses_removeVariantFromAssayBlacklistApiV1SamplesSampleIdSmallVariantsVarIdBlacklistEntriesDelete];
 
 export type Request_addVariantToBlacklistApiV1SamplesSampleIdSmallVariantsVarIdBlacklistEntriesPost = {
     body?: never;

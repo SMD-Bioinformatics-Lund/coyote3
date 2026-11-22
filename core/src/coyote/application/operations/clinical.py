@@ -656,6 +656,24 @@ class SmallVariants(Findings):
             "small_variant.blacklist", ("snv:manage",), write, sample_id=self._sample_id
         )
 
+    def remove_from_assay_blacklist(self, resource_id: str) -> OperationResult:
+        """Remove only the authorized sample's assay entry for this allele."""
+
+        def write(actor: Any, record: dict[str, Any] | None) -> OperationResult:
+            sample = _sample(record)
+            service = self._services.dna()
+            variant = service.require_variant_for_sample(sample=sample, var_id=resource_id)
+            return service.remove_variant_from_assay_blacklist(
+                variant=variant, asp_id=sample["asp_id"]
+            )
+
+        return self._runtime.execute(
+            "small_variant.remove_assay_blacklist",
+            ("snv.blacklist:remove",),
+            write,
+            sample_id=self._sample_id,
+        )
+
     def override_blacklist(self, resource_id: str, *, override: bool) -> OperationResult:
         """Change a sample-owned blacklist override using the existing guarded write.
 

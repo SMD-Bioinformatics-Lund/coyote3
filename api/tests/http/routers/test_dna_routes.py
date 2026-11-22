@@ -1093,3 +1093,38 @@ def test_clear_variant_blacklist_override_updates_variant(monkeypatch):
 
     assert calls == {"var_id": "v1", "override": False}
     assert payload["action"] == "clear_override_blacklist"
+
+
+def test_remove_assay_blacklist_resolves_assay_from_owned_sample(monkeypatch):
+    sample = fx.sample_doc()
+    variant = {**fx.variant_doc(), "SAMPLE_ID": str(sample["_id"])}
+    monkeypatch.setattr(store.variant_repository, "get_variant", lambda identity: variant)
+    monkeypatch.setattr(sdk_fixtures, "load_sample", lambda sample_id, user: sample)
+    service = _dna_service()
+    calls = []
+    monkeypatch.setattr(
+        service, "remove_variant_from_assay_blacklist", lambda **kwargs: calls.append(kwargs)
+    )
+    payload = dna.remove_variant_from_assay_blacklist(
+        "S1",
+        "v1",
+        user=fx.api_user(),
+        service=sdk_fixtures.finding_operations(service, "small_variant", fx.api_user()),
+    )
+    assert calls == [{"variant": variant, "asp_id": sample["asp_id"]}]
+    assert payload["action"] == "remove_assay_blacklist"
+
+
+def test_remove_assay_blacklist_rejects_variant_from_another_sample(monkeypatch):
+    monkeypatch.setattr(
+        store.variant_repository, "get_variant", lambda identity: {"SAMPLE_ID": "other"}
+    )
+    service = _dna_service()
+    with pytest.raises(AppError) as error:
+        dna.remove_variant_from_assay_blacklist(
+            "S1",
+            "v1",
+            user=fx.api_user(),
+            service=sdk_fixtures.finding_operations(service, "small_variant", fx.api_user()),
+        )
+    assert error.value.status_code == 404

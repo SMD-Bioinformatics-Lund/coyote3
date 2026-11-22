@@ -32,10 +32,11 @@ import {
 import { GeneWithOncoKbBadge } from "@/components/knowledgebase/OncoKbGeneBadge"
 import { VepVersionBadge } from "@/components/ui/vep-version-badge"
 import { api } from "@/lib/api"
+import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { displayValue, percentValue } from "@/lib/detail-formatters"
 import { notifyActionError } from "@/lib/notifications"
 import { sampleDetailPath, sampleDetailTabPath, sampleFindingPath, sampleUrlKey } from "@/lib/sample-routing"
-import { CallerBadges, ConsequenceBadges, FilterFlagBadges, ImpactBadge, PredictionBadge, TierBadge } from "@/lib/variant-ui"
+import { CallerBadges, ConsequenceBadges, FilterFlagBadges, ImpactBadge, PredictionBadge, StatusBadges, TierBadge } from "@/lib/variant-ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
@@ -47,6 +48,7 @@ export function VariantDetail() {
   const navigate = useNavigate()
   const location = useLocation()
   const queryClient = useQueryClient()
+  const access = useCurrentUserAccess()
   const [commentDraft, setCommentDraft] = useState("")
   const variantQueryKey = ['variant', id, varId]
 
@@ -124,10 +126,12 @@ export function VariantDetail() {
         callers={
           <FindingCallerMeta>
             <CallerBadges value={callers} />
+            <StatusBadges finding={variant} />
           </FindingCallerMeta>
         }
         actions={
           <VariantActionButtons
+            canRemoveAssayBlacklist={hasPermission(access.data, "snv.blacklist:remove")}
             sampleId={sampleRouteKey}
             resourceType="small_variant"
             variant={variant}

@@ -294,6 +294,12 @@ class DnaService:
         """Create a blacklist entry for a variant in an assay group."""
         return variant_state.blacklist_variant(self, variant=variant, assay_group=assay_group)
 
+    def remove_variant_from_assay_blacklist(
+        self, *, variant: dict[str, Any], asp_id: str
+    ) -> OperationResult:
+        """Remove the specified assay entry while retaining the shared allele record."""
+        return self.blacklist_repository.remove_assay_entry(variant, asp_id=asp_id)
+
     def set_variant_override_blacklist(
         self, *, sample: dict, var_id: str, override: bool
     ) -> OperationResult:

@@ -5232,6 +5232,16 @@ Returns:
     Existing public lookup or disabled result, with safe integration failures.
 ```
 
+#### `SmallVariants.remove_from_assay_blacklist`
+
+```python
+SmallVariants.remove_from_assay_blacklist(self, resource_id: 'str') -> 'OperationResult'
+```
+
+```text
+Remove only the authorized sample's assay entry for this allele.
+```
+
 #### `SmallVariants.select_transcript`
 
 ```python

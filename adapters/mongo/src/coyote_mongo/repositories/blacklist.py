@@ -17,7 +17,7 @@ from coyote_mongo.results import operation_from_update
 
 
 class BlacklistRepository(BaseRepository):
-    """Manage allele exclusions shared by biological groups, with per-assay frequencies."""
+    """Manage assay exclusions and informational biological-group matches."""
 
     def __init__(self, adapter):
         """Bind the configured application blacklist collection."""
@@ -37,7 +37,7 @@ class BlacklistRepository(BaseRepository):
     def add_blacklist_data(
         self, variants: list[dict[str, Any]], assay_group: str, *, asp_id: str
     ) -> list[dict[str, Any]]:
-        """Attach group exclusions and the selected assay's normal-sample frequency.
+        """Attach assay exclusions or an informational group-only match.
 
         Args:
             variants: Findings containing canonical simple_id values; updated in place.
@@ -45,20 +45,31 @@ class BlacklistRepository(BaseRepository):
             asp_id: Exact sample assay used to select its measurement.
 
         Returns:
-            Input findings with blacklist set to the assay's positive measurement or True
-            when excluded without a positive measured frequency. Other assays'
-            measurements are never substituted. Unmatched findings are unchanged.
+            ASP membership sets blacklist to its positive measurement or True for zero.
+            A group-only match sets blacklist_group_match without excluding the finding.
+            Derived match fields are refreshed; other assays' measurements are never used.
         """
         group = normalize_asp_group(assay_group)
         assay = normalize_clinical_identifier(asp_id, label="asp_id")
         entries = self.get_collection().find(
-            {"assay_groups": group, "simple_id": {"$in": [v["simple_id"] for v in variants]}},
-            {"simple_id": 1, "in_normal_perc": 1, "_id": 0},
+            {
+                "simple_id": {"$in": [v["simple_id"] for v in variants]},
+                "$or": [{"assay_groups": group}, {f"in_normal_perc.{assay}": {"$exists": True}}],
+            },
+            {"simple_id": 1, "in_normal_perc": 1, "assay_groups": 1, "_id": 0},
         )
-        by_id = {entry["simple_id"]: entry["in_normal_perc"] for entry in entries}
+        by_id = {entry["simple_id"]: entry for entry in entries}
         for variant in variants:
-            if variant["simple_id"] in by_id:
-                variant["blacklist"] = by_id[variant["simple_id"]].get(assay) or True
+            variant.pop("blacklist", None)
+            variant.pop("blacklist_group_match", None)
+            entry = by_id.get(variant["simple_id"])
+            if entry is None:
+                continue
+            measurements = entry["in_normal_perc"]
+            if assay in measurements:
+                variant["blacklist"] = measurements[assay] or True
+            elif group in entry["assay_groups"]:
+                variant["blacklist_group_match"] = True
         return variants
 
     def blacklist_variant(self, var: dict, assay: str) -> OperationResult:
@@ -103,6 +114,25 @@ class BlacklistRepository(BaseRepository):
             updated = self.write(self.get_collection(), "update_one", query, change)
         result = operation_from_update(updated)
         if result.modified_count or result.upserted_id:
+            self.invalidate_dashboard_metrics()
+        return result
+
+    def remove_assay_entry(self, var: dict, *, asp_id: str) -> OperationResult:
+        """Remove one assay measurement, retaining the allele and every other assay.
+
+        The normalized ASP identifier cannot contain MongoDB path separators.
+        Mutation and audit receipt share the repository's required transaction.
+        Missing entries are idempotent no-ops; this operation never deletes a record.
+        """
+        assay = normalize_clinical_identifier(asp_id, label="asp_id")
+        updated = self.write(
+            self.get_collection(),
+            "update_one",
+            {"simple_id": get_simple_id(var)},
+            {"$unset": {f"in_normal_perc.{assay}": ""}},
+        )
+        result = operation_from_update(updated)
+        if result.modified_count:
             self.invalidate_dashboard_metrics()
         return result
 

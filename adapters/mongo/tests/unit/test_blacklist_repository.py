@@ -67,32 +67,40 @@ def test_schema_preserves_numeric_measurements_without_rescaling():
     assert doc.in_normal_perc["solid_gmsv3"] == 20
 
 
-def test_group_exclusion_uses_only_the_selected_assays_measurement(repository):
+def test_assay_match_excludes_but_group_only_match_is_informational(repository):
     repository.get_collection().insert_one(entry())
     variant = {"simple_id": "7_100_A_T"}
-    assert (
-        repository.add_blacklist_data([variant.copy()], "solid", asp_id="solid_gmsv3")[0][
-            "blacklist"
-        ]
-        == 0.2
-    )
-    assert (
-        repository.add_blacklist_data([variant.copy()], "solid", asp_id="unmeasured")[0][
-            "blacklist"
-        ]
-        is True
-    )
-    assert (
-        "blacklist"
-        not in repository.add_blacklist_data([variant.copy()], "hematology", asp_id="solid_gmsv3")[
-            0
-        ]
-    )
-    different_allele = {"simple_id": "7_100_A_C"}
-    assert (
-        "blacklist"
-        not in repository.add_blacklist_data([different_allele], "solid", asp_id="solid_gmsv3")[0]
-    )
+    direct = repository.add_blacklist_data([variant.copy()], "solid", asp_id="solid_gmsv3")[0]
+    assert direct["blacklist"] == 0.2
+    assert "blacklist_group_match" not in direct
+    group = repository.add_blacklist_data([variant.copy()], "solid", asp_id="unmeasured")[0]
+    assert group["blacklist_group_match"] is True
+    assert "blacklist" not in group
+    # An explicit ASP match wins independently of group labels.
+    direct = repository.add_blacklist_data([variant.copy()], "hematology", asp_id="solid_gmsv3")[0]
+    assert direct["blacklist"] == 0.2
+    unmatched = repository.add_blacklist_data([variant.copy()], "hematology", asp_id="unmeasured")[
+        0
+    ]
+    assert "blacklist" not in unmatched and "blacklist_group_match" not in unmatched
+    different = repository.add_blacklist_data(
+        [{"simple_id": "7_100_A_C"}], "solid", asp_id="solid_gmsv3"
+    )[0]
+    assert "blacklist" not in different and "blacklist_group_match" not in different
+
+
+def test_removing_assay_downgrades_red_match_to_group_warning(repository):
+    repository.get_collection().insert_one(entry())
+    finding = {"simple_id": "7_100_A_T"}
+    repository.add_blacklist_data([finding], "solid", asp_id="solid_gmsv3")
+    assert finding["blacklist"] == 0.2
+    repository.remove_assay_entry(finding, asp_id="solid_gmsv3")
+    repository.add_blacklist_data([finding], "solid", asp_id="solid_gmsv3")
+    assert "blacklist" not in finding and finding["blacklist_group_match"] is True
+    other = repository.add_blacklist_data(
+        [{"simple_id": finding["simple_id"]}], "solid", asp_id="other_assay"
+    )[0]
+    assert other["blacklist"] == 0.7
 
 
 def test_manual_additions_merge_groups_preserve_measurements_and_are_idempotent(repository):
@@ -127,3 +135,28 @@ def test_zero_measurement_does_not_remove_a_group_exclusion(repository):
         [{"simple_id": "7_100_A_T"}], "solid", asp_id="solid_gmsv3"
     )
     assert result[0]["blacklist"] is True
+
+
+def test_remove_one_assay_retains_document_groups_and_other_measurements(repository):
+    original = entry()
+    identity = repository.get_collection().insert_one(original).inserted_id
+    result = repository.remove_assay_entry(
+        {"simple_id": original["simple_id"]}, asp_id="solid_gmsv3"
+    )
+    assert result.modified_count == 1
+    stored = repository.get_collection().find_one({"_id": identity})
+    assert stored["assay_groups"] == ["solid"]
+    assert stored["in_normal_perc"] == {"other_assay": 0.7}
+    assert stored["simple_id"] == original["simple_id"]
+    assert repository.remove_assay_entry(original, asp_id="solid_gmsv3").modified_count == 0
+    repository.remove_assay_entry(original, asp_id="other_assay")
+    assert repository.get_collection().find_one({"_id": identity})["in_normal_perc"] == {}
+
+
+@pytest.mark.parametrize("asp_id", ["other.assay", "$all", "", None])
+def test_remove_assay_rejects_unsafe_field_paths_without_writes(repository, asp_id):
+    original = entry()
+    repository.get_collection().insert_one(original)
+    with pytest.raises(ValueError):
+        repository.remove_assay_entry(original, asp_id=asp_id)
+    assert repository.get_collection().find_one()["in_normal_perc"] == original["in_normal_perc"]

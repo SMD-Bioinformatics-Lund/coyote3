@@ -12,7 +12,7 @@ import { VariantActionButtons } from "./VariantActionButtons"
 
 const mutateAsync = vi.fn()
 vi.mock("@/hooks/useFindingActions", () => ({ useSingleFindingFlag: vi.fn(() => ({ mutateAsync, isPending: false })) }))
-vi.mock("@/lib/api", () => ({ api: { post: vi.fn() } }))
+vi.mock("@/lib/api", () => ({ api: { post: vi.fn(), delete: vi.fn() } }))
 vi.mock("@/lib/notifications", () => ({ notifyActionError: vi.fn(), notifySuccess: vi.fn() }))
 
 function renderActions(props: React.ComponentProps<typeof VariantActionButtons>) {
@@ -27,7 +27,34 @@ describe("VariantActionButtons", () => {
   beforeEach(() => {
     mutateAsync.mockReset().mockResolvedValue(undefined)
     vi.mocked(api.post).mockReset().mockResolvedValue({ data: {} } as never)
+    vi.mocked(api.delete).mockReset().mockResolvedValue({ data: {} } as never)
     vi.mocked(useSingleFindingFlag).mockClear()
+  })
+
+  it("keeps group-only matches editable without override or assay-removal controls", async () => {
+    const user = userEvent.setup()
+    renderActions({ sampleId: "S1", variant: { _id: "v1", blacklist_group_match: true }, canRemoveAssayBlacklist: true })
+    expect(screen.queryByRole("button", { name: "Remove blacklist entry for this assay" })).not.toBeInTheDocument()
+    expect(screen.queryByTitle("Override blacklist for this sample")).not.toBeInTheDocument()
+    await user.click(screen.getByTitle("Toggle interesting"))
+    await user.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Mark interesting" }))
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledWith({ resourceId: "v1", flag: "interesting", apply: true }))
+  })
+
+  it("hides assay blacklist removal without the dedicated permission", () => {
+    renderActions({ sampleId: "S1", variant: { _id: "v1", blacklist: 5 } })
+    expect(screen.queryByRole("button", { name: "Remove blacklist entry for this assay" })).not.toBeInTheDocument()
+  })
+
+  it("confirms assay removal and calls the sample-scoped endpoint", async () => {
+    const user = userEvent.setup()
+    const onUpdate = vi.fn()
+    renderActions({ sampleId: "S1", variant: { _id: "v1", blacklist: 5 }, canRemoveAssayBlacklist: true, onUpdate })
+    await user.click(screen.getByRole("button", { name: "Remove blacklist entry for this assay" }))
+    expect(api.delete).not.toHaveBeenCalled()
+    await user.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Remove assay entry" }))
+    await waitFor(() => expect(api.delete).toHaveBeenCalledWith("/samples/S1/small-variants/v1/blacklist-entries"))
+    expect(onUpdate).toHaveBeenCalledOnce()
   })
 
   it("explains that removing structural report selection retains tier-driven eligibility", async () => {

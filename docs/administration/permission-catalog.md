@@ -189,6 +189,7 @@ or delete installed definitions. Catalog updates use the controlled installation
 | --- | --- | --- |
 | `annotation:publish` | Publish clinical annotations | Publish or withdraw reusable production classifications and interpretation text. Sandbox curation does not grant clinical publication. |
 | `coverage.blacklist:manage` | Manage coverage blacklist | Create and remove assay-group-scoped low-coverage blacklist entries. |
+| `snv.blacklist:remove` | Remove assay blacklist entry | Remove the current assay from a shared small-variant blacklist entry. |
 | `tier:assign` | Assign tier | Allows assigning or modifying the tier classification of variants for prioritization and reporting. |
 | `tier:edit:own` | Edit own tier | Allows editing or changing the assigned tier of a variant within the user's group or assigned samples. |
 | `tier:remove:global` | Remove any tier | Grants permission to remove tier classifications from any variant across all samples and groups. |

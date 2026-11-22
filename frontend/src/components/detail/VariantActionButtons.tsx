@@ -29,6 +29,7 @@ export function VariantActionButtons({
   compact = false,
   showActionLabel = false,
   controls,
+  canRemoveAssayBlacklist = false,
 }: {
   sampleId: string
   resourceType?: FindingResourceType
@@ -37,8 +38,10 @@ export function VariantActionButtons({
   compact?: boolean
   showActionLabel?: boolean
   controls?: FindingActionControl[]
+  canRemoveAssayBlacklist?: boolean
 }) {
   const [confirmBlacklist, setConfirmBlacklist] = useState(false)
+  const [confirmRemoveBlacklist, setConfirmRemoveBlacklist] = useState(false)
   const [pendingFlagAction, setPendingFlagAction] = useState<PendingFlagAction | null>(null)
   const flagMutation = useSingleFindingFlag(sampleId, resourceType)
   const queryClient = useQueryClient()
@@ -53,7 +56,7 @@ export function VariantActionButtons({
   const supportsInteresting = resourceType === "small_variant" || resourceType === "cnv" || resourceType === "fusion" || resourceType === "translocation"
   const interestingControlsReport = resourceType === "cnv" || resourceType === "translocation"
   const supportsNoteworthy = resourceType === "cnv"
-  const supportsBlacklistEntry = resourceType === "small_variant" && !isBlacklisted
+  const supportsBlacklistEntry = resourceType === "small_variant" && !isBlacklisted && !variant.blacklist_group_match
   const showsControl = (control: FindingActionControl) => !controls || controls.includes(control)
 
   const blacklistMutation = useMutation({
@@ -67,6 +70,19 @@ export function VariantActionButtons({
       onUpdate?.()
     },
     onError: (error) => notifyActionError("Unable to add blacklist entry", error, "Variant actions"),
+  })
+
+  const removeBlacklistMutation = useMutation({
+    mutationFn: () => api.delete(`/samples/${sampleId}/small-variants/${variant._id}/blacklist-entries`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["variant"] })
+      queryClient.invalidateQueries({ queryKey: ["sample-variants"] })
+      queryClient.invalidateQueries({ queryKey: ["sample-comment-suggestion"] })
+      notifySuccess("Assay blacklist entry removed", "The shared document and other assays were retained.", "Variant actions")
+      setConfirmRemoveBlacklist(false)
+      onUpdate?.()
+    },
+    onError: (error) => notifyActionError("Unable to remove assay blacklist entry", error, "Variant actions"),
   })
 
   const toggleStatus = async (
@@ -126,6 +142,17 @@ export function VariantActionButtons({
             >
               <icon.ban className={iconClassName} />
               {!compact && "Add BL"}
+            </button>
+          )}
+          {resourceType === "small_variant" && canRemoveAssayBlacklist && isBlacklisted && (
+            <button
+              onClick={() => setConfirmRemoveBlacklist(true)}
+              disabled={removeBlacklistMutation.isPending}
+              className={`${buttonBase} border-border bg-background hover:bg-fail/10 hover:text-fail`}
+              aria-label="Remove blacklist entry for this assay"
+            >
+              <icon.xCircle className={iconClassName} />
+              {!compact && "Remove assay BL"}
             </button>
           )}
           {variant.blacklist && (
@@ -247,6 +274,15 @@ export function VariantActionButtons({
         isPending={flagMutation.isPending}
         onConfirm={confirmFlagAction}
         onCancel={() => setPendingFlagAction(null)}
+      />
+      <ConfirmationDialog
+        open={confirmRemoveBlacklist}
+        title="Remove blacklist entry for this assay?"
+        description="This removes the current assay's entry from the shared blacklist record. The document and entries for other assays are retained."
+        confirmLabel="Remove assay entry"
+        isPending={removeBlacklistMutation.isPending}
+        onConfirm={() => removeBlacklistMutation.mutateAsync().catch(() => undefined)}
+        onCancel={() => setConfirmRemoveBlacklist(false)}
       />
       <ConfirmationDialog
         open={confirmBlacklist}

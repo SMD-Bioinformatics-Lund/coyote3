@@ -330,3 +330,10 @@ describe("variant UI semantics", () => {
     expect(screen.getByText("Sequence Ontology: SO:0001583")).toBeInTheDocument()
   })
 })
+
+
+it("shows group blacklist evidence without an active blacklist badge", () => {
+  render(<StatusBadges finding={{ blacklist_group_match: true }} />)
+  expect(screen.getByLabelText("Group blacklist match")).toBeInTheDocument()
+  expect(screen.queryByLabelText("Blacklisted")).not.toBeInTheDocument()
+})
