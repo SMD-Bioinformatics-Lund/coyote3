@@ -86,13 +86,13 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         col.create_index([("variant", 1)], name="variant_1", background=True)
         col.create_index(
             [
-                ("asp_id", 1),
+                ("asp_group", 1),
                 ("namespace", 1),
                 ("diagnosis_id", 1),
                 ("variant", 1),
                 ("time_created", -1),
             ],
-            name="annotation_scope_namespace",
+            name="annotation_group_namespace",
             background=True,
         )
         for identity_field in ANNOTATION_IDENTITY_FIELDS:
@@ -182,7 +182,7 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             if not group or not group.get("is_active", True):
                 break
             group_path.append(parent)
-        for field in ("asp_group", "asp_id", "diagnosis_id", "namespace"):
+        for field in ("asp_group", "diagnosis_id", "namespace"):
             query.pop(field, None)
         query["asp_group"] = {"$in": group_path}
         query["diagnosis_id"] = {"$in": [annotation["diagnosis_id"], "base"]}
@@ -201,7 +201,7 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
                 row,
                 group_path=group_path,
                 diagnosis=annotation["diagnosis_id"],
-                context={"assay_id": annotation.get("asp_id"), "environment": environment},
+                context={"transcript": annotation.get("transcript"), "environment": environment},
             )
             if match["effective"] or match["fallback_eligible"]:
                 candidates.append((row, match))
@@ -261,10 +261,10 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         include_history: bool = False,
     ) -> tuple:
         """
-        Retrieve global annotations for a given variant, assay, and diagnosis.
+        Retrieve global annotations for a finding, biological group, and diagnosis.
 
-        Match identity and visibility first. Exact assay, group, diagnosis and
-        visible-namespace classifications are effective. Broader interpretations are
+        Match identity and visibility first. Exact group, diagnosis, transcript and
+        visible-namespace classifications are effective across assays. Broader interpretations are
         ordered by specificity, including nearest biological ancestors, and
         require re-tiering before they can qualify for reporting.
         Saved report references retain their recorded annotation versions.
@@ -285,9 +285,9 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             tuple: A tuple containing:
                 - annotations_arr (list): A list of all annotations.
                 - latest_classification (dict): The latest classification for
-                  the current assay.
+                  the current group and diagnosis.
                 - latest_other_arr (list): A list of classifications for other
-                  assays and diagnoses.
+                  groups, diagnoses or transcripts.
                 - annotations_interesting (dict): A dictionary of annotations
                   deemed interesting based on assay and diagnosis.
         """
@@ -370,6 +370,7 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
                 break
             group_path.append(parent)
 
+        match_context = {**(sample_context or {}), "transcript": selected_CSQ.get("Feature")}
         all_annotations = list(annotations)
         annotations = AnnotationsRepository._sample_annotation_versions(
             self,
@@ -382,14 +383,14 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         text_candidates = []
         for anno in annotations:
             match = annotation_scope_match(
-                anno, group_path=group_path, diagnosis=diagnosis, context=sample_context or {}
+                anno, group_path=group_path, diagnosis=diagnosis, context=match_context
             )
             anno_class = _annotation_class_value(anno.get("class"))
             if anno_class is not None:
                 if match["effective"]:
                     latest_classification = anno
                 else:
-                    scope = (anno["asp_group"], anno["diagnosis_id"], anno.get("asp_id"))
+                    scope = (anno["asp_group"], anno["diagnosis_id"], anno.get("transcript"))
                     latest_classification_other.pop(scope, None)
                     latest_classification_other[scope] = {
                         **anno,
@@ -429,7 +430,7 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
                         row,
                         group_path=group_path,
                         diagnosis=diagnosis,
-                        context=sample_context or {},
+                        context=match_context,
                     )["effective"]
                 ],
             }
@@ -533,7 +534,6 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         query["diagnosis_id"] = diagnosis or DIAGNOSIS_BASE_ID
         if not sample_context:
             return {}
-        query["asp_id"] = sample_context["assay_id"]
         query.update(annotation_visibility_query(sample_context["environment"]))
 
         latest_by_transcript: dict[str, dict[str, Any]] = {}
@@ -576,6 +576,11 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         breakpoint2 = variant.get("breakpoint2", "")
 
         if genomic:
+            transcript = variant.get("transcript") or (variant.get("INFO") or {}).get(
+                "selected_CSQ", {}
+            ).get("Feature")
+            if not transcript:
+                return []
             identity_clauses = _small_variant_identity_clauses(
                 hgvsp=hgvsp,
                 hgvsc=hgvsc,
@@ -583,6 +588,7 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             )
             query = {
                 "gene": {"$in": genes},
+                "transcript": transcript,
                 "$or": identity_clauses,
                 "asp_group": assay_group,
                 "class": {"$in": [1, 2, 3, 4]},
@@ -598,7 +604,6 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
         query["diagnosis_id"] = diagnosis or DIAGNOSIS_BASE_ID
         if not sample_context:
             return []
-        query["asp_id"] = sample_context["assay_id"]
         query.update(annotation_visibility_query(sample_context["environment"]))
 
         annotations = AnnotationsRepository._sample_annotation_versions(
@@ -629,7 +634,6 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             class_num (int): The classification number assigned to the variant.
             variant_data (dict): A dictionary containing additional variant details, such as:
                 - asp_group (str): Biological group identifier.
-                - asp_id (str | None): Assay identifier, or null for group scope.
                 - namespace (str): Clinical or sandboxed interpretation scope.
                 - diagnosis_id (str): Diagnosis identifier.
                 - gene (str): The gene symbol (if applicable).
@@ -650,7 +654,6 @@ class AnnotationsRepository(AnnotationStatisticsMixin, BaseRepository):
             "variant": variant,
             "nomenclature": nomenclature,
             "asp_group": variant_data.get("asp_group"),
-            "asp_id": variant_data.get("asp_id"),
             "diagnosis_id": variant_data.get("diagnosis_id"),
             "namespace": variant_data.get("namespace"),
         }

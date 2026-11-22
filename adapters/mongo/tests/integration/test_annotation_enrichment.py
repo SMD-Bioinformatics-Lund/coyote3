@@ -19,7 +19,7 @@ SAMPLE_CONTEXT = {"assay_id": "synthetic_assay", "environment": "production"}
         ({"assay_id": "synthetic_assay", "environment": "testing"}, "sandboxed", False),
     ],
 )
-def test_other_assay_is_reference_only_and_sandbox_is_not_visible(scope, namespace, visible):
+def test_group_annotation_is_exact_across_assays_but_respects_namespace(scope, namespace, visible):
     collection = mongomock.MongoClient().test.annotation
     collection.insert_one(
         {
@@ -27,11 +27,11 @@ def test_other_assay_is_reference_only_and_sandbox_is_not_visible(scope, namespa
             "variant": "p.Arg1Gly",
             "hgvsp": "p.Arg1Gly",
             "nomenclature": "p",
+            "transcript": "NM_SYNTHETIC",
             "asp_group": "solid",
             "diagnosis_id": "breast",
             "class": 1,
             "text": None,
-            "asp_id": scope["assay_id"],
             "namespace": namespace,
         }
     )
@@ -42,17 +42,16 @@ def test_other_assay_is_reference_only_and_sandbox_is_not_visible(scope, namespa
             assay_groups_collection=collection.database.assay_groups,
         )
     )
-    finding = {"INFO": {"selected_CSQ": {"SYMBOL": "TP53", "HGVSp": "p.Arg1Gly"}}}
+    finding = {
+        "INFO": {
+            "selected_CSQ": {"SYMBOL": "TP53", "HGVSp": "p.Arg1Gly", "Feature": "NM_SYNTHETIC"}
+        }
+    }
     texts, classification, other, interesting = repository.get_global_annotations(
         finding, "solid", "breast", sample_context=SAMPLE_CONTEXT
     )
-    assert classification == {"class": 999}
-    assert texts == []
-    assert interesting == {}
-    assert len(other) == int(visible)
-    if visible:
-        assert other[0]["requires_retiering"] is True
-        assert other[0]["effective"] is False
+    assert classification["class"] == (1 if visible else 999)
+    assert texts == [] and interesting == {} and other == []
 
 
 class _Cursor(list):
@@ -86,11 +85,11 @@ def test_global_annotations_treat_null_class_as_text_annotation():
                 "gene": "FLT3",
                 "variant": "p.Val1Ala",
                 "nomenclature": "p",
+                "transcript": "NM_SYNTHETIC",
                 "asp_group": "hematology",
                 "diagnosis_id": "base",
                 "class": None,
                 "text": "review note",
-                "asp_id": SAMPLE_CONTEXT["assay_id"],
                 "namespace": "clinical",
             }
         ]
@@ -100,7 +99,14 @@ def test_global_annotations_treat_null_class_as_text_annotation():
         "POS": 28023318,
         "REF": "A",
         "ALT": "T",
-        "INFO": {"selected_CSQ": {"SYMBOL": "FLT3", "HGVSp": "p.Val1Ala", "HGVSc": ""}},
+        "INFO": {
+            "selected_CSQ": {
+                "SYMBOL": "FLT3",
+                "HGVSp": "p.Val1Ala",
+                "HGVSc": "",
+                "Feature": "NM_SYNTHETIC",
+            }
+        },
     }
 
     annotations, classification, other, interesting = AnnotationsRepository.get_global_annotations(
@@ -143,13 +149,16 @@ def test_annotation_scope_is_consistent_across_all_assay_groups(group, diagnosis
             "asp_group": group,
             "diagnosis_id": scope,
             "class": tier,
-            "asp_id": SAMPLE_CONTEXT["assay_id"],
             "namespace": "clinical",
         }
         for scope, tier in [("named", 1), ("base", 2), ("other", 3)]
     ]
     docs.append({"asp_group": "unrelated", "diagnosis_id": "named", "class": 4, "text": "4"})
-    variant = {"INFO": {"selected_CSQ": {"SYMBOL": "TP53", "HGVSp": "p.Arg1Gly"}}}
+    variant = {
+        "INFO": {
+            "selected_CSQ": {"SYMBOL": "TP53", "HGVSp": "p.Arg1Gly", "Feature": "NM_SYNTHETIC"}
+        }
+    }
     _, classification, _, interesting = AnnotationsRepository.get_global_annotations(
         _AnnotationRepo(docs), variant, group, diagnosis, sample_context=SAMPLE_CONTEXT
     )
@@ -177,7 +186,6 @@ def test_annotation_queries_use_latest_tier_not_later_null_text(diagnosis, expec
                 "nomenclature": "p",
                 "class": tier,
                 "text": "Note" if tier is None else None,
-                "asp_id": SAMPLE_CONTEXT["assay_id"],
                 "namespace": "clinical",
             }
         )
@@ -192,9 +200,17 @@ def test_annotation_queries_use_latest_tier_not_later_null_text(diagnosis, expec
         "simple_id": "1-10-A-T",
         "genes": ["TP53"],
         "HGVSp": "p.Arg1Gly",
-        "INFO": {"selected_CSQ": {"SYMBOL": "TP53", "HGVSp": "p.Arg1Gly"}},
+        "INFO": {
+            "selected_CSQ": {"SYMBOL": "TP53", "HGVSp": "p.Arg1Gly", "Feature": "NM_SYNTHETIC"}
+        },
     }
-    transcripts = [{"Feature": "NM_SYNTHETIC", "SYMBOL": "TP53", "HGVSp": "p.Arg1Gly"}]
+    transcripts = [
+        {
+            "Feature": "NM_SYNTHETIC",
+            "SYMBOL": "TP53",
+            "HGVSp": "p.Arg1Gly",
+        }
+    ]
     classification = repository.get_global_annotations(
         variant, "demo", diagnosis, sample_context=SAMPLE_CONTEXT
     )[1]
@@ -231,7 +247,6 @@ def test_fusion_annotations_use_scope_and_ignore_other_groups(diagnosis, expecte
                 "asp_group": group,
                 "diagnosis_id": scope,
                 "class": tier,
-                "asp_id": SAMPLE_CONTEXT["assay_id"],
                 "namespace": "clinical",
                 "time_created": index,
             }

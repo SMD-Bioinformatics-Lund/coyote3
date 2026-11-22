@@ -48,9 +48,9 @@ Binding: `annotations_collection`.
 
 Classification or text annotation with nomenclature-specific finding identity.
 
-Annotations are immutable. Corrections create new records. Matching uses nomenclature-specific identity: p/c/g uses protein/cDNA/genomic identity; cn uses variant; f/t uses ordered gene1/gene2 plus variant. Preserve namespace, assay scope, author, timestamps and class versus text. Saved report references identify historical versions. VEP 103 is a migration-specific source requirement, not a universal runtime version.
+Annotations are immutable. Corrections create new records. Matching uses nomenclature-specific identity: p/c/g uses protein/cDNA/genomic identity; cn uses variant; f/t uses ordered gene1/gene2 plus variant. Preserve namespace, group/diagnosis scope, author, timestamps and class versus text. Saved report references identify historical versions. VEP 103 is a migration-specific source requirement, not a universal runtime version.
 
-Declared top-level fields: `_id`, `variant`, `hgvsp`, `hgvsc`, `genomic`, `genomic_hash`, `gene`, `gene1`, `gene2`, `asp_group`, `diagnosis_id`, `asp_id`, `namespace`, `author`, `nomenclature`, `transcript`, `time_created`, `class`, `text`.
+Declared top-level fields: `_id`, `variant`, `hgvsp`, `hgvsc`, `genomic`, `genomic_hash`, `simple_id`, `simple_id_hash`, `gene`, `gene1`, `gene2`, `asp_group`, `diagnosis_id`, `namespace`, `author`, `nomenclature`, `transcript`, `time_created`, `class`, `text`.
 
 [Field types and validation](../mongodb-collections.md#annotation). `_id` may also be retained by an open collection model.
 
@@ -62,9 +62,8 @@ Declared top-level fields: `_id`, `variant`, `hgvsp`, `hgvsc`, `genomic`, `genom
 
 | Source field | Target key | Relationship / multiplicity | Migration and resolution semantics | Evidence |
 | --- | --- | --- | --- | --- |
-| [primary.annotation](clinical.md#primary-annotation): `asp_id` | [primary.assay_specific_panels](configuration.md#primary-assay-specific-panels): `asp_id` | scope; many → one | Annotation scope also includes namespace (clinical/sandboxed). asp_id may be null; base diagnosis is implicit. | [S24](#s24) |
-| [primary.annotation](clinical.md#primary-annotation): `asp_group` | [primary.assay_groups](configuration.md#primary-assay-groups): `group_id` | scope; many → one | Annotation scope also includes namespace (clinical/sandboxed). asp_id may be null; base diagnosis is implicit. | [S24](#s24) |
-| [primary.annotation](clinical.md#primary-annotation): `diagnosis_id` | [primary.diagnoses](configuration.md#primary-diagnoses): `diagnosis_id` | scope; many → one | Annotation scope also includes namespace (clinical/sandboxed). asp_id may be null; base diagnosis is implicit. | [S24](#s24) |
+| [primary.annotation](clinical.md#primary-annotation): `asp_group` | [primary.assay_groups](configuration.md#primary-assay-groups): `group_id` | scope; many → one | Annotation scope includes biological group, diagnosis and namespace (clinical/sandboxed); it is shared across assays. | [S24](#s24) |
+| [primary.annotation](clinical.md#primary-annotation): `diagnosis_id` | [primary.diagnoses](configuration.md#primary-diagnoses): `diagnosis_id` | scope; many → one | Annotation scope includes biological group, diagnosis and namespace (clinical/sandboxed); it is shared across assays. | [S24](#s24) |
 | [primary.annotation](clinical.md#primary-annotation): `genomic + genomic_hash` | [primary.variants](clinical.md#primary-variants): `simple_id + simple_id_hash` | clinical identity match; many ↔ many | Not a foreign key to one finding: match according to nomenclature, gene/transcript and interpretation scope. An annotation can apply across samples. | [S24](#s24) |
 | [primary.annotation](clinical.md#primary-annotation): `hgvsc` | [primary.variants](clinical.md#primary-variants): `HGVSc` | clinical identity match; many ↔ many | Not a foreign key to one finding: match according to nomenclature, gene/transcript and interpretation scope. An annotation can apply across samples. | [S24](#s24) |
 | [primary.annotation](clinical.md#primary-annotation): `hgvsp` | [primary.variants](clinical.md#primary-variants): `HGVSp` | clinical identity match; many ↔ many | Not a foreign key to one finding: match according to nomenclature, gene/transcript and interpretation scope. An annotation can apply across samples. | [S24](#s24) |

@@ -61,8 +61,9 @@ Global finding annotations and sample-specific finding annotations are shown in 
 ### Immutable annotations and sample history
 
 To change a tier or annotation text, create a new annotation. Existing records
-remain unchanged. The latest matching annotation applies within its clinical
-scope; saved report references continue to identify their original versions.
+remain unchanged. A matching group, diagnosis, variant and transcript applies
+across assays in that group. Same-group partial matches show a coloured tier
+with `?` and require re-tiering. Saved report references retain their original versions.
 Finding details show previous annotations with their author and creation time.
 Annotations cannot be deactivated or removed.
 

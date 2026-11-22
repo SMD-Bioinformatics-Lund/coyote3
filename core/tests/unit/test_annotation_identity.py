@@ -51,6 +51,8 @@ def test_small_variant_identity_keeps_all_available_representations():
         "hgvsc": "c.265A>G",
         "genomic": "17_76736896_T_C",
         "genomic_hash": build_simple_id_hash_from_simple_id("17_76736896_T_C"),
+        "simple_id": "17_76736896_T_C",
+        "simple_id_hash": build_simple_id_hash_from_simple_id("17_76736896_T_C"),
     }
 
 
@@ -109,10 +111,12 @@ def test_selected_csq_can_supply_hgvs_identifiers():
         "hgvsc": "c.265A>G",
         "genomic": "17_76736896_T_C",
         "genomic_hash": build_simple_id_hash_from_simple_id("17_76736896_T_C"),
+        "simple_id": "17_76736896_T_C",
+        "simple_id_hash": build_simple_id_hash_from_simple_id("17_76736896_T_C"),
     }
 
 
-def test_enrichment_removes_annotation_level_simple_id_aliases():
+def test_enrichment_retains_canonical_simple_id_and_hash():
     enriched = enrich_annotation_identity(
         {
             "variant": "p.Met89Val",
@@ -124,8 +128,8 @@ def test_enrichment_removes_annotation_level_simple_id_aliases():
 
     assert enriched["genomic"] == "17_76736896_T_C"
     assert enriched["genomic_hash"] == build_simple_id_hash_from_simple_id("17_76736896_T_C")
-    assert "simple_id" not in enriched
-    assert "simple_id_hash" not in enriched
+    assert enriched["simple_id"] == enriched["genomic"]
+    assert enriched["simple_id_hash"] == enriched["genomic_hash"]
 
 
 def test_enrichment_keeps_only_nomenclature_specific_fields():
@@ -151,6 +155,8 @@ def test_enrichment_keeps_only_nomenclature_specific_fields():
         "hgvsc": "c.469_470del",
         "genomic": "17_7673800_AC_A",
         "genomic_hash": build_simple_id_hash_from_simple_id("17_7673800_AC_A"),
+        "simple_id": "17_7673800_AC_A",
+        "simple_id_hash": build_simple_id_hash_from_simple_id("17_7673800_AC_A"),
         "gene": "TP53",
         "transcript": "NM_000546.6",
         "class": 1,
@@ -231,7 +237,6 @@ def test_annotation_contract_rejects_lifecycle_and_origin_fields(field):
         "variant": "gain",
         "nomenclature": "cn",
         "asp_group": "solid",
-        "asp_id": "panel",
         "diagnosis_id": "base",
         "namespace": "clinical",
         "author": "reviewer",
@@ -241,3 +246,30 @@ def test_annotation_contract_rejects_lifecycle_and_origin_fields(field):
     assert field not in validated
     with pytest.raises(ValueError, match="Extra inputs"):
         AnnotationDoc.model_validate({**document, field: None})
+
+
+@pytest.mark.parametrize("nomenclature,variant", [("c", "c.2C>T"), ("g", "7_100_A_T")])
+def test_equivalent_protein_identity_does_not_change_authored_nomenclature(nomenclature, variant):
+    from coyote.contracts.schemas.variant_annotations import AnnotationDoc
+
+    document = {
+        "variant": variant,
+        "nomenclature": nomenclature,
+        "hgvsp": "p.Ala1Val",
+        "hgvsc": "c.2C>T",
+        "genomic": "7_100_A_T",
+        "genomic_hash": build_simple_id_hash_from_simple_id("7_100_A_T"),
+        "gene": "GENE",
+        "transcript": "NM_1",
+        "asp_group": "solid",
+        "diagnosis_id": "base",
+        "namespace": "clinical",
+        "author": "reviewer",
+        "class": 2,
+    }
+    enriched = enrich_annotation_identity(document)
+    checked = AnnotationDoc.model_validate(enriched)
+    assert checked.nomenclature == nomenclature and checked.variant == variant
+    assert checked.hgvsp == "p.Ala1Val"
+    with pytest.raises(ValueError, match="Extra inputs"):
+        AnnotationDoc.model_validate({**document, "asp_id": None})

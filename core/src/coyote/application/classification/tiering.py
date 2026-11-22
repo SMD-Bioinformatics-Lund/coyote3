@@ -164,8 +164,7 @@ class ResourceClassificationService:
         """
         normalized_type = self.normalize_resource_type(resource_type)
         base_context = {
-            key: classification_context[key]
-            for key in ("asp_group", "asp_id", "diagnosis_id", "namespace")
+            key: classification_context[key] for key in ("asp_group", "diagnosis_id", "namespace")
         }
         if normalized_type == "small_variant":
             var = self.variant_repository.get_variant(str(resource_id))

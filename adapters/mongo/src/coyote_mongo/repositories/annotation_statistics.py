@@ -269,7 +269,6 @@ class AnnotationStatisticsMixin:
         match = {"class": {"$in": [1, 2, 3, 4]}, "namespace": "clinical"}
         identity = {
             "group": "$asp_group",
-            "assay": "$asp_id",
             "diagnosis": "$diagnosis_id",
             "nomenclature": "$nomenclature",
             "variant": "$variant",
@@ -388,7 +387,6 @@ class AnnotationStatisticsMixin:
                     "_id": {
                         "type": "$biological_type",
                         "group": "$asp_group",
-                        "assay": "$asp_id",
                         "diagnosis": "$diagnosis_id",
                         "identity": "$biological_identity",
                         "gene": "$gene",

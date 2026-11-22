@@ -26,7 +26,6 @@ def select_sample_annotation_versions(
             annotation.get(field)
             for field in (
                 "asp_group",
-                "asp_id",
                 "diagnosis_id",
                 "namespace",
                 "nomenclature",
@@ -75,37 +74,44 @@ def annotation_scope_match(
         annotation: Interpretation already matched by finding identity and visibility.
         group_path: Sample group followed by its nearest-to-farthest ancestors.
         diagnosis: Sample diagnosis, including the explicit base scope.
-        context: Resolved sample assay and environment.
+        context: Resolved environment and selected small-variant transcript.
 
     Returns:
-        Match metadata. Only exact assay, diagnosis and group matches
+        Match metadata. Only exact transcript, diagnosis and group matches
         are effective. Other diagnoses remain contextual evidence, never fallback.
     """
     group = annotation.get("asp_group")
     distance = group_path.index(group) if group in group_path else None
-    same_assay = bool(context.get("assay_id")) and annotation.get("asp_id") == context.get(
-        "assay_id"
+    transcript_matches = annotation.get("nomenclature") not in {"p", "c", "g"} or (
+        bool(context.get("transcript")) and annotation.get("transcript") == context["transcript"]
     )
     exact_diagnosis = annotation.get("diagnosis_id") == diagnosis
     broad_diagnosis = annotation.get("diagnosis_id") == "base"
-    visible = annotation.get("namespace") == "clinical" or (
-        context.get("environment") in {"development", "testing", "validation"}
-        and annotation.get("namespace") == "sandboxed"
+    visible = bool(context.get("environment")) and (
+        annotation.get("namespace") == "clinical"
+        or (
+            context.get("environment") in {"development", "testing", "validation"}
+            and annotation.get("namespace") == "sandboxed"
+        )
     )
-    effective = visible and distance == 0 and same_assay and exact_diagnosis
+    effective = visible and distance == 0 and transcript_matches and exact_diagnosis
     if effective:
         level, priority = "exact", 0
-    elif distance == 0 and same_assay:
-        level, priority = "same_assay", 1
     elif distance == 0:
-        level, priority = "same_group", 2
+        level, priority = "same_group", 1 if transcript_matches else 2
     elif distance is not None:
         level, priority = "parent_group", 2 + distance
     else:
         level, priority = "other_group", 1000
-    eligible = visible and distance is not None and (exact_diagnosis or broad_diagnosis)
+    eligible = (
+        visible
+        and transcript_matches
+        and distance is not None
+        and (exact_diagnosis or broad_diagnosis)
+    )
     return {
         "match_level": level,
+        "transcript_match": transcript_matches,
         "scope_priority": priority,
         "diagnosis_priority": 0 if exact_diagnosis else 1 if broad_diagnosis else 2,
         "inheritance_distance": distance,

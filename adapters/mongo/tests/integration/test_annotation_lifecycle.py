@@ -38,7 +38,6 @@ def annotation(**changes):
         "hgvsp": "p.Arg1Gly",
         "transcript": "NM_1",
         "asp_group": "solid",
-        "asp_id": "panel-a",
         "diagnosis_id": "lung",
         "namespace": "clinical",
         "class": 2,
@@ -52,7 +51,7 @@ def read_classification(repository, sample_id):
     return repository.get_global_annotations(
         {
             "SAMPLE_ID": sample_id,
-            "INFO": {"selected_CSQ": {"SYMBOL": "TP53", "HGVSp": "p.Arg1Gly"}},
+            "INFO": {"selected_CSQ": {"SYMBOL": "TP53", "HGVSp": "p.Arg1Gly", "Feature": "NM_1"}},
         },
         "solid",
         "lung",
@@ -114,7 +113,6 @@ def test_detail_history_uses_matching_scope_and_preserves_versions_newest_first(
             oldest,
             previous,
             annotation(diagnosis_id="breast"),
-            annotation(asp_id="other-panel"),
             annotation(asp_group="hematology"),
             annotation(namespace="sandboxed"),
             annotation(gene="OTHER"),
@@ -123,7 +121,7 @@ def test_detail_history_uses_matching_scope_and_preserves_versions_newest_first(
     )
     variant = {
         "SAMPLE_ID": "review-sample",
-        "INFO": {"selected_CSQ": {"SYMBOL": "TP53", "HGVSp": "p.Arg1Gly"}},
+        "INFO": {"selected_CSQ": {"SYMBOL": "TP53", "HGVSp": "p.Arg1Gly", "Feature": "NM_1"}},
     }
     _, latest, _, _ = repository.get_global_annotations(
         variant,

@@ -22,7 +22,6 @@ from coyote.contracts.schemas.normalizers import normalize_ampersand_terms
 from coyote.domain.annotation_identity import (
     NOMENCLATURE_FIELDS,
     NOMENCLATURE_REQUIRED_FIELDS,
-    primary_small_variant_identity,
 )
 
 
@@ -48,12 +47,13 @@ class AnnotationDoc(_StrictDocBase):
     hgvsc: str | None = None
     genomic: str | None = None
     genomic_hash: str | None = None
+    simple_id: str | None = None
+    simple_id_hash: str | None = None
     gene: str | None = None
     gene1: str | None = None
     gene2: str | None = None
     asp_group: str
     diagnosis_id: str
-    asp_id: str | None
     namespace: Literal["clinical", "sandboxed"]
     author: str
     nomenclature: Literal["p", "g", "c", "f", "cn", "t"]
@@ -98,7 +98,7 @@ class AnnotationDoc(_StrictDocBase):
         """Check annotation content exclusivity and nomenclature-specific key presence.
 
         Returns:
-            Validated annotation with the preferred primary identity and nomenclature.
+            Validated annotation retaining its authored primary identity and nomenclature.
 
         Raises:
             ValueError: If both or neither of class and text are nonnull, required
@@ -108,8 +108,6 @@ class AnnotationDoc(_StrictDocBase):
             Required identity keys may hold null where their field types allow it;
             presence is checked separately from value completeness.
         """
-        if self.nomenclature in {"p", "c", "g"}:
-            self.nomenclature, self.variant = primary_small_variant_identity(self.model_dump())
         if (self.class_ is None and self.text is None) or (
             self.class_ is not None and self.text is not None
         ):

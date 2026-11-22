@@ -31,7 +31,9 @@ Production writes `clinical` records and reads only that namespace. Development,
 testing and validation write `sandboxed` records and can read both namespaces.
 Annotation records do not store an environment or duplicate configuration context.
 
-An effective classification matches the sample's group, assay and diagnosis.
+An effective classification matches the finding identity, group and diagnosis,
+and the exact transcript for small variants. Assay identity is not an annotation
+constraint. Missing/different transcripts require re-tiering.
 Broader classifications, including parent-group evidence and Base diagnoses, require
 re-tiering before reporting. Text is resolved independently: the most specific eligible
 scope wins, followed by the newest record within that scope. A broader text can explain

@@ -31,12 +31,12 @@ def test_parent_classification_is_ranked_without_becoming_reportable():
                 "variant": "p.Arg1Gly",
                 "hgvsp": "p.Arg1Gly",
                 "nomenclature": "p",
+                "transcript": "NM_1",
                 "namespace": "clinical",
                 "asp_group": group,
                 "diagnosis_id": diagnosis,
                 "class": tier,
                 "time_created": created,
-                "asp_id": assay,
             }
         )
     repository = AnnotationsRepository(
@@ -46,7 +46,9 @@ def test_parent_classification_is_ranked_without_becoming_reportable():
             assay_groups_collection=db.groups,
         )
     )
-    finding = {"INFO": {"selected_CSQ": {"SYMBOL": "TP53", "HGVSp": "p.Arg1Gly"}}}
+    finding = {
+        "INFO": {"selected_CSQ": {"SYMBOL": "TP53", "HGVSp": "p.Arg1Gly", "Feature": "NM_1"}}
+    }
     _, accepted, candidates, _ = repository.get_global_annotations(
         finding,
         "child",
@@ -69,12 +71,12 @@ def test_parent_classification_is_ranked_without_becoming_reportable():
             "variant": "p.Arg1Gly",
             "hgvsp": "p.Arg1Gly",
             "nomenclature": "p",
+            "transcript": "NM_1",
             "namespace": "clinical",
             "asp_group": "child",
             "diagnosis_id": "mpn",
             "class": 4,
             "time_created": 0,
-            "asp_id": context["assay_id"],
         }
     )
     assert (
@@ -110,6 +112,7 @@ def test_namespace_visibility_and_independent_text_resolution(
         "hgvsp": "p.Arg1Gly",
         "gene": "TP53",
         "nomenclature": "p",
+        "transcript": "NM_1",
         "diagnosis_id": "mpn",
     }
     for namespace, tier, text, created in [
@@ -120,7 +123,6 @@ def test_namespace_visibility_and_independent_text_resolution(
             {
                 **identity,
                 "asp_group": "myeloid",
-                "asp_id": "demo-panel",
                 "namespace": namespace,
                 "class": tier,
                 "time_created": created,
@@ -130,7 +132,6 @@ def test_namespace_visibility_and_independent_text_resolution(
             {
                 **identity,
                 "asp_group": "hematology",
-                "asp_id": None,
                 "namespace": namespace,
                 "text": text,
                 "time_created": created,
@@ -143,7 +144,9 @@ def test_namespace_visibility_and_independent_text_resolution(
             assay_groups_collection=db.groups,
         )
     )
-    finding = {"INFO": {"selected_CSQ": {"SYMBOL": "TP53", "HGVSp": "p.Arg1Gly"}}}
+    finding = {
+        "INFO": {"selected_CSQ": {"SYMBOL": "TP53", "HGVSp": "p.Arg1Gly", "Feature": "NM_1"}}
+    }
     _, tier, _, texts = repository.get_global_annotations(
         finding,
         "myeloid",
@@ -164,3 +167,72 @@ def test_namespace_visibility_and_independent_text_resolution(
         }
     )
     assert repository.get_matching_annotation_text(tier) == "Exact explanation"
+
+
+@pytest.mark.parametrize("assay", ["panel-a", "panel-b"])
+@pytest.mark.parametrize(
+    "diagnosis,transcript,expected",
+    [
+        ("mpn", "NM_1", 2),
+        ("cll", "NM_1", 999),
+        ("mpn", "NM_2", 999),
+        ("mpn", None, 999),
+    ],
+)
+def test_group_annotation_auto_tiers_only_exact_diagnosis_and_transcript(
+    assay, diagnosis, transcript, expected
+):
+    db = mongomock.MongoClient().test
+    db.groups.insert_one({"group_id": "myeloid"})
+    db.annotations.insert_one(
+        {
+            "gene": "TP53",
+            "variant": "p.Arg1Gly",
+            "hgvsp": "p.Arg1Gly",
+            "nomenclature": "p",
+            "transcript": "NM_1",
+            "asp_group": "myeloid",
+            "diagnosis_id": "mpn",
+            "namespace": "clinical",
+            "class": 2,
+        }
+    )
+    repository = AnnotationsRepository(
+        SimpleNamespace(
+            app=mongo_runtime(),
+            annotations_collection=db.annotations,
+            assay_groups_collection=db.groups,
+        )
+    )
+    finding = {
+        "INFO": {
+            "selected_CSQ": {
+                "SYMBOL": "TP53",
+                "HGVSp": "p.Arg1Gly",
+                "Feature": transcript,
+            }
+        }
+    }
+    _, matched, partial, _ = repository.get_global_annotations(
+        finding,
+        "myeloid",
+        diagnosis,
+        sample_context={"assay_id": assay, "environment": "production"},
+    )
+    assert matched["class"] == expected
+    if expected == 999:
+        assert partial[0]["class"] == 2
+        assert partial[0]["requires_retiering"]
+        assert not partial[0]["effective"]
+        assert partial[0]["match_level"] == "same_group"
+    else:
+        assert not partial
+    # A different variant must not acquire either an exact or suggested tier.
+    finding["INFO"]["selected_CSQ"]["HGVSp"] = "p.Other"
+    _, unmatched, suggestions, _ = repository.get_global_annotations(
+        finding,
+        "myeloid",
+        diagnosis,
+        sample_context={"assay_id": assay, "environment": "production"},
+    )
+    assert unmatched["class"] == 999 and not suggestions

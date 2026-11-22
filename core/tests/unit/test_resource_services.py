@@ -311,7 +311,6 @@ def test_resource_classification_service_supports_fusion_bulk_tiering(monkeypatc
     assert docs[0]["variant_data"]["gene2"] == "ALK"
     assert set(docs[0]["variant_data"]) == {
         "asp_group",
-        "asp_id",
         "namespace",
         "diagnosis_id",
         "gene1",

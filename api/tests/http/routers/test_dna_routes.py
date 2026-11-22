@@ -732,7 +732,6 @@ def test_set_variant_tier_bulk_apply_defaults_to_classification_only(monkeypatch
     assert any(doc.get("class") == 3 for doc in captured["docs"])
     assert set(captured["docs"][0]["variant_data"]) == {
         "asp_group",
-        "asp_id",
         "namespace",
         "diagnosis_id",
         "gene",

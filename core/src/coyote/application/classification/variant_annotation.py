@@ -105,7 +105,6 @@ class ResourceAnnotationService:
             )
             context = configuration["aspc_resolution"]["context"]
             doc["asp_group"] = context["group_id"]
-            doc["asp_id"] = context["assay_id"]
             doc["diagnosis_id"] = context["diagnosis_id"]
             doc["namespace"] = annotation_namespace(sample["environment"])
             self.annotation_repository.add_anno_comment(doc)

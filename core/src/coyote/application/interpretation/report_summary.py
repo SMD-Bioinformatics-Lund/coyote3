@@ -42,7 +42,6 @@ def create_comment_doc(
             "author": author,
             "time_created": utc_now(),
             "asp_group": data.get("asp_group"),
-            "asp_id": data.get("asp_id"),
             "diagnosis_id": data.get("diagnosis_id"),
             "namespace": data.get("namespace"),
             **identity,
@@ -129,7 +128,7 @@ def create_classified_variant_doc(
         nomenclature: Identity category, normally p, c, g, cn, f, or t; passed
             to the canonical context and identity helpers without validation here.
         class_num: Classification stored as class only when text is not supplied.
-        variant_data: Server-resolved asp_group, asp_id, diagnosis_id and namespace,
+        variant_data: Server-resolved asp_group, diagnosis_id and namespace,
             plus nomenclature-specific gene, transcript and alternate identities.
         **kwargs: Only text is used. Its presence, even with None or an empty
             value, stores text instead of class; other keywords are ignored.
@@ -145,7 +144,6 @@ def create_classified_variant_doc(
         "variant": variant,
         "nomenclature": nomenclature,
         "asp_group": variant_data.get("asp_group"),
-        "asp_id": variant_data.get("asp_id"),
         "diagnosis_id": variant_data.get("diagnosis_id"),
         "namespace": variant_data.get("namespace"),
     }

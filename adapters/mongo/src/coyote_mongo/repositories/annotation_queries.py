@@ -166,7 +166,6 @@ def _classification_text_lookup_query(annotation: dict[str, Any]) -> dict[str, A
         "transcript",
         "asp_group",
         "diagnosis_id",
-        "asp_id",
         "namespace",
     ):
         if annotation.get(key) is not None:

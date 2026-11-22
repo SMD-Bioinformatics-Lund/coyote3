@@ -19,6 +19,8 @@ ANNOTATION_IDENTITY_FIELDS: tuple[str, ...] = (
     "hgvsc",
     "genomic",
     "genomic_hash",
+    "simple_id",
+    "simple_id_hash",
 )
 
 ANNOTATION_CONTEXT_FIELDS: tuple[str, ...] = (
@@ -29,9 +31,45 @@ ANNOTATION_CONTEXT_FIELDS: tuple[str, ...] = (
 )
 
 NOMENCLATURE_FIELDS: dict[str, frozenset[str]] = {
-    "p": frozenset({"hgvsp", "hgvsc", "genomic", "genomic_hash", "gene", "transcript", "variant"}),
-    "c": frozenset({"hgvsp", "hgvsc", "genomic", "genomic_hash", "gene", "transcript", "variant"}),
-    "g": frozenset({"hgvsp", "hgvsc", "genomic", "genomic_hash", "gene", "transcript", "variant"}),
+    "p": frozenset(
+        {
+            "hgvsp",
+            "hgvsc",
+            "genomic",
+            "genomic_hash",
+            "simple_id",
+            "simple_id_hash",
+            "gene",
+            "transcript",
+            "variant",
+        }
+    ),
+    "c": frozenset(
+        {
+            "hgvsp",
+            "hgvsc",
+            "genomic",
+            "genomic_hash",
+            "simple_id",
+            "simple_id_hash",
+            "gene",
+            "transcript",
+            "variant",
+        }
+    ),
+    "g": frozenset(
+        {
+            "hgvsp",
+            "hgvsc",
+            "genomic",
+            "genomic_hash",
+            "simple_id",
+            "simple_id_hash",
+            "gene",
+            "transcript",
+            "variant",
+        }
+    ),
     "cn": frozenset({"variant"}),
     "f": frozenset({"gene1", "gene2", "variant"}),
     "t": frozenset({"gene1", "gene2", "variant"}),
@@ -55,8 +93,7 @@ NOMENCLATURE_IDENTITY_FIELD: dict[str, str] = {
 _SOURCE_KEYS: dict[str, tuple[str, ...]] = {
     "hgvsp": ("hgvsp", "HGVSp"),
     "hgvsc": ("hgvsc", "HGVSc"),
-    # Variant documents call this identity simple_id. Annotation documents
-    # expose it as genomic so the persistence contract describes its meaning.
+    # Both spellings represent the same canonical allele.
     "genomic": ("simple_id", "genomic"),
 }
 
@@ -165,7 +202,7 @@ def annotation_identity_fields(
         field: value
         for field in ANNOTATION_IDENTITY_FIELDS
         if field in allowed_fields
-        if field not in {"genomic", "genomic_hash"}
+        if field not in {"genomic", "genomic_hash", "simple_id", "simple_id_hash"}
         if (value := _candidate(source, field)) is not None
     }
 
@@ -179,6 +216,8 @@ def annotation_identity_fields(
 
     if genomic:
         identities["genomic_hash"] = build_simple_id_hash_from_simple_id(genomic)
+        identities["simple_id"] = genomic
+        identities["simple_id_hash"] = identities["genomic_hash"]
 
     return identities
 
@@ -286,8 +325,6 @@ def enrich_annotation_identity(
     identities, but is never copied into the annotation document.
     """
     enriched = dict(document)
-    enriched.pop("simple_id", None)
-    enriched.pop("simple_id_hash", None)
     identity_source = {**dict(source or {}), **document}
     enriched.update(
         annotation_identity_fields(
@@ -302,9 +339,6 @@ def enrich_annotation_identity(
             source=identity_source,
         )
     )
-
-    if document.get("nomenclature") in {"p", "c", "g"}:
-        enriched["nomenclature"], enriched["variant"] = primary_small_variant_identity(enriched)
 
     nomenclature = str(enriched.get("nomenclature") or "").strip().lower()
     allowed_fields = NOMENCLATURE_FIELDS.get(nomenclature, frozenset())

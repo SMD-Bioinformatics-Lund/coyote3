@@ -172,11 +172,12 @@ export function ClassificationsCard({
               <div key={item._id || index} className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 text-xs">
                 <div>
                   <span>{item.text || item.reason || item.variant || "Classification"}</span>
-                  <div className="type-meta text-muted-foreground">{[item.asp_group, item.asp_id, item.diagnosis_id, item.namespace].filter(Boolean).join(" · ")}</div>
+                  <div className="type-meta text-muted-foreground">{[item.asp_group, item.diagnosis_id, item.namespace].filter(Boolean).join(" · ")}</div>
+                  {item.transcript_match === false && <div className="type-meta text-muted-foreground">Different or missing transcript · confirmation required</div>}
                   {item.match_level === "parent_group" && <div className="type-meta text-muted-foreground">Inherited from parent group · confirmation required</div>}
                 </div>
                 <Badge variant="outline" className="inline-flex items-center gap-1 border-border bg-muted text-muted-foreground">
-                  {item.match_level === "same_assay" ? <TierBadge tier={item.class || item.tier} /> : <>Tier {item.class || item.tier}</>}
+                  {item.match_level === "same_group" ? <TierBadge tier={item.class || item.tier} /> : <>Tier {item.class || item.tier}</>}
                   <icon.circleHelp className="h-3.5 w-3.5" aria-hidden="true" />
                   Re-tier required
                 </Badge>

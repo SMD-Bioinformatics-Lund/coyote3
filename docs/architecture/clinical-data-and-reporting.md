@@ -160,7 +160,7 @@ classifications and text belong to `annotation`; report-time rows belong to
 ### Annotation identity and matching {#53-annotation-identity-and-matching}
 
 Every annotation stores the common review context (`variant`, `nomenclature`,
-`asp_group`, `asp_id`, `diagnosis_id`, `namespace`, `author`, and `time_created`) and only the identity fields
+`asp_group`, `diagnosis_id`, `namespace`, `author`, and `time_created`) and only the identity fields
 that belong to its nomenclature:
 
 | Nomenclature | Required identity and context fields |
@@ -170,12 +170,17 @@ that belong to its nomenclature:
 | `f` | `variant`, `gene1`, and `gene2` |
 | `t` | `variant`, `gene1`, and `gene2` |
 
-All fields listed for a nomenclature are structurally present. A related field
+Small-variant annotations also retain optional `simple_id` and `simple_id_hash`
+when the canonical allele is available; these equal `genomic` and `genomic_hash`.
+Enrichment preserves the authored nomenclature and primary variant.
+
+All required fields listed for a nomenclature are structurally present. A related field
 may be `null` when exact retained evidence cannot supply it. Unrelated identity
 fields are absent rather than stored as `null` placeholders. Small-variant
 identities come from the selected transcript consequence and the canonical
 `chrom_pos_ref_alt` variant identity. They are written together so a protein,
-coding, or genomic annotation can be found through any exact representation
+coding, or genomic annotation retains its original nomenclature and variant while
+being found through its equivalent representations
 without reconstructing HGVS values later. CNV, fusion, and translocation
 identities remain in `variant`; they are not duplicated under `cnv`, `fusion`,
 or `translocation` fields.
@@ -284,14 +289,17 @@ developer and tester roles do not. Centers control the grant through role admini
 
 Classification applicability is contextual:
 
-- effective classifications require the same `asp_group`, `asp_id` and
-  `diagnosis_id` for every biological group;
+- effective classifications require matching finding identity, `asp_group` and
+  `diagnosis_id`; small variants also require the same recorded transcript;
+- annotations have no `asp_id`: an exact match applies across assays in the group;
+- same-group diagnosis or transcript mismatches show the tier colour with a `?`
+  and require re-tiering; parent-group evidence remains a separate reference;
 - production reads `clinical` annotations only; development, testing and validation
   can read `clinical` and `sandboxed` annotations, but write to `sandboxed`;
-- group-scoped, parent-group and other diagnosis interpretations are contextual
-  references and require explicit re-tiering to become effective in the sample scope.
+- parent-group and other diagnosis interpretations are contextual references,
+  not automatic reportable classifications.
 
-Free-text annotations use the same assay/diagnosis context. They are available
+Free-text annotations use the same group/diagnosis and transcript context. They are available
 as global annotation history. Current text is resolved independently by eligible
 scope specificity and recency.
 
@@ -304,7 +312,7 @@ an annotation document. Report references (`annotation_oid` and
 `annotation_text_oid`) preserve the versions used in saved reports. Without a
 saved report reference, matching uses the latest annotation in the eligible scope.
 
-Upgrade impact: the annotation contract rejects the removed fields. Existing
+Upgrade impact: the annotation contract rejects `asp_id` and the removed lifecycle fields. Existing
 stored documents are not rewritten automatically. Review existing data before
 applying the updated collection validator; no historical sample links are inferred.
 

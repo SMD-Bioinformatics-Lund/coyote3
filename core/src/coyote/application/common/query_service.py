@@ -683,7 +683,6 @@ class CommonQueryService:
                         "gene2",
                         "transcript",
                         "asp_group",
-                        "asp_id",
                         "diagnosis_id",
                         "namespace",
                     )

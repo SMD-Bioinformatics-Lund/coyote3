@@ -164,7 +164,6 @@ def test_annotation_retains_author_without_generic_actor_duplicates():
         "genomic": "7_140753336_A_T",
         "genomic_hash": "synthetic-hash",
         "asp_group": "synthetic",
-        "asp_id": None,
         "diagnosis_id": "base",
         "namespace": "clinical",
         "author": "original.author",
