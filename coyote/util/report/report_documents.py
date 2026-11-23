@@ -191,10 +191,10 @@ def _question_heading(heading: str, fields: list[tuple[str, str]]) -> str:
 
     Returns:
         Heading followed by frågeställning and the exact metadata value or placeholder.
-        An absent or empty value leaves only the frågeställning label.
+        An absent or empty value uses the <DIAGNOSIS> placeholder.
     """
     question = next((value for label, value in fields if label == "Frågeställning"), "")
-    return f"{heading} frågeställning {question}" if question else f"{heading} frågeställning"
+    return f"{heading} frågeställning {question or '<DIAGNOSIS>'}"
 
 
 def _base(
