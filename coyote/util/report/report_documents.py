@@ -182,18 +182,19 @@ def _conclusion(sample: dict) -> str:
     return _comment(visible[-1].get("text"), compact_headings=True) if visible else ""
 
 
-def _conclusion_heading(fields: list[tuple[str, str]]) -> str:
-    """Use the report's existing clinical question in its conclusion heading.
+def _question_heading(heading: str, fields: list[tuple[str, str]]) -> str:
+    """Append the report's existing clinical question to a display heading.
 
     Args:
+        heading: Report title or section label.
         fields: The same ordered metadata supplied to the shared report document.
 
     Returns:
-        Slutsats followed by the exact Frågeställning value or placeholder. When
-        that field is absent or empty, returns Slutsats without a trailing separator.
+        Heading followed by frågeställning and the exact metadata value or placeholder.
+        An absent or empty value uses the <DIAGNOSIS> placeholder.
     """
     question = next((value for label, value in fields if label == "Frågeställning"), "")
-    return f"Slutsats frågeställning {question}" if question else "Slutsats frågeställning"
+    return f"{heading} frågeställning {question or '<DIAGNOSIS>'}"
 
 
 def _base(
@@ -212,7 +213,7 @@ def _base(
     Args:
         sample: Sample metadata containing the assay identifier.
         analyte: dna or rna, selecting the installed template identity.
-        title: Existing title including the sample display name.
+        title: Report heading; the sample identifier is displayed separately.
         report_id: Existing displayed report identifier.
         sample_id: Existing displayed Prov-ID.
         report_date: Production local report date.
@@ -465,7 +466,7 @@ def build_dna_document(
     document = _base(
         sample,
         "dna",
-        f"{reporting['report_header']} - {sample['name']}",
+        _question_heading(reporting["report_header"] + " -", fields),
         f"{report_name}.{report_timestamp}",
         _value(sample, "case_id"),
         report_date,
@@ -474,7 +475,11 @@ def build_dna_document(
         accredited=accredited,
     )
     sections = document["sections"]
-    sections.append(dict(key="results", kind="text", heading="Analysresultat", text=""))
+    sections.append(
+        dict(
+            key="results", kind="text", heading=_question_heading("Analysresultat", fields), text=""
+        )
+    )
     variants = report_sections_data["snvs"] if "SNV" in report_sections else []
     if "SNV" in report_sections:
         rows = [
@@ -488,7 +493,7 @@ def build_dna_document(
         ]
         summary = _table(
             "snvs",
-            "Kliniskt relevanta SNVs och små INDELs",
+            "Kliniskt relevanta mutationer (SNVs och små INDELs)",
             ["Gen", "Mutation", "Variantfrekvens", "Klassificering"],
             rows,
             "Inga detekterade mutationer",
@@ -557,7 +562,7 @@ def build_dna_document(
         dict(
             key="conclusion",
             kind="summary",
-            heading=_conclusion_heading(fields),
+            heading=_question_heading("Slutsats", fields),
             text=_conclusion(sample),
             format="markdown",
         )
@@ -674,7 +679,7 @@ def build_rna_document(
     document = _base(
         sample,
         "rna",
-        f"{report_header} - {sample['name']}",
+        report_header,
         f"{sample['name']}.{sample.get('report_num', 0) + 1}",
         sample["name"],
         report_date,
@@ -705,7 +710,7 @@ def build_rna_document(
         dict(
             key="conclusion",
             kind="summary",
-            heading=_conclusion_heading(fields),
+            heading=_question_heading("Slutsats", fields),
             text=_conclusion(sample),
             format="markdown",
         )
