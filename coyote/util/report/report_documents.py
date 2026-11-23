@@ -213,7 +213,7 @@ def _base(
     Args:
         sample: Sample metadata containing the assay identifier.
         analyte: dna or rna, selecting the installed template identity.
-        title: Existing title including the sample display name.
+        title: Report heading; the sample identifier is displayed separately.
         report_id: Existing displayed report identifier.
         sample_id: Existing displayed Prov-ID.
         report_date: Production local report date.
@@ -466,7 +466,7 @@ def build_dna_document(
     document = _base(
         sample,
         "dna",
-        f"{_question_heading(reporting['report_header'] + ' -', fields)} - {sample['name']}",
+        _question_heading(reporting["report_header"] + " -", fields),
         f"{report_name}.{report_timestamp}",
         _value(sample, "case_id"),
         report_date,
@@ -679,7 +679,7 @@ def build_rna_document(
     document = _base(
         sample,
         "rna",
-        f"{report_header} - {sample['name']}",
+        report_header,
         f"{sample['name']}.{sample.get('report_num', 0) + 1}",
         sample["name"],
         report_date,

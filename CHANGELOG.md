@@ -2,6 +2,8 @@
 
 ## v3.4.5
 
+- Remove duplicate sample identifiers from DNA/RNA report titles; retain the separate sample ID line.
+- Upgrade smd-reports to v0.6.0 for updated title sizing, version footers, patient information styling and result/gene table rendering.
 - Include the existing clinical question in DNA report titles and Analysresultat headings, using the exact patient-table value and <DIAGNOSIS> when missing or empty.
 - Rename the SNV/indel heading to “Kliniskt relevanta mutationer (SNVs och små INDELs)” in DNA reports and generated summaries.
 
