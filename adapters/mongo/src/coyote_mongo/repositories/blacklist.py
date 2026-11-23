@@ -32,7 +32,7 @@ class BlacklistRepository(BaseRepository):
         """
         col = self.get_collection()
         col.create_index([("simple_id", 1)], name="simple_id_1", unique=True)
-        col.create_index([("assay_groups", 1), ("simple_id", 1)], name="assay_groups_simple_id_1")
+        col.create_index([("asp_groups", 1), ("simple_id", 1)], name="asp_groups_simple_id_1")
 
     def add_blacklist_data(
         self, variants: list[dict[str, Any]], assay_group: str, *, asp_id: str
@@ -54,9 +54,9 @@ class BlacklistRepository(BaseRepository):
         entries = self.get_collection().find(
             {
                 "simple_id": {"$in": [v["simple_id"] for v in variants]},
-                "$or": [{"assay_groups": group}, {f"in_normal_perc.{assay}": {"$exists": True}}],
+                "$or": [{"asp_groups": group}, {f"in_normal_perc.{assay}": {"$exists": True}}],
             },
-            {"simple_id": 1, "in_normal_perc": 1, "assay_groups": 1, "_id": 0},
+            {"simple_id": 1, "in_normal_perc": 1, "asp_groups": 1, "_id": 0},
         )
         by_id = {entry["simple_id"]: entry for entry in entries}
         for variant in variants:
@@ -68,7 +68,7 @@ class BlacklistRepository(BaseRepository):
             measurements = entry["in_normal_perc"]
             if assay in measurements:
                 variant["blacklist"] = measurements[assay] or True
-            elif group in entry["assay_groups"]:
+            elif group in entry["asp_groups"]:
                 variant["blacklist_group_match"] = True
         return variants
 
@@ -100,13 +100,13 @@ class BlacklistRepository(BaseRepository):
             pos=int(parts[1]),
             ref=parts[2],
             alt=parts[3],
-            assay_groups=[assay],
+            asp_groups=[assay],
         )
-        fields = document.model_dump(exclude={"id_", "assay_groups"})
+        fields = document.model_dump(exclude={"id_", "asp_groups"})
         query = {"simple_id": identity}
         change = {
             "$setOnInsert": fields,
-            "$addToSet": {"assay_groups": document.assay_groups[0]},
+            "$addToSet": {"asp_groups": document.asp_groups[0]},
         }
         try:
             updated = self.write(self.get_collection(), "update_one", query, change, upsert=True)

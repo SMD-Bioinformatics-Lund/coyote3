@@ -27,7 +27,7 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
 <text x="40" y="36" class="figure-title">primary.blacklist</text>
 <text x="40" y="68" class="figure-subtitle">Source field → target key · See the relationship table for conditions and migration rules.</text>
 <g class="entity purple" data-namespace="primary.blacklist"><title>primary.blacklist</title><use href="#icon-database" x="271" y="110" width="58" height="58" aria-hidden="true"/><text x="300" y="194" text-anchor="middle" class="entity-title">primary.blacklist</text>
-<text x="300" y="219" text-anchor="middle" class="entity-detail">assay_groups[]</text>
+<text x="300" y="219" text-anchor="middle" class="entity-detail">asp_groups[]</text>
 </g>
 <g class="entity blue" data-namespace="primary.assay_groups"><title>primary.assay_groups</title><use href="#icon-database" x="1031" y="110" width="58" height="58" aria-hidden="true"/><text x="1060" y="194" text-anchor="middle" class="entity-title">primary.assay_groups</text>
 <text x="1060" y="219" text-anchor="middle" class="entity-detail">group_id</text>

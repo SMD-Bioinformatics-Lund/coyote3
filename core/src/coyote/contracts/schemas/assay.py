@@ -1013,7 +1013,7 @@ class BlacklistDoc(_StrictDataDocBase):
     pos: int = Field(gt=0, strict=True)
     ref: str = Field(min_length=1)
     alt: str = Field(min_length=1)
-    assay_groups: list[str] = Field(min_length=1)
+    asp_groups: list[str] = Field(min_length=1)
     in_normal_perc: dict[str, Annotated[float, Field(ge=0, le=100, allow_inf_nan=False)]] = Field(
         default_factory=dict
     )
@@ -1036,7 +1036,7 @@ class BlacklistDoc(_StrictDataDocBase):
             raise ValueError("Alleles must not be empty")
         return normalized
 
-    @field_validator("assay_groups")
+    @field_validator("asp_groups")
     @classmethod
     def normalize_groups(cls, values: list[str]) -> list[str]:
         """Normalize and deduplicate biological group identifiers."""

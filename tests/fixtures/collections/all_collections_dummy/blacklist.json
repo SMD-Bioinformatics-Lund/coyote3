@@ -6,7 +6,7 @@
     "pos": 140453136,
     "ref": "A",
     "alt": "T",
-    "assay_groups": ["hematology"],
+    "asp_groups": ["hematology"],
     "in_normal_perc": {"synthetic_assay": 0.2}
   }
 ]

@@ -12,7 +12,7 @@ alternate alleles at the same coordinate remain distinct records.
   "pos": 100,
   "ref": "A",
   "alt": "T",
-  "assay_groups": ["hematology", "solid"],
+  "asp_groups": ["hematology", "solid"],
   "in_normal_perc": {
     "hema_gmsv1": 0.2,
     "solid_gmsv3": 0.05
@@ -37,6 +37,11 @@ or a measured zero does not cancel the exclusion. Manual additions add the group
 without inventing a normal-sample frequency or overwriting existing measurements.
 Repeated additions are idempotent. A unique `simple_id` index prevents duplicate
 allele records; concurrent group additions use an atomic set union.
+
+The stored group field is `asp_groups`. Earlier v4 exports using `assay_groups`
+must be converted before deployment, and the group index must use `asp_groups`.
+The offline converter below accepts either spelling in its input and writes only
+`asp_groups`; it preserves the original input in its evidence file.
 
 ## Prepare existing exports
 

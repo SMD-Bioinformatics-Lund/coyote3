@@ -10,8 +10,8 @@ from bson import json_util
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from coyote4.contracts.schemas.assay import BlacklistDoc  # noqa: E402
-from coyote4.domain.dna.variant_identity import (  # noqa: E402
+from coyote.contracts.schemas.assay import BlacklistDoc  # noqa: E402
+from coyote.domain.dna.variant_identity import (  # noqa: E402
     build_simple_id_hash_from_simple_id,
     normalize_simple_id,
 )
@@ -39,8 +39,14 @@ def prepare(records: list[dict], scopes: dict) -> tuple[list[dict], list[dict]]:
         parts = identity.split("_", 3)
         if len(parts) != 4:
             raise ValueError("Source blacklist identity must include chromosome and both alleles")
-        if "assay_groups" in source:
-            groups = source["assay_groups"]
+        if "asp_groups" in source or "assay_groups" in source:
+            groups = source.get("asp_groups", source.get("assay_groups"))
+            if (
+                "asp_groups" in source
+                and "assay_groups" in source
+                and source["assay_groups"] != groups
+            ):
+                raise ValueError("Source group fields disagree")
             measurements = source["in_normal_perc"]
         else:
             scope = source.get("assay_group") or source.get("assay")
@@ -58,12 +64,10 @@ def prepare(records: list[dict], scopes: dict) -> tuple[list[dict], list[dict]]:
             pos=int(parts[1]),
             ref=parts[2],
             alt=parts[3],
-            assay_groups=groups,
+            asp_groups=groups,
             in_normal_perc=measurements,
         ).model_dump(exclude={"id_"})
-        target = merged.setdefault(
-            identity, {**candidate, "assay_groups": [], "in_normal_perc": {}}
-        )
+        target = merged.setdefault(identity, {**candidate, "asp_groups": [], "in_normal_perc": {}})
         if "_id" not in target and "_id" in source:
             target["_id"] = source["_id"]
         for actor in ("created_by", "updated_by"):
@@ -71,9 +75,7 @@ def prepare(records: list[dict], scopes: dict) -> tuple[list[dict], list[dict]]:
                 target[actor] = source.get(actor)
             elif target[actor] != source.get(actor):
                 target[actor] = None
-        target["assay_groups"] = sorted(
-            set(target["assay_groups"]) | set(candidate["assay_groups"])
-        )
+        target["asp_groups"] = sorted(set(target["asp_groups"]) | set(candidate["asp_groups"]))
         for assay, frequency in candidate["in_normal_perc"].items():
             existing = target["in_normal_perc"].get(assay)
             if existing is not None and existing != frequency:

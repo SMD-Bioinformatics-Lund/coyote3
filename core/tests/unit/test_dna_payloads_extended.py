@@ -404,6 +404,7 @@ def test_variant_context_builds_transcript_and_knowledgebase_payload() -> None:
     )
     assert observed["sample_summary"]["name"] == "SAMPLE_1"
     assert observed["transcripts"] == [{"Feature": "NM_000546.6", "tier": 3}]
+    assert observed["expression"] == ["NM_000546"]
     assert observed["latest_classification"]["class"] == 2
     assert observed["in_other_samples"] == [
         {

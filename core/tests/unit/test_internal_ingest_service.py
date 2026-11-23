@@ -634,7 +634,7 @@ def test_transcript_helpers():
     assert parsed[1] == ["COSM1", "COSM2"]
     assert parsed[2] == "rs10"
     assert parsed[3] == ["1", "2"]
-    assert parsed[4] == ["ENST0001"]
+    assert parsed[4] == ["ENST0001.1"]
     assert parsed[9] == ["missense_variant"]
 
     assert feature_without_version("NM_1.2") == "NM_1"
@@ -942,3 +942,19 @@ def test_dna_parser_normalizes_pipeline_cnv_shape(tmp_path):
     assert out["cnvs"][1]["nprobes"] == 0
     assert out["cnvs"][1]["ratio"] == -1.0
     assert out["cnvs"][1]["type"] == "DEL"
+
+
+def test_transcript_summary_preserves_distinct_versions_and_unversioned_ids():
+    rows = [
+        {"Feature": value}
+        for value in [
+            "NM_006729.5",
+            "NM_006729.6",
+            "ENST00000324765.2",
+            "NM_006729.5",
+            "UNVERSIONED",
+        ]
+    ]
+    parsed = ingest_parsers._parse_transcripts(rows)
+    assert parsed[4] == ["NM_006729.5", "NM_006729.6", "ENST00000324765.2", "UNVERSIONED"]
+    assert [row["Feature"] for row in parsed[0]] == [row["Feature"] for row in rows]

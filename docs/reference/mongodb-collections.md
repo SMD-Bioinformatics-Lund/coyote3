@@ -276,7 +276,7 @@ Required keys:
 - `pos` (int)
 - `ref` (str)
 - `alt` (str)
-- `assay_groups` (list[str])
+- `asp_groups` (list[str])
 
 Optional keys:
 - `created_by` (str | None)

@@ -388,7 +388,8 @@ def _parse_transcripts(csq: list[dict[str, Any]]) -> tuple[Any, ...]:
 
     Extracts a subset of VEP consequence fields per transcript and accumulates
     cross-transcript sets of COSMIC IDs, dbSNP rsIDs, PubMed IDs, transcript IDs,
-    HGVSc/HGVSp notations, gene symbols, and hotspot identifiers.
+    HGVSc/HGVSp notations, gene symbols, and hotspot identifiers. Transcript IDs
+    retain their source version suffixes; only identical full IDs are deduplicated.
 
     Args:
         csq: List of VEP CSQ dicts from a parsed VCF variant.
@@ -414,7 +415,7 @@ def _parse_transcripts(csq: list[dict[str, Any]]) -> tuple[Any, ...]:
         slim: dict[str, Any] = {}
         feature = transcript.get("Feature")
         slim["Feature"] = feature
-        tid = str(feature).split(".")[0] if feature else ""
+        tid = str(feature) if feature else ""
         if tid:
             transcript_ids[tid] = 1
 

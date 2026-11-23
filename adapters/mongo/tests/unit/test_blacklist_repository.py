@@ -24,7 +24,7 @@ def entry(**overrides):
         "pos": 100,
         "ref": "A",
         "alt": "T",
-        "assay_groups": ["solid"],
+        "asp_groups": ["solid"],
         "in_normal_perc": {"solid_gmsv3": 0.2, "other_assay": 0.7},
         **overrides,
     }
@@ -43,9 +43,9 @@ def repository():
 
 def test_schema_normalizes_scopes_and_requires_consistent_coordinates():
     doc = BlacklistDoc.model_validate(
-        entry(chrom="chr7", ref="a", alt="t", assay_groups=["Solid", "solid"])
+        entry(chrom="chr7", ref="a", alt="t", asp_groups=["Solid", "solid"])
     )
-    assert doc.assay_groups == ["solid"]
+    assert doc.asp_groups == ["solid"]
     assert (doc.chrom, doc.ref, doc.alt) == ("7", "A", "T")
     with pytest.raises(ValidationError, match="simple_id must match"):
         BlacklistDoc.model_validate(entry(pos=101))
@@ -110,7 +110,7 @@ def test_manual_additions_merge_groups_preserve_measurements_and_are_idempotent(
     assert result.modified_count == 1
     assert repository.blacklist_variant(variant, "hematology").modified_count == 0
     stored = repository.get_collection().find_one()
-    assert set(stored["assay_groups"]) == {"solid", "hematology"}
+    assert set(stored["asp_groups"]) == {"solid", "hematology"}
     assert stored["in_normal_perc"] == entry()["in_normal_perc"]
     assert repository.get_unique_blacklist_count() == 1
     assert repository.get_blacklisted_count() == 1
@@ -145,7 +145,7 @@ def test_remove_one_assay_retains_document_groups_and_other_measurements(reposit
     )
     assert result.modified_count == 1
     stored = repository.get_collection().find_one({"_id": identity})
-    assert stored["assay_groups"] == ["solid"]
+    assert stored["asp_groups"] == ["solid"]
     assert stored["in_normal_perc"] == {"other_assay": 0.7}
     assert stored["simple_id"] == original["simple_id"]
     assert repository.remove_assay_entry(original, asp_id="solid_gmsv3").modified_count == 0

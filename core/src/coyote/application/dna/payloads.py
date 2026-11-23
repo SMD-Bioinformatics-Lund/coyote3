@@ -50,6 +50,7 @@ from coyote.domain.dna.notation import one_letter_p
 from coyote.domain.dna.transcript_payloads import (
     annotate_transcript_provenance,
     build_hgnc_lookup_maps,
+    feature_without_version,
 )
 from coyote.domain.dna.translocqueries import (
     build_transloc_query,
@@ -880,7 +881,7 @@ def variant_context_payload(
         variant["additional_classifications"] = None
 
     expression = service.expression_repository.get_expression_data(
-        list(variant.get("transcripts", []))
+        list(dict.fromkeys(feature_without_version(t) for t in variant.get("transcripts", [])))
     )
     vep_version = require_sample_vep_version(sample)
     transcript_vault = (
