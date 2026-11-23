@@ -1,5 +1,10 @@
 # Changelog
 
+## v3.4.5
+
+- Include the existing clinical question in DNA report titles and Analysresultat headings, using the same diagnosis rules as Slutsats.
+- Rename the SNV/indel heading to “Kliniskt relevanta mutationer (SNVs och små INDELs)” in DNA reports and generated summaries.
+
 ## v3.4.4
 
 - Always include the Kopietalsprofil and Fusionsgener headings in the `tumwgs-hema` and `tumwgs-solid` summary, with default text when no clinically relevant copy-number changes or fusion genes are reported. Other assays are unchanged.

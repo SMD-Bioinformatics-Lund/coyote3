@@ -207,7 +207,7 @@ class BPCommonUtility:
             if section not in summary_sections_data:
                 continue
             if section == "snvs":
-                text += "**Kliniskt relevanta SNVs och små INDELs:**\n"
+                text += "**Kliniskt relevanta mutationer (SNVs och små INDELs):**\n"
                 class_vars, class_cnt = BPCommonUtility.sort_tiered_variants(
                     summary_sections_data["snvs"], genes_chosen
                 )
