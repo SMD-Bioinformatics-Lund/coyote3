@@ -49,6 +49,18 @@ class ReportDocumentBuilder:
         self.preview = preview
         self.presentation = presentation
 
+    def _question_heading(self, heading: str) -> str:
+        """Use the patient-table question verbatim, or the diagnosis placeholder."""
+        question = next(
+            (
+                field["value"]
+                for field in self.metadata["fields"]
+                if field["label"] == "Frågeställning"
+            ),
+            None,
+        )
+        return f"{heading} frågeställning {question or '<DIAGNOSIS>'}"
+
     def build(self) -> dict[str, Any]:
         """Build a fresh document, preserving section order and report provenance.
 
@@ -58,6 +70,7 @@ class ReportDocumentBuilder:
         Raises:
             ValueError: A selected call, timestamp or embedded artwork is invalid.
         """
+        self.metadata = _metadata(self.context, self.analyte)
         document = ReportSections(
             context=self.context, analyte=self.analyte, presentation=self.presentation
         )
@@ -66,7 +79,14 @@ class ReportDocumentBuilder:
                 {"key": "preview", "kind": "text", "text": "PREVIEW · UNSAVED REPORT"}
             )
         document.sections.append(
-            {"key": "results", "kind": "text", "heading": "Analysresultat", "text": ""}
+            {
+                "key": "results",
+                "kind": "text",
+                "heading": self._question_heading("Analysresultat")
+                if self.analyte == "dna"
+                else "Analysresultat",
+                "text": "",
+            }
         )
         if self.analyte == "dna":
             DnaResultSections(document).append()
@@ -94,11 +114,7 @@ class ReportDocumentBuilder:
             {
                 "key": "conclusion",
                 "kind": "summary",
-                "heading": (
-                    f"Slutsats – {context['clinical_question']}"
-                    if context.get("clinical_question")
-                    else "Slutsats"
-                ),
+                "heading": self._question_heading("Slutsats"),
                 "text": _summary_text(context),
                 "format": "markdown",
             }
@@ -145,16 +161,14 @@ class ReportDocumentBuilder:
             "preset": REPORT_PRESET,
             "analyte": analyte,
             "language": "sv",
-            "title": str(
-                (
-                    (config.get("reporting") or {}).get("report_header")
-                    if analyte == "dna"
-                    else context.get("report_header")
+            "title": (
+                self._question_heading(
+                    str((config.get("reporting") or {}).get("report_header") or "") + " -"
                 )
-                or ""
-            )
-            + f" - {sample.get('name', '')}",
-            "report": _metadata(context, analyte),
+                if analyte == "dna"
+                else str(context.get("report_header") or "")
+            ),
+            "report": self.metadata,
             "layout": {"metadata_heading": "Patient/Analysinformation", "document_label": ""},
             "branding": {
                 "application_name": "Coyote",

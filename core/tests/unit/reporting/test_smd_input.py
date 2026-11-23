@@ -181,7 +181,7 @@ def test_saved_document_omits_preview_and_escapes_untrusted_text():
     assert "<script>" not in output and '<img src="https:' not in output
     assert "&lt;script&gt;" in output and "<strong>Reviewed</strong>" in output
     assert "Content-Security-Policy" in output
-    assert 'name="smd-reports:package_version" content="0.5.3"' in output
+    assert 'name="smd-reports:package_version" content="0.6.1"' in output
 
 
 def test_new_profile_suggestions_do_not_replace_the_reviewed_conclusion():

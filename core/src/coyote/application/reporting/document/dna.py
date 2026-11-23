@@ -44,7 +44,7 @@ class DnaResultSections:
         add_table = self.document.add_table
         if "SNV" in enabled:
             for key, heading, empty_key in [
-                ("snvs", "Kliniskt relevanta SNVs och små INDELs", "SNV"),
+                ("snvs", "Kliniskt relevanta mutationer (SNVs och små INDELs)", "SNV"),
                 (
                     "germline_snvs",
                     "Kliniskt relevanta germline-SNVs och små INDELs",

@@ -2,6 +2,10 @@
 
 ## v4.0.0
 
+- Use patient-table clinical questions with a diagnosis placeholder in DNA headings,
+  retain sample IDs separately from DNA/RNA titles, and clarify the SNV/indel heading.
+- Upgrade smd-reports to v0.6.1.
+
 - Include supported finding kinds in the reporting-fact response contract, allowing
   the authoring catalog to load before any reporting rules are installed.
 - Add session activity contracts and a superuser-only user-administration operation

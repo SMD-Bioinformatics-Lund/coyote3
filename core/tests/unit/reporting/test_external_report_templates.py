@@ -27,7 +27,7 @@ def test_canonical_templates_render_and_retired_aliases_are_rejected(analyte, na
         analyte=analyte,
         preview=True,
     )
-    assert 'name="smd-reports:package_version" content="0.5.3"' in html
+    assert 'name="smd-reports:package_version" content="0.6.1"' in html
     assert render_pdf_bytes(html).startswith(b"%PDF-")
     for alias in (
         "smd/dna_report.html",
@@ -66,8 +66,8 @@ def test_footer_template_version_is_independent_of_patient_report_number(analyte
             analyte=analyte,
             preview=True,
         )
-        assert 'name="smd-reports:package_version" content="0.5.3"' in html
-        assert 'name="smd-reports:template_version" content="0.5.3"' in html
+        assert 'name="smd-reports:package_version" content="0.6.1"' in html
+        assert "| smd-reports v0.6.1" in html
 
 
 @pytest.mark.parametrize("analyte,name", [("dna", "dna"), ("rna", "rna")])
@@ -81,7 +81,7 @@ def test_approved_template_profile_selects_modern_without_changing_clinical_valu
     html = render_report_html(
         template_name=name, template_context=inputs, snapshot_rows=[], analyte=analyte, preview=True
     )
-    assert 'name="smd-reports:package_version" content="0.5.3"' in html
+    assert 'name="smd-reports:package_version" content="0.6.1"' in html
     assert "SYNTHETIC_EXTRACTION" in html
     issued = render_report_html(
         template_name=name,
@@ -92,7 +92,7 @@ def test_approved_template_profile_selects_modern_without_changing_clinical_valu
     )
     assert "TRY NEW REPORT · TEMPORARY PREVIEW" not in issued
     assert "@bottom-left { content: element(report-page-footer);" in issued
-    assert 'name="smd-reports:template_version" content="0.5.3"' in issued
+    assert "| smd-reports v0.6.1" in issued
     inputs["assay_config"]["template_release"]["content_hash"] = "invalid"
     with pytest.raises(AppError, match="approved report template"):
         render_report_html(
