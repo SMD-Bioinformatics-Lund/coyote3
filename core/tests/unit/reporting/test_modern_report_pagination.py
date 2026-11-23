@@ -240,7 +240,7 @@ def test_short_variant_details_stay_on_one_page_and_footer_identifies_template_v
     table_pages = {}
     for index, page in enumerate(document.pages):
         words = [box.text for box in page._page_box.descendants() if isinstance(box, TextBox)]
-        assert f"Coyote3 DNA v{__version__} | smd-reports v0.6.1" in words
+        assert f"Coyote3 DNA v{__version__} | smd-reports v0.7.0" in words
         for box in page._page_box.descendants():
             if box.element is not None and "report_variant" in box.element.get("class", "").split():
                 table_pages.setdefault(box.element, set()).add(index)

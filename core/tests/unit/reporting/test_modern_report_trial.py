@@ -131,7 +131,7 @@ def test_package_report_preserves_clinical_text_and_embeds_its_css(analyte, temp
     else:
         assert "SYNTHETIC_A::SYNTHETIC_B" in alternate_text.text
         assert "Synthetic classification" in alternate_text.text
-    assert 'name="smd-reports:package_version" content="0.6.1"' in alternate
+    assert 'name="smd-reports:package_version" content="0.7.0"' in alternate
     assert "Content-Security-Policy" in alternate
     assert '<link rel="stylesheet"' not in alternate
     assert "PREVIEW · UNSAVED REPORT" in alternate

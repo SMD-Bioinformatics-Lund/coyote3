@@ -663,7 +663,7 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'test'", specifier = "==7.1.0" },
     { name = "pytest-mock", marker = "extra == 'test'", specifier = "==3.15.1" },
     { name = "pyyaml", specifier = "==6.0.3" },
-    { name = "smd-reports", marker = "extra == 'reporting'", specifier = "==0.6.1" },
+    { name = "smd-reports", marker = "extra == 'reporting'", specifier = "==0.7.0" },
     { name = "weasyprint", marker = "extra == 'reporting'", specifier = "==70.0" },
 ]
 provides-extras = ["reporting", "alignment", "test"]
@@ -2735,7 +2735,7 @@ wheels = [
 
 [[package]]
 name = "smd-reports"
-version = "0.6.1"
+version = "0.7.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bleach" },
@@ -2748,9 +2748,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "tinycss2" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/30/0f/2d88baf193bfa26d5e13713c66f8a5835cd5109ac3b1e05d98a7acf59e3c/smd_reports-0.6.1.tar.gz", hash = "sha256:15199a83e65f10c3250e157da89158eee75c00eda05d0a7043516d2395a4c283", size = 10230864, upload_time = "2026-11-23T13:42:32.098Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fb/89/3312d5ee6dbf4ea7d6d2ae0968d4580641df8bc7b59aaa86324c9003bed2/smd_reports-0.7.0.tar.gz", hash = "sha256:fb0812c1bdd944d080ee01df8b85b60fa0c328cf1949f5ce49c97b8ab781f52f", size = 10235798, upload_time = "2026-11-23T23:50:38.664Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b0/47/995824f8b4dbe2bb23787c37532f56293b65bcc171159e2d2b0e8272e8b6/smd_reports-0.6.1-py3-none-any.whl", hash = "sha256:80980df1c4dec612cc8a12fa58f11f5d944cfe1cedd92de15e5651fc1e4eb49a", size = 746796, upload_time = "2026-11-23T13:42:30.553Z" },
+    { url = "https://files.pythonhosted.org/packages/13/95/ee4347d77ae1151b8b01f46f67bfa540be383c8881b9830447e8ade30a95/smd_reports-0.7.0-py3-none-any.whl", hash = "sha256:95f09f4e9a30f8ed00c23506e0b62a5b358c4abc1268ae6a92b5dc567a1404db", size = 747388, upload_time = "2026-11-23T23:50:36.633Z" },
 ]
 
 [[package]]
