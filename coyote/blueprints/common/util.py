@@ -27,6 +27,7 @@ from flask_login import current_user
 from bson.objectid import ObjectId
 from flask import current_app as app
 from coyote.extensions import store
+from coyote.util.report.report_util import ReportUtility
 
 
 class BPCommonUtility:
@@ -207,7 +208,7 @@ class BPCommonUtility:
             if section not in summary_sections_data:
                 continue
             if section == "snvs":
-                text += "**Kliniskt relevanta mutationer (SNVs och små INDELs):**\n"
+                text += f"**{ReportUtility.SNV_HEADING}**\n"
                 class_vars, class_cnt = BPCommonUtility.sort_tiered_variants(
                     summary_sections_data["snvs"], genes_chosen
                 )
@@ -241,7 +242,9 @@ class BPCommonUtility:
                     # WGS: always show the heading, with a default sentence when
                     # no clinically relevant fusion genes have been reported.
                     transloc_text = (
-                        BPCommonUtility.summarize_transloc(translocs).lstrip("\n")
+                        BPCommonUtility.summarize_transloc(
+                            translocs, include_read_support=False
+                        ).lstrip("\n")
                         if translocs
                         else ""
                     )
@@ -380,7 +383,7 @@ class BPCommonUtility:
         return round(100 * alt / total, 1)
 
     @staticmethod
-    def summarize_transloc(variants: list) -> str:
+    def summarize_transloc(variants: list, include_read_support: bool = True) -> str:
         """
         Generates a summary text for DNA fusions (translocations).
 
@@ -393,6 +396,7 @@ class BPCommonUtility:
 
         Args:
             variants (list): List of variant dictionaries, each containing information about the DNA fusion event, supporting evidence, and gene annotations.
+            include_read_support: Include supporting-read metrics in the narrative. WGS summaries omit them.
 
         Returns:
             str: A summary describing the detected gene fusions, the genes involved, and the supporting evidence (PR, SR, UR).
@@ -438,11 +442,15 @@ class BPCommonUtility:
             # First fusion: "Vid analysen...", last of three or more: "Slutligen...",
             # every other fusion: "Vidare..." (same as summarize_cnv).
             if cl == 1:
-                text += "\n" + intro[0] + " ("
+                text += "\n" + intro[0]
             elif len(interesting) > 2 and cl == len(interesting):
-                text += "\n" + intro[2] + " ("
+                text += "\n" + intro[2]
             else:
-                text += "\n" + intro[1] + " ("
+                text += "\n" + intro[1]
+            if not include_read_support:
+                text += ".\n"
+                continue
+            text += " ("
             af = 0
             if interesting[voi]["af_pr"] > 0 and interesting[voi]["af_sr"] > 0:
                 text += (

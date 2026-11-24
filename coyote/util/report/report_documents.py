@@ -17,6 +17,7 @@ from flask import current_app
 from markupsafe import Markup
 
 from coyote.__version__ import __version__
+from coyote.util.report.report_util import ReportUtility
 
 REFERENCE = (
     "[1] Standards and guidelines for the interpretation and reporting of sequence "
@@ -111,6 +112,18 @@ def _rich_text(html: str | None, compact_headings: bool = False) -> str:
     html = re.sub(r"<([A-Z][A-Z0-9_]+)>", lambda match: escape(match[0]), str(html))
     body = tinyhtml5.parse(html, namespace_html_elements=False).find("body")
     if compact_headings:
+        # Older saved summaries retain their original text; normalize only the
+        # exact generated SNV label in the rendered report.
+        for element in body.iter():
+            if element.tag in {"h1", "h2", "h3", "h4", "h5", "h6", "strong", "b"} and not len(
+                element
+            ):
+                text = element.text or ""
+                if text.strip().removesuffix(":") in {
+                    "Kliniskt relevanta SNVs och små INDELs",
+                    ReportUtility.SNV_HEADING,
+                }:
+                    element.text = ReportUtility.SNV_HEADING
         for parent in list(body.iter()):
             children = list(parent)
             for index, heading in enumerate(children):
@@ -493,7 +506,7 @@ def build_dna_document(
         ]
         summary = _table(
             "snvs",
-            "Kliniskt relevanta mutationer (SNVs och små INDELs)",
+            ReportUtility.SNV_HEADING,
             ["Gen", "Mutation", "Variantfrekvens", "Klassificering"],
             rows,
             "Inga detekterade mutationer",
