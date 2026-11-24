@@ -2,7 +2,7 @@
 
 ## v3.4.6
 
-- Display the SNV heading in older saved summaries as “Kliniskt relevanta mutationer (SNVs och små INDELs)” in newly generated reports, without changing saved comments or existing report files.
+- Use the identical heading “Kliniskt relevanta mutationer (SNVs och små INDELs)” in the result table and summary, including older saved summaries displayed in new reports. Saved comments and existing report files remain unchanged.
 
 - Upgrade smd-reports to v0.7.0 for improved finding-grid spans, comment shading and table alignment.
 

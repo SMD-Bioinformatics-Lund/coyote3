@@ -35,6 +35,8 @@ class ReportUtility:
     terminology and facilitate report generation.
     """
 
+    SNV_HEADING = "Kliniskt relevanta mutationer (SNVs och små INDELs)"
+
     TIER_NAME: Dict[int, str] = {
         1: "I",
         2: "II",

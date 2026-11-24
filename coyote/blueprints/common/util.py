@@ -27,6 +27,7 @@ from flask_login import current_user
 from bson.objectid import ObjectId
 from flask import current_app as app
 from coyote.extensions import store
+from coyote.util.report.report_util import ReportUtility
 
 
 class BPCommonUtility:
@@ -207,7 +208,7 @@ class BPCommonUtility:
             if section not in summary_sections_data:
                 continue
             if section == "snvs":
-                text += "**Kliniskt relevanta mutationer (SNVs och små INDELs):**\n"
+                text += f"**{ReportUtility.SNV_HEADING}**\n"
                 class_vars, class_cnt = BPCommonUtility.sort_tiered_variants(
                     summary_sections_data["snvs"], genes_chosen
                 )
