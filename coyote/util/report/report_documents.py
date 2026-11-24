@@ -111,6 +111,17 @@ def _rich_text(html: str | None, compact_headings: bool = False) -> str:
     html = re.sub(r"<([A-Z][A-Z0-9_]+)>", lambda match: escape(match[0]), str(html))
     body = tinyhtml5.parse(html, namespace_html_elements=False).find("body")
     if compact_headings:
+        # Older saved summaries retain their original text; normalize only the
+        # exact generated SNV label in the rendered report.
+        old_heading = "Kliniskt relevanta SNVs och små INDELs"
+        new_heading = "Kliniskt relevanta mutationer (SNVs och små INDELs)"
+        for element in body.iter():
+            if element.tag in {"h1", "h2", "h3", "h4", "h5", "h6", "strong", "b"} and not len(
+                element
+            ):
+                text = element.text or ""
+                if text.strip() in {old_heading, old_heading + ":"}:
+                    element.text = text.replace(old_heading, new_heading)
         for parent in list(body.iter()):
             children = list(parent)
             for index, heading in enumerate(children):

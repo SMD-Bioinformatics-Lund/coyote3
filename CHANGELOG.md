@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.4.6
+
+- Display the SNV heading in older saved summaries as “Kliniskt relevanta mutationer (SNVs och små INDELs)” in newly generated reports, without changing saved comments or existing report files.
+
+- Upgrade smd-reports to v0.7.0 for improved finding-grid spans, comment shading and table alignment.
+
 ## v3.4.5
 
 - Remove duplicate sample identifiers from DNA/RNA report titles; retain the separate sample ID line.
