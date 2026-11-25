@@ -24,7 +24,6 @@ from coyote_mongo.index_management import (  # noqa: E402
     known_retired_indexes,
     retire_index,
 )
-from coyote_mongo.repositories.maintenance_audit import audit_maintenance  # noqa: E402
 from coyote_mongo.runtime_adapter import MongoAdapter  # noqa: E402
 from coyote_mongo.security_indexes import ensure_security_indexes  # noqa: E402
 
@@ -141,6 +140,9 @@ def main() -> int:
         index. Status and plan do not request index creation or retirement.
     """
     args = _parser().parse_args()
+    if args.command in {"apply", "retire"}:
+        from coyote_mongo.repositories.maintenance_audit import audit_maintenance
+
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     adapter = _adapter(args.scope)
     if args.command == "apply":
