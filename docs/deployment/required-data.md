@@ -52,33 +52,7 @@ login, authorization, assay resolution, sample review, and reporting.
 
 ## Required Creation Sequence
 
-Clinical configuration is not a set of independent collections. Populate and approve it in
-the following order:
-
-![What to define first: a new assay to its first sample](../assets/diagrams/resource-setup-order.svg)
-
-Register the active assay group, then save an assay setup draft. That draft supplies
-the assay identity for rule authoring before the ASP becomes operational. Prepare
-named scopes, any selected ISGLs and one ASPC for every
-selected scope/environment. ISGLs and rules have no required order relative to
-each other. Setup approval activates the related operational records together.
-
-ISGLs are optional unless selected by filters. Reporting rules may be authored
-before or after the assay setup, including against a planned assay ID. A registered
-compatible scope is required before rule submission. Setup activation and ASPC
-creation do not require a published rule set. Without compatible published rules,
-reports remain available without an automatic summary and the UI shows a warning.
-Runtime sample resolution can use a named
-ASPC or fall back to Base in the same environment, with a recorded warning. Without
-either active configuration, ingest is rejected.
-
-Follow [Assay setup](../administration/assay-setup.md#step-by-step-add-a-new-assay)
-for the ordered procedure and the
-[resource reference](../administration/clinical-configuration-resources.md#missing-prerequisites-and-their-effects)
-for the effect of missing prerequisites.
-
-See [System relationships](../architecture/resource-relationships.md#13-creation-order) for the
-complete prerequisite table, including identity and report entities.
+Follow [install assay resources](../administration/install-assay-resources.md). Intake requires an active ASP and an ASPC for the selected environment and diagnosis or Base. Gene lists referenced by filters must exist. Published clinical rules supply automatic wording.
 
 ## Optional Enhancement Collections
 

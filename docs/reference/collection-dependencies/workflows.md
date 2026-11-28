@@ -5,72 +5,6 @@
 Arrows run from the referencing field to the target. Snapshot and historical-actor
 links preserve provenance; they do not require a live target on every read.
 
-## primary.assay_setup_revisions
-
-<a id="primary-assay-setup-revisions"></a>
-
-Binding: `assay_setup_revisions_collection`.
-
-Immutable full snapshot for one setup revision.
-
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`, `setup_id`, `revision`, `action`, `document`.
-
-[Field types and validation](../mongodb-collections.md#assay_setup_revisions). `_id` may also be retained by an open collection model.
-
-![primary.assay_setup_revisions field relationships](../../assets/diagrams/collection-dependencies/primary-assay-setup-revisions.svg)
-
-[Open full-size diagram](../../assets/diagrams/collection-dependencies/primary-assay-setup-revisions.svg)
-
-### Outgoing dependencies
-
-| Source field | Target key | Relationship / multiplicity | Migration and resolution semantics | Evidence |
-| --- | --- | --- | --- | --- |
-| [primary.assay_setup_revisions](workflows.md#primary-assay-setup-revisions): `setup_id` | [primary.assay_setups](workflows.md#primary-assay-setups): `_id` | string ObjectId; many → one | Exact saved setup; (setup_id, revision) identifies the immutable snapshot. | [S1](#s1) |
-| [primary.assay_setup_revisions](workflows.md#primary-assay-setup-revisions): `document` | [primary.assay_setups](workflows.md#primary-assay-setups): `_id + revision` | snapshot; many → one | Full historical document, including content and actors. Do not overwrite document with the latest setup. | [S8](#s8) |
-| [primary.assay_setup_revisions](workflows.md#primary-assay-setup-revisions): `created_by + updated_by` | [identity.users](identity.md#identity-users): `username` | historical actor; many → historical identity | Only populated actor fields apply. Preserve system and historical usernames even if no current account exists; never substitute the migration user. | [S15](#s15) |
-
-### Incoming references and migration impact
-
-No cross-collection business reference is declared in this catalog for this direction.
-
-## primary.assay_setups
-
-<a id="primary-assay-setups"></a>
-
-Binding: `assay_setups_collection`.
-
-Governed setup draft; publication leaves its final content immutable.
-
-Draft content can precede operational resources. Keep original _id, revision and content_editors, created_by/at and updated_by/at. Editing leases live in edit_leases, not in this collection. Published setup revisions are retained.
-
-Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`, `asp_id`, `content`, `status`, `revision`, `content_editors`, `created_at`, `updated_at`, `review_reason`, `published_by`, `review_dependencies`, `reviewer`, `reviewed_by`.
-
-[Field types and validation](../mongodb-collections.md#assay_setups). `_id` may also be retained by an open collection model.
-
-![primary.assay_setups field relationships](../../assets/diagrams/collection-dependencies/primary-assay-setups.svg)
-
-[Open full-size diagram](../../assets/diagrams/collection-dependencies/primary-assay-setups.svg)
-
-### Outgoing dependencies
-
-| Source field | Target key | Relationship / multiplicity | Migration and resolution semantics | Evidence |
-| --- | --- | --- | --- | --- |
-| [primary.assay_setups](workflows.md#primary-assay-setups): `asp_id + content.panel.asp_id` | [primary.assay_specific_panels](configuration.md#primary-assay-specific-panels): `asp_id` | staged identity; many → one | A reserved draft can exist before the operational assay. Publication creates the assay; this is not a required pre-existing parent. | [S8](#s8) |
-| [primary.assay_setups](workflows.md#primary-assay-setups): `content.panel.asp_group` | [primary.assay_groups](configuration.md#primary-assay-groups): `group_id` | business key; many → one | Registered group prerequisite, even before activation. | [S8](#s8) |
-| [primary.assay_setups](workflows.md#primary-assay-setups): `content.scopes[]` | [primary.diagnoses](configuration.md#primary-diagnoses): `diagnosis_id` | conditional reference; one → many | Selected named scopes become diagnosis_associations at publication; base is implicit. | [S8](#s8) |
-| [primary.assay_setups](workflows.md#primary-assay-setups): `content.existing_gene_list_ids[]` | [primary.insilico_genelists](configuration.md#primary-insilico-genelists): `isgl_id` | staged reference; one → many | Existing lists are linked during publication. content.gene_lists[] instead contains new staged documents, not foreign keys. | [S8](#s8) |
-| [primary.assay_setups](workflows.md#primary-assay-setups): `content.configurations[]` | [primary.asp_configs](configuration.md#primary-asp-configs): `asp_id + diagnosis_id + environment` | staged documents; one → many | Embedded proposed configurations become operational revisions only after publication validation. | [S8](#s8) |
-| [primary.assay_setups](workflows.md#primary-assay-setups): `created_by + updated_by + published_by + content_editors` | [identity.users](identity.md#identity-users): `username` | historical actor; many → historical identity | Only populated actor fields apply. Preserve system and historical usernames even if no current account exists; never substitute the migration user. | [S15](#s15) |
-
-### Incoming references and migration impact
-
-| Source field | Target key | Relationship / multiplicity | Migration and resolution semantics | Evidence |
-| --- | --- | --- | --- | --- |
-| [primary.assay_setup_revisions](workflows.md#primary-assay-setup-revisions): `setup_id` | [primary.assay_setups](workflows.md#primary-assay-setups): `_id` | string ObjectId; many → one | Exact saved setup; (setup_id, revision) identifies the immutable snapshot. | [S1](#s1) |
-| [primary.assay_setup_revisions](workflows.md#primary-assay-setup-revisions): `document` | [primary.assay_setups](workflows.md#primary-assay-setups): `_id + revision` | snapshot; many → one | Full historical document, including content and actors. Do not overwrite document with the latest setup. | [S8](#s8) |
-| [primary.clinical_rule_sets](workflows.md#primary-clinical-rule-sets): `scope.asp_id` | [primary.assay_setups](workflows.md#primary-assay-setups): `asp_id` | authoring lookup; many → one | A draft may use a planned assay ID before a setup or operational assay exists. Saved unpublished setups also supply compatible scopes. An available compatible assay/diagnosis is required before rule submission; draft reassociation preserves its document ID and revision chain. | [S8](#s8) |
-| [primary.edit_leases](operations.md#primary-edit-leases): `_id (kind=assay-setups)` | [primary.assay_setups](workflows.md#primary-assay-setups): `_id` | encoded operational key; 0..1 per resource kind/key | Length-prefixed encoded identity; not a plain target ObjectId. Expiry/release makes the target editable again; no document backfill is needed. | [S6](#s6) |
-
 ## primary.clinical_rule_revisions
 
 <a id="primary-clinical-rule-revisions"></a>
@@ -123,7 +57,6 @@ Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`
 | --- | --- | --- | --- | --- |
 | [primary.clinical_rule_sets](workflows.md#primary-clinical-rule-sets): `scope.asp_id` | [primary.assay_specific_panels](configuration.md#primary-assay-specific-panels): `asp_id` | scope lookup; many → one | Preserve all other scope dimensions and publication state. Named diagnosis references exclude implicit base; query scopes may be broad/null. | [S12](#s12) |
 | [primary.clinical_rule_sets](workflows.md#primary-clinical-rule-sets): `scope.diagnosis_id` | [primary.diagnoses](configuration.md#primary-diagnoses): `diagnosis_id` | scope lookup; many → one | Preserve all other scope dimensions and publication state. Named diagnosis references exclude implicit base; query scopes may be broad/null. | [S12](#s12) |
-| [primary.clinical_rule_sets](workflows.md#primary-clinical-rule-sets): `scope.asp_id` | [primary.assay_setups](workflows.md#primary-assay-setups): `asp_id` | authoring lookup; many → one | A draft may use a planned assay ID before a setup or operational assay exists. Saved unpublished setups also supply compatible scopes. An available compatible assay/diagnosis is required before rule submission; draft reassociation preserves its document ID and revision chain. | [S8](#s8) |
 | [primary.clinical_rule_sets](workflows.md#primary-clinical-rule-sets): `created_by + updated_by + published_by + retired_by` | [identity.users](identity.md#identity-users): `username` | historical actor; many → historical identity | Only populated actor fields apply. Preserve system and historical usernames even if no current account exists; never substitute the migration user. | [S15](#s15) |
 
 ### Incoming references and migration impact
@@ -357,7 +290,6 @@ Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`
 
 ### S1
 
-`adapters/mongo/src/coyote_mongo/repositories/assay_setup.py`
 
 ### S2
 
@@ -385,7 +317,6 @@ Declared top-level fields: `created_by`, `updated_by`, `system_installed`, `_id`
 
 ### S8
 
-`core/src/coyote/application/resources/assay_setup.py`
 
 ### S9
 

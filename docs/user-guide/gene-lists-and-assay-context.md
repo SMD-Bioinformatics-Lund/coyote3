@@ -36,11 +36,17 @@ shared ISGL is an administrative operation with a wider scope and its own permis
 The sample records its resolved configuration context; saved reports preserve their
 reporting evidence rather than being regenerated from current configuration.
 
-Each configuration captures exact assay and selectable gene-list revisions. Editing
-those shared resources does not change an already assigned sample. To apply a newer
-configuration, select **Review configuration update**, review the filter changes,
-choose whether to retain compatible sample overrides, and provide a reason. A
-concurrent sample edit or a changed active release requires another preview.
+The filters sidebar and **Sample Gene Settings** on **Overview** show when a newer
+active configuration revision is available. For example, if the sample uses a panel list
+at v1 and the list editor saves v2, the sample continues using v1 until updated.
+
+Choose **Review configuration update** to see the old and new revisions, genes
+added or removed from selected lists and changes to filter values. If a historical
+release lacks gene membership, the preview identifies that gap. Compatible sample
+overrides are retained by default. Review any unavailable selections, or choose
+the new defaults. Enter a reason and apply the update to this sample. If another
+user changes the sample or a newer release appears, open the preview again.
+Previously saved reports retain the filters and evidence used to generate them.
 
 Saving filters or applying a configuration increments the sample's operation version.
 The audit event records the actor, previous and new settings, and configuration

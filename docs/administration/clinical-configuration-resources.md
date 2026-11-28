@@ -13,13 +13,12 @@ and configuration boundaries.
 | Resource | Defines | Requires | Used by |
 | --- | --- | --- | --- |
 | Assay group | Center grouping and availability, with an access-scope identifier | Registered stable identifier and active status for new operations | ASP selection, configuration availability, eligible gene lists and user scope. |
-| Assay / ASP | Assay design, group, DNA/RNA category, family, physical covered genes, sequencing settings and file policy | Active group; saved setup draft during preparation, operational ASP after activation | Ingest validation, analysis eligibility, configurations and sample identity. |
-| Shared diagnosis definition | Reusable named clinical scope | Stable identifier and active definition | Assay setup, associations, configuration and reporting scope selectors. |
-| Assay–diagnosis association | Availability of one named scope for one assay | Shared definition and assay; staged by setup until activation | Named-scope selection for that assay. Both definition and association must be active for new configuration. |
+| Assay / ASP | Assay design, group, DNA/RNA category, family, physical covered genes, sequencing settings and file policy | Active registered group | Ingest validation, analysis eligibility, configurations and sample identity. |
+| Shared diagnosis definition | Reusable named clinical scope | Stable identifier and active definition | Assay associations, configuration and reporting scope selectors. |
+| Assay–diagnosis association | Availability of one named scope for one assay | Shared definition and an assay identifier | Named-scope selection for that assay. Both definition and association must be active for new configuration. |
 | Assay configuration / ASPC | Analysis/intents, filter defaults and report settings for an assay, scope and environment | ASP, valid scope and eligible selected lists; reporting rules are optional | Initial sample filters, enabled analyses, report configuration and revision traceability. |
 | Gene list / ISGL | Analysis-specific in-silico gene selection | Valid list type, genes and eligible assay/group bindings; applicable diagnosis scopes | Optional filter defaults and sample review choices. |
-| Clinical reporting rule set | Tested, reviewed report logic and wording for an assay/scope/analyte/language | Registered assay or eligible saved setup draft, valid scope and independent publication workflow | Report evaluation and compatibility of reporting configurations. |
-| Assay setup | Draft workspace, readiness checks and optional review | Active parent group and authorized operator | Stages related ASP, ISGL, association and ASPC records; commits them together at activation. |
+| Clinical reporting rule set | Tested, reviewed report logic and wording for an assay/scope/analyte/language | Registered compatible assay and valid scope for rule submission and independent publication workflow | Report evaluation and compatibility of reporting configurations. |
 | Public assay catalog | Public descriptions and presentation of operational offerings | Available operational resources and its own approval/publication workflow | Public catalog pages; not clinical filtering or sample access. |
 | User, role, permission and scope | Who may perform an action and which clinical records they may access | Identity baseline, active accounts, suitable grants and scope assignments | All administrative and clinical workflows. |
 | Sample | One ingested case's identity, evidence availability, saved filters and configuration lineage | Available assay/group, resolvable active ASPC, valid manifest and required inputs | Clinical review, findings, annotations and reports. |
@@ -44,8 +43,7 @@ assay-specific. Reusing the same diagnosis across two assays does not share thei
 thresholds, report language or configuration revision.
 
 One active ASPC serves an `(asp_id, diagnosis_id, environment)` combination.
-Assay setup requires only Base / production. Other scope/environment combinations
-are optional and can be added later from **Assay Configurations**.
+Install the combinations used at your center on **Assay configurations**.
 
 Numeric filter fields retain decimal zeros while you type, so `0.0` can be
 continued to `0.005`. Saved thresholds are numbers. Arrow controls use the
@@ -58,10 +56,9 @@ options have changed. Reporting settings belong to the ASPC for a diagnosis and
 environment; the assay view links to **Assay Configurations** to inspect them.
 
 Ingest and sample configuration resolution first look for the requested named
-scope and then may fall back to Base in the **same environment**. Resolution records
+scope and then may fall back to Base in the **same environment** if both the definition and its assay association are active. Resolution records
 the requested/resolved scope and a warning when that fallback is used. A development
-ASPC does not substitute for a production ASPC. Optional configurations supplied
-during setup must still pass validation before activation.
+ASPC does not substitute for a production ASPC. Each configuration is validated when saved.
 
 The sample's `current_aspc_id` references one exact configuration revision.
 That release captures the assay revision, biological group, category, family,
@@ -101,8 +98,7 @@ exact published scope and can use the assay's published Base scope when no exact
 published release exists. A rule must declare each configured report analysis.
 Draft and unapproved content does not satisfy a published-release lookup.
 
-In the setup workflow, readiness checks published reporting rules for the selected
-scopes. Individual ASPC creation and editing are independent of rule publication.
+Individual ASPC creation and editing are independent of rule publication.
 Each report preview resolves the current published rules and validates their
 compatibility with the configured report sections. Missing rules produce a warning
 and omit automatic summary text; the report remains available. Ambiguous, invalid,
@@ -127,15 +123,12 @@ through the supported explicit workflow and review the resulting impact.
 
 | Missing or unavailable resource | Effect | Resolution |
 | --- | --- | --- |
-| Authorized author or independent reviewer | Setup cannot complete its approval lifecycle. | Assign the required permissions and scope to distinct eligible people. |
-| Registered active group | New assay/setup operations, activation and new ingest are blocked. Existing records remain accessible under their permissions. | Register or activate the intended group; do not change historical IDs to bypass it. |
-| Saved assay draft | There is no setup metadata to populate the rule authoring selector. A planned assay ID can still be used for a rule draft. | Save setup metadata when available, or create/import the rule draft and link it later. A saved draft does not enable ingest. |
-| Operational ASP | A sample cannot use the draft as an ingest-ready assay. | Complete and approve setup activation. |
-| Named diagnosis definition or active association | Named scope is unavailable for new configuration. In setup, the selected definition is required and its link is created at activation. | Register/reuse the definition and select it; use association administration for an existing assay. Base needs neither. |
+| Registered active group | New assay configuration and new ingest are blocked. Existing records remain accessible under their permissions. | Register or activate the intended group; do not change historical IDs to bypass it. |
+| Operational ASP | An ASPC cannot be created for the missing assay. | Install the ASP on the Assays page. |
+| Named diagnosis definition or active association | Named scope is unavailable for new configuration. | Register/reuse the definition and select it; use association administration for an existing assay. Base needs neither. |
 | Unselected ISGL | No missing-list error solely because no list exists. | Confirm the ASP fallback gene scope is intended, or create/select the needed list. |
 | Selected ISGL missing, inactive or incompatible | ASPC validation rejects that selection; it cannot supply the intended default scope. | Select an eligible active list of the correct analysis type. |
-| Compatible published rule | Missing publication produces a warning and no automatic summary; setup activation, ASPC authoring and report rendering remain available. Existing invalid or incompatible publications still fail validation. | Publish reviewed wording for the intended scope when automatic text is needed; do not invent wording to suppress the warning. |
-| ASPC for a selected setup combination | Setup readiness/submission/activation fails. | Complete that configuration or deliberately remove the unneeded combination while drafting. |
+| Compatible published rule | Missing publication produces a warning and no automatic summary; ASPC authoring and report rendering remain available. Existing invalid or incompatible publications still fail validation. | Publish reviewed wording for the intended scope when automatic text is needed; do not invent wording to suppress the warning. |
 | Runtime ASPC for a requested named scope | Exact diagnosis takes priority, then Base within the same assay and environment, with a recorded warning. Without either configuration, ingest fails. | Create a named configuration when the diagnosis needs specific settings. |
 | Stored ASPC revision referenced by an existing sample | Analysis/report views cannot resolve its recorded configuration. | Restore the revision or use the explicit supported configuration-update workflow. |
 | ASP file declaration or compatible analysis choice | The analysis is unavailable in the ASPC editor; report sections cannot enable it independently. | Review the pipeline/file contract and supported assay-family capabilities. |
@@ -146,7 +139,7 @@ through the supported explicit workflow and review the resulting impact.
 
 ## Related procedures
 
-- [Add and activate an assay](assay-setup.md#step-by-step-add-a-new-assay)
+- [Add and activate an assay](install-assay-resources.md)
 - [Shared diagnoses and assay associations](assay-diagnoses.md)
 - [Analysis and reporting availability](assay-analysis-availability.md)
 - [Plan changes to existing configuration](planning-configuration-changes.md)

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1209" viewBox="0 0 1360 1209" role="img" aria-labelledby="figure-title figure-description">
   <title id="figure-title">ASP, ASPC, and ISGL update flow</title>
-  <desc id="figure-description">An authorized administrator loads a managed form contract, edits an ASP, ASPC, or ISGL, passes canonical identity and document validation, creates a successor revision, retires the previous revision, records a permanent traceability event, and affects future sample resolution while saved reports remain unchanged.</desc>
+  <desc id="figure-description">An editor saves a revision on the assay, configuration or gene-list page. The revision and affected configurations are recorded together. Existing samples retain their applied configurations.</desc>
   <defs>
     <style>:root{--ink:#213951;--muted:#49617a;--blue:#2875b8;--teal:#17846b;--purple:#7960b2;--amber:#9d5b12;--rose:#c04a65;--badge-ink:#fff}
 text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:var(--ink);text-rendering:optimizeLegibility}
@@ -53,8 +53,8 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
     </symbol>
   </defs>
   <text x="40" y="34" text-anchor="start" class="figure-title">ASP, ASPC, and ISGL update flow</text>
-  <text x="40" y="68" text-anchor="start" class="figure-subtitle">An authorized administrator loads a managed form contract, edits an ASP, ASPC, or ISGL, passes canonical identity and document validation, creates a successor revision,</text>
-  <text x="40" y="87" text-anchor="start" class="figure-subtitle">retires the previous revision, records a permanent traceability event, and affects future sample resolution while saved reports remain unchanged.</text>
+  <text x="40" y="68" text-anchor="start" class="figure-subtitle">An editor saves a revision on the assay, configuration or gene-list page.</text>
+  <text x="40" y="87" text-anchor="start" class="figure-subtitle">The revision and affected configurations are recorded together. Existing samples retain their applied configurations.</text>
   <g class="connections">
     <path d="M275 173H645" data-source="0" data-target="1" data-optional="false" marker-end="url(#arrow-purple)" class="connection purple" />
     <path d="M715 173H1085" data-source="1" data-target="2" data-optional="false" marker-end="url(#arrow-blue)" class="connection blue" />
@@ -94,13 +94,13 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
     <text x="1120" y="272" text-anchor="middle" class="entity-detail">current document values</text>
   </g>
   <g data-node="3" data-left="80" data-top="376" data-right="400" data-bottom="529" class="entity blue">
-    <title>4 · Submit change</title>
+    <title>4 · Save change</title>
     <use href="#icon-upload" x="211" y="381" width="58" height="58" aria-hidden="true" />
     <circle cx="272.0" cy="375" r="8" fill="currentColor" aria-hidden="true" />
     <text x="272.0" y="378.5" text-anchor="middle" class="step-number">4</text>
-    <text x="240" y="466" text-anchor="middle" class="entity-title">Submit change</text>
-    <text x="240" y="491" text-anchor="middle" class="entity-detail">typed API payload</text>
-    <text x="240" y="509" text-anchor="middle" class="entity-detail">actor identity</text>
+    <text x="240" y="466" text-anchor="middle" class="entity-title">Save change</text>
+    <text x="240" y="491" text-anchor="middle" class="entity-detail">individual resource page</text>
+    <text x="240" y="509" text-anchor="middle" class="entity-detail">record the author</text>
   </g>
   <g data-node="4" data-left="520" data-top="376" data-right="840" data-bottom="547" class="entity teal">
     <title>5 · Normalize and validate</title>
@@ -118,21 +118,21 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
     <circle cx="1152.0" cy="375" r="8" fill="currentColor" aria-hidden="true" />
     <text x="1152.0" y="378.5" text-anchor="middle" class="step-number">6</text>
     <text x="1120" y="466" text-anchor="middle" class="entity-title">Cross-resource checks</text>
-    <text x="1120" y="491" text-anchor="middle" class="entity-detail">ASPC references an active ASP</text>
+    <text x="1120" y="491" text-anchor="middle" class="entity-detail">ASPC references its assay</text>
     <text x="1120" y="509" text-anchor="middle" class="entity-detail">ASP-derived</text>
     <text x="1120" y="527" text-anchor="middle" class="entity-detail">group/category/platform</text>
     <text x="1120" y="545" text-anchor="middle" class="entity-detail">analysis, filters, report sections</text>
     <text x="1120" y="563" text-anchor="middle" class="entity-detail">ISGL associations remain valid</text>
   </g>
   <g data-node="6" data-left="80" data-top="667" data-right="400" data-bottom="838" class="entity blue">
-    <title>7 · Rotate revision</title>
+    <title>7 · Commit revisions</title>
     <use href="#icon-layers" x="211" y="672" width="58" height="58" aria-hidden="true" />
     <circle cx="272.0" cy="666" r="8" fill="currentColor" aria-hidden="true" />
     <text x="272.0" y="669.5" text-anchor="middle" class="step-number">7</text>
-    <text x="240" y="757" text-anchor="middle" class="entity-title">Rotate revision</text>
-    <text x="240" y="782" text-anchor="middle" class="entity-detail">insert version + 1 as active</text>
-    <text x="240" y="800" text-anchor="middle" class="entity-detail">retire previous active revision</text>
-    <text x="240" y="818" text-anchor="middle" class="entity-detail">preserve stable business key</text>
+    <text x="240" y="757" text-anchor="middle" class="entity-title">Commit revisions</text>
+    <text x="240" y="782" text-anchor="middle" class="entity-detail">one active revision</text>
+    <text x="240" y="800" text-anchor="middle" class="entity-detail">publish affected revisions</text>
+    <text x="240" y="818" text-anchor="middle" class="entity-detail">retire previous revisions</text>
   </g>
   <g data-node="7" data-left="520" data-top="667" data-right="840" data-bottom="838" class="entity blue">
     <title>8 · Record traceability event</title>
@@ -140,9 +140,9 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
     <circle cx="712.0" cy="666" r="8" fill="currentColor" aria-hidden="true" />
     <text x="712.0" y="669.5" text-anchor="middle" class="step-number">8</text>
     <text x="680" y="757" text-anchor="middle" class="entity-title">Record traceability event</text>
-    <text x="680" y="782" text-anchor="middle" class="entity-detail">actor · old/new revision ·</text>
-    <text x="680" y="800" text-anchor="middle" class="entity-detail">resource key</text>
-    <text x="680" y="818" text-anchor="middle" class="entity-detail">immutable · no expiry timestamp</text>
+    <text x="680" y="782" text-anchor="middle" class="entity-detail">actor and resource IDs</text>
+    <text x="680" y="800" text-anchor="middle" class="entity-detail">old and new revision IDs</text>
+    <text x="680" y="818" text-anchor="middle" class="entity-detail">timestamp and scope</text>
   </g>
   <g data-node="8" data-left="960" data-top="667" data-right="1280" data-bottom="892" class="entity blue">
     <title>Future sample resolution</title>

@@ -137,11 +137,20 @@ Already accepted or in-flight SMTP delivery cannot be recalled.
 | Recipient operation | API |
 | --- | --- |
 | Read the inbox, including read messages | `GET /api/v1/notifications?limit=200&offset=0`; increment offset for older pages |
+| Subscribe to inbox changes | `GET /api/v1/notifications/events` (server-sent events) |
 | Mark one message read | `PATCH /api/v1/notifications/{id}/read` |
 | Mark one message unread | `PATCH /api/v1/notifications/{id}/unread` |
 | Mark all visible server messages read | `PATCH /api/v1/notifications/read-all` |
 | Remove one message from your inbox | `PATCH /api/v1/notifications/{id}/dismiss` |
 | Clear your inbox, including broadcasts | `DELETE /api/v1/notifications` |
+
+The header bell previews the five newest notifications. Opening the preview preserves
+their read state. Choose **Open notification center** to read a full message or manage the inbox.
+
+An authenticated browser subscribes to inbox changes and fetches the current recipient's
+messages when signaled. The stream carries no message text or identifiers. Reconnecting
+refreshes the inbox, and the browser also reconciles periodically and on window focus.
+Email follows its separate delivery schedule.
 
 All recipient endpoints use the authenticated account. Requests cannot select
 another account's read state. Shared activity audiences are described in

@@ -31,7 +31,7 @@ upstream systems.
 
 | Stage | Main input | Stored result |
 | --- | --- | --- |
-| Assay setup | ASP, ASPC, and ISGL documents | Versioned active configuration |
+| Configure an assay | ASP, ASPC, and ISGL documents | Versioned active configuration |
 | Ingest | YAML manifest and declared analysis files | Sample plus dependent analysis documents |
 | Review | Resolved ASPC, filters, and findings | Updated filter and curation state |
 | Reporting | Reportable findings and latest visible sample comment | Report, artifacts, filter snapshot, and typed finding snapshots |

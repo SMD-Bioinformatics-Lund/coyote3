@@ -25,9 +25,9 @@ Refer to each figure's labels for its specific relationship semantics.
 
 An assay group registers the parent grouping. Named diagnoses are shared definitions
 connected to assays through `diagnosis_associations`; Base has no registry document.
-Setup activation creates the operational resources after independent review.
+Each resource is installed and versioned on its own administration page.
 Clinical-rule publication and public-catalog publication have separate lifecycles.
-See [assay setup](../administration/assay-setup.md) for the creation procedure.
+See [Install assay resources](../administration/install-assay-resources.md) for the creation procedure.
 
 ### 1.1 Core configuration model
 
@@ -36,7 +36,7 @@ See [assay setup](../administration/assay-setup.md) for the creation procedure.
 - ASP is the physical assay anchor.
 - ASPC is a required assay-plus-diagnosis-plus-environment configuration. The
   `base` diagnosis is used when no specific diagnosis configuration exists.
-- ISGL is optional. It is assay-scoped and becomes active only when selected into sample filter state.
+- ISGL is optional. Active lists are available by assay or group. Sample filters select which lists to apply.
 
 ### 1.2 Cardinality view
 
@@ -54,30 +54,7 @@ See [assay setup](../administration/assay-setup.md) for the creation procedure.
 
 ![Resource definition and activation order](../assets/diagrams/resource-setup-order.svg)
 
-The setup workflow can stage an ASP before it becomes operational. Published
-rules may reference that saved draft assay; activation then commits the ASP,
-associations, staged lists, and ASPCs together. The table below describes resource
-prerequisites; see [assay setup](../administration/assay-setup.md) for the staged procedure.
-
-Create center configuration in this order. The API enforces these references; an
-administrator cannot compensate for a missing parent by entering an arbitrary identifier.
-
-| Order | Entity | Prerequisites | Required before |
-| --- | --- | --- | --- |
-| 1 | Permission catalog and roles | Identity database and initial administrator | Assigning application access to users. Bundled records are synchronized with `scripts/identity/sync_rbac_catalog.py`. |
-| 2 | User accounts | Required roles and permissions | Clinical authoring, review, publication, configuration, and sample operations. |
-| 3 | Active assay group | Registered group and permitted operator | Saving the assay draft and making new assay operations available. |
-| 4 | ASP or saved assay setup draft | Active parent group | Assay identity, family, file policy and scopes. A saved setup draft can support rule authoring without an operational ASP. |
-| 5 | Named diagnosis scopes | Active shared definitions; associations for an operational assay | Named-scope configuration. Definitions may exist earlier; setup creates its assay associations at activation. Base is implicit. |
-| 6 | ISGLs and optional clinical rules | Eligible assay/group/scope for lists; rule drafts may use a planned assay ID, with a compatible registered scope before submission | These can be prepared in either order. Lists are optional unless selected; reporting rules can be added after setup. |
-| 7 | ASPCs and setup activation | Required Base/production ASPC, valid supplied optional configurations and eligible selected lists; setup review is optional | Operational assay use. Missing report rules warn and omit automatic narrative; they do not block activation. |
-| 8 | Sample | Available assay/group, resolvable active ASPC and required files | Findings and clinical review. A missing named ASPC can resolve to Base in the same environment with a warning. |
-| 9 | Saved report | Ready sample, prepared findings and report permission; compatible published rules when automatic narrative is required | Historical report review and reported-finding cohort searches. Missing narrative does not remove result tables. |
-
-Knowledgebase releases are independent of this creation chain. They can be installed before
-or after clinical configuration and enrich supported pages only when configured. VEP metadata
-and HGNC references must be available before workflows that validate their corresponding
-annotations or consequence choices.
+Follow [install assay resources](../administration/install-assay-resources.md) for the required parents, bulk uploads and optional reporting-rule publication.
 
 ### 1.4 Sample-to-configuration mapping
 
@@ -165,12 +142,12 @@ saved reports preserve their confirmed configuration and finding snapshots.
 
 ### 6.2 ASPC creation and update
 
-An ASPC requires an existing or staged assay definition and a validated
+An ASPC requires an installed active assay definition and a validated
 assay/diagnosis/environment scope. Group, category, and platform derive from the
 assay. Activation validates selected gene lists and configuration contracts.
 Reporting-rule publications are optional; missing rules warn and omit automatic
 summary text. See the configuration-update diagram above and the
-[assay setup procedure](../administration/assay-setup.md).
+[Install assay resources](../administration/install-assay-resources.md).
 
 ### 6.3 ISGL creation and update
 

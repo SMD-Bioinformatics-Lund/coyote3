@@ -21,7 +21,7 @@ shared VEP records, report snapshots and historical identities that must be pres
 
 An application release upgrade is covered by [deployment upgrades](../../deployment/application-upgrades.md).
 Use a migration only when its source and target requirements match your data.
-For legacy conversion, [assay resources](../../administration/assay-setup.md) must
+For legacy conversion, [assay resources](../../administration/install-assay-resources.md) must
 already be prepared in the destination as described by the selected migration guide.
 
 [Operations tasks](../README.md) · [Documentation home](../../README.md)

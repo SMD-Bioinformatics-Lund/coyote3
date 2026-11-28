@@ -46,7 +46,7 @@ access and traceable report snapshots.
 | Try synthetic samples in an isolated environment | [Demo installation](docs/deployment/demo-installation.md) |
 | Install at a center | [Installation guide](docs/deployment/first-installation.md) |
 | Upgrade an existing installation | [Upgrade procedure](docs/deployment/application-upgrades.md) |
-| Configure an assay | [Assay setup](docs/administration/assay-setup.md#step-by-step-add-a-new-assay) |
+| Configure an assay | [Install assay resources](docs/administration/install-assay-resources.md) |
 | Submit samples from a pipeline | [Submission guide](docs/api/submit-sample.md) |
 | Develop or troubleshoot | [Developer setup](docs/getting-started/developer-environment.md) · [Troubleshooting](docs/operations/troubleshooting.md) |
 

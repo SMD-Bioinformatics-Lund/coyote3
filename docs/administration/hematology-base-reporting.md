@@ -51,7 +51,7 @@ lists and prepared findings. Gene-specific finding-selection rules belong to
 
 ## 1. Prepare the assay and create the draft
 
-Confirm that the registered assay, or its saved setup draft, has:
+Confirm that the installed assay has
 
 - Assay ID `hema_gmsv1`, biological group `hematology`, and DNA modality.
 - The intended full display name, optional short name, `covered_genes`,

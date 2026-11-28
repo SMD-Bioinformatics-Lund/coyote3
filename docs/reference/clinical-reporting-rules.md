@@ -7,7 +7,7 @@ lifecycle. Choose the procedure or reference section that matches your task.
 | --- | --- |
 | Write and publish report wording | [Step-by-step authoring](../administration/report-rule-authoring.md) |
 | Follow a complete assay example | [Hematology Base](../administration/hematology-base-reporting.md) or [solid Base and diagnoses](../administration/solid-reporting-examples.md) |
-| Add reporting rules during assay setup | [Assay setup](../administration/assay-setup.md#5-optionally-publish-reporting-rules) |
+| Add reporting rules for an assay | [Install assay resources](../administration/install-assay-resources.md) |
 | Look up editor controls | [Authoring workspace](#authoring-workspace) |
 | Validate wording against a stored sample | [Sample-backed testing](#sample-backed-testing) |
 | Check review, publication or access requirements | [Lifecycle and permissions](#lifecycle-and-permissions) |
@@ -205,8 +205,7 @@ are checked before rendering. A partial unique index enforces one active publish
 release per exact scope. Draft, review and approved-but-unpublished versions are
 not eligible.
 
-Assay setup readiness warns when reporting publications are absent and allows
-review and activation. Individual ASPC
+Individual ASPC
 creation and editing do not attach or require rule publications. Report generation
 validates the selected publication's schema, hash and analysis declarations on use.
 
@@ -722,8 +721,8 @@ name, section name and identifier, and clinical rule name and identifier while t
 a draft. Validation still requires identifiers to be non-empty and unique across the rule set.
 
 A draft can be created or imported against a planned assay ID before that assay
-exists. Its content remains editable. Submission checks the available assay or
-saved setup, matching DNA/RNA analyte and registered diagnosis association. The
+exists. Its content remains editable. Submission requires an active assay with
+the matching DNA/RNA analyte and either Base or an active diagnosis association. The
 draft's **Assay association** controls can link it to an available compatible
 scope using the normal edit lease and revision-qualified PATCH. A changed logical
 scope receives its next content version while retaining the document ID and

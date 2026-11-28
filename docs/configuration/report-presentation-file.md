@@ -124,8 +124,9 @@ of the center-owned empty-result wording. Two ordered lists can be configured:
 }
 ```
 
-Enter one analysis per line in each form field. Values use canonical analysis
-names; DNA fusions use `TRANSLOCATION`, while RNA fusions use `FUSION`.
+In **Summary order**, check the analyses to prioritize for the text or table.
+Use the up and down arrows to change their order. Clear all checkboxes in either
+group to use its default order. DNA fusions use `TRANSLOCATION` and RNA fusions use `FUSION`.
 Duplicate, unknown and wrong-modality names are rejected. An order does not enable
 an analysis or select additional findings. Names for currently disabled analyses
 have no effect until the analysis is enabled.

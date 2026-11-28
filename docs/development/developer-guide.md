@@ -373,8 +373,7 @@ Admin routes in `frontend/src/App.tsx` name their resource pages explicitly.
 Each resource has a feature directory under `frontend/src/pages/admin/` containing
 its list page, editor page, and `resource.ts` configuration. The list page composes
 its table columns, toolbar, row actions, and additional panels. The editor page
-owns the form layout and resource-specific behavior. Assay creation uses
-`AssaySetupPage.tsx` rather than the ordinary resource editor.
+owns the form layout and resource-specific behavior. Assay creation uses `AssayEditorPage.tsx`.
 
 | Directory | List page | Editor page |
 | --- | --- | --- |

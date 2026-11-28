@@ -132,14 +132,15 @@ findings and the applicable profiled-sample population; its counts are not all i
 
 ## Notifications and profile
 
-The bell opens notifications addressed to you. Open **Profile** from the account
+The bell shows your five newest notifications. Select **Open notification center**
+to see your full history and manage read status. Open **Profile** from the account
 menu to change permitted account fields and your theme, analysis layout, sample-list
 layout or default table page size. Administrative role and access changes use the
 [account administration workflow](../administration/permissions-and-access.md).
 
 ## Administration
 
-Use [assay setup](../administration/assay-setup.md) to prepare a new assay. Existing
+Use [Install assay resources](../administration/install-assay-resources.md) to prepare a new assay. Existing
 assays, configurations and gene lists have separate administration pages. Their edits
 create revisions; they do not silently update configurations already assigned to
 samples or rewrite saved reports.

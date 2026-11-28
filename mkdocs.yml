@@ -54,7 +54,7 @@ nav:
   - Table columns and badges: user-guide/pages-and-table-columns.md
 - Administration:
   - Overview: administration/README.md
-  - Set up a new assay: administration/assay-setup.md
+  - Set up a new assay: administration/install-assay-resources.md
   - Change an existing configuration: administration/planning-configuration-changes.md
   - Manage accounts and access: administration/permissions-and-access.md
   - Write reporting rules: administration/report-rule-authoring.md

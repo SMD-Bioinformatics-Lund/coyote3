@@ -1,18 +1,14 @@
 # Bulk installation of configuration resources
 
 Use **Upload JSON / YAML** on the diagnosis definitions, assay groups, assays,
-gene lists or assay configurations page to create several records from one file.
+gene lists or assay configurations page to import several files together. Each file can contain one record or an array.
 The selected assay's diagnosis-association registry also supports bulk installation.
 The **Show example** button beside it opens a floating window with a JSON example,
 accepted keys and a downloadable example file. For assays, gene lists and assay
 configurations, fields and choices come from the running server's create form.
-For assay configurations, select DNA or RNA before downloading or uploading a file.
+An ASPC upload can contain both DNA and RNA configurations. Each configuration uses its parent assay’s category. In **Show example**, select DNA or RNA to see the corresponding fields.
 
-For an assay that is still a setup draft, use **Assay setup → Configurations →
-Import configuration JSON** to stage the ASPC inside that draft. Standalone bulk
-installation creates operational resources and requires their references to exist.
-The **Configuration governance** page imports reusable profiles, not ASPCs; see
-[profiles and environment promotion](configuration-publication.md).
+Create assays, configurations and lists on their own pages. A successful creation makes the resource active. Reporting rules have a separate draft and publication workflow. See [installation order](install-assay-resources.md).
 
 For small lists, choose **Paste JSON / YAML** to open the floating editor. Select
 the content format, then paste or type your records. Syntax and structure warnings
@@ -27,8 +23,8 @@ Use file uploads for larger structures; both methods have the same size and row 
 ## JSON configuration transfer
 
 Import/export transfers editable configuration, not approval state or database
-identities. Referenced assays, groups, diagnoses, gene lists and files must exist
-in the target installation. Server validation and current permissions still apply.
+identities. Register assay groups first. Diagnosis and gene-list uploads may name future assays.
+An ASPC needs its parent assay definition and active selected lists. Server validation and current permissions still apply.
 
 Every configuration export offers **Include metadata**, unchecked by default.
 The default file contains editable configuration. Select the option to include
@@ -36,17 +32,15 @@ available author, timestamp, revision, version and workflow metadata for inspect
 User credentials are excluded in both modes. Imports discard recognized metadata
 before staging new content; the application assigns ownership, timestamps and
 versions through the normal creation or draft workflow. Metadata cannot restore
-approval or publication state. Assay setups apply this rule to their panel, staged
-gene lists and configurations as well. Embedded policy values and pinned resource
+approval or publication state. Embedded policy values and pinned resource
 references retain their own version/status values; those are clinical content.
 
 | Resource | Export | Import |
 | --- | --- | --- |
 | Query rules | Select a version, then **Export JSON**; contains `name`, `scope`, and `content`, preserving null inheritance settings. | **Import JSON** validates the policy through backend preview, then loads a new unsaved draft. Enter a new reason and save before independent review/publication. Unsaved edits require confirmation before replacement. |
-| Clinical rules | **Export JSON** in the rule builder. | **Import JSON** creates a separately governed draft through the existing clinical-rule workflow. |
-| Assay identity | **Export JSON** on an assay detail page. | In a new assay setup, choose **Import assay identity JSON**, review the panel and save a setup draft. |
-| Assay setups | Select a saved setup, then **Export JSON** for its staged content. | **Import JSON** opens the content for review. Saving creates an unpublished setup draft; use an unused assay identity. |
-| ASPCs and gene lists | **Export JSON** on the resource detail page. | **Import JSON** on its creation form; save through the ordinary resource workflow. |
+| Clinical rules | **Export JSON** in the rule builder. | **Bulk install → Upload JSON / YAML → Import drafts** creates a draft for each selected scope. Choose one version per scope, then review and publish each draft. |
+| Assay identity | **Export JSON** on an assay detail page. | Use the Assays bulk uploader or the individual creation form. |
+| ASPCs and gene lists | **Export JSON** on the resource detail page. | **Upload JSON / YAML** on the list page, or **Import JSON** on the individual creation form. |
 | Users, roles and permission policies | **Export JSON** on the record detail page; user credentials are excluded. | **Import JSON** on its creation form. Account imports reject passwords; use invitation/reset workflows. Role and scope assignment permissions remain enforced. |
 | Application controls | **Export JSON** exports current settings without runtime observations or update attribution. | **Import JSON** opens a review editor. Save explicitly through the active editing session and existing controls validation. |
 | Reusable configuration profiles | **Export JSON** in a profile row. | **Import JSON** loads editable profile fields. Enter a new reason and save a draft for independent publication. |
@@ -59,7 +53,7 @@ Single-document imports accept a JSON object up to 1 MiB. List exports use the
 bulk JSON-array format; split exports exceeding the bulk limits below into smaller
 files. Bulk installation also accepts a single resource object directly, using
 the same validation and review as a one-record list. Imports never automatically publish query rules,
-profiles, clinical rules or assay setups. Exporting a query version uses its saved
+profiles or clinical rules. Exporting a query version uses its saved
 content; unsaved edits are not included.
 
 Audit events, finding/sample records and approval history are operational records,
@@ -90,14 +84,14 @@ fail validation. Bulk examples omit application-managed fields.
 ## Upload and install
 
 1. Open **Show example** and download the JSON example.
-2. Replace its values with your center's configuration. Referenced resources must
-   exist first. Install parent groups before children, groups before assays, then
-   diagnosis associations and gene lists before dependent assay configurations.
-   Diagnoses can be created before assays with `asp_ids: []` and linked later.
+2. Replace its values with your center's configuration. Install parent groups before children and activate the assay group before creating its ASP.
+   Shared diagnoses and gene lists retain their declared assay IDs when imported before the
+   assays. The upload result identifies unresolved assay IDs for review. Install the parent
+   ASP and any selected diagnoses and lists before its ASPC.
 3. Supply one JSON/YAML object or a list of 1–100 records, at most 1 MiB. Use one resource
    type per file. Do not wrap records in `config` or `items`. YAML custom tags,
    aliases, duplicate keys and multiple documents are not supported.
-4. Choose **Upload JSON / YAML**. The preview checks structure, accepted top-level
+4. Choose **Upload JSON / YAML**. You can select multiple files of the same resource type together (1 MiB per file, 100 records total). The preview checks structure, accepted top-level
    keys, required fields and duplicate identifiers without writing records.
 5. Review and select **Install records**. The server validates each record's types,
    references, permissions and resource-specific requirements.
@@ -112,14 +106,14 @@ outcome uncertain, check the resource list before preparing another upload.
 
 Upload a new file containing only failed or unattempted records to correct failures.
 The reviewed batch cannot be submitted twice from the same preview. Keep the page
-open until installation finishes. Bulk creation does not publish a catalog,
-activate an assay setup workflow or create missing dependent resources.
+open until installation finishes. Bulk creation does not publish a catalog
+or create missing parent resources.
 
 ## Diagnosis example
 
 `diagnosis_id` and `display_name` are required. `description` defaults to an empty
 string, `is_active` to `true`, and `asp_ids` to an empty list. These are the only
-accepted diagnosis creation keys. Assays in `asp_ids` must already exist.
+accepted diagnosis creation keys. Assays in `asp_ids` can be installed later.
 
 ```json
 [

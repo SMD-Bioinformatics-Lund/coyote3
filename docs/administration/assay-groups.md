@@ -70,7 +70,7 @@ requires reloading. The audit event records the old and new status, revision and
 reason; the registry records the latest actor and timestamp.
 
 An inactive group blocks new assay creation/activation, ASPC creation and active
-revisions, setup publication, clinical-rule publication, ingest and new access
+revisions, clinical-rule publication, ingest and new access
 assignments. Related assays are excluded from public catalog offerings and new
 selection lists. Public catalog publication validates the currently available
 assays. Ingest updates are also blocked; queued jobs check availability when they
@@ -91,7 +91,7 @@ not a role and does not grant an action permission. Assign roles and the applica
 assay, group, and environment scope to users separately.
 
 1. Install the system groups and register any additional center groups.
-2. Select a registered group when creating an ASP or assay setup draft.
+2. Select a registered group when creating an ASP.
 3. Configure diagnoses, gene lists, reporting rules and ASPCs for that assay.
 4. Assign assay and group access explicitly through user administration.
 
@@ -146,13 +146,10 @@ step before deploying availability-aware API code to an existing registry.
 | `created_by`, `created_on` | Creation provenance |
 | `is_active` | Root availability switch for new operational use |
 | `version` | Optimistic concurrency revision, incremented on each status change |
-| `publication_serial` | Internal transaction counter serializing assay setup publication with group availability changes; not editable |
+| `publication_serial` | Internal transaction counter serializing resource publication with group availability changes; not editable |
 | `updated_by`, `updated_on`, `status_reason` | Latest availability change provenance |
 
-Setup publication increments `publication_serial` only while the group is active,
-inside the activation transaction. Failed activation rolls back the increment.
-Existing records without this counter start at zero; no backfill is required.
-It does not increment the administrator-facing status `version`.
+Changes to assay resources increment `publication_serial` on the affected registered groups in the same transaction. Publishing an ASP or ASPC requires an active group. A failed change rolls back the counter with the resource. Group status changes use their own `version`.
 
 `GET /api/v1/resources/assay-groups` lists definitions.
 `POST /api/v1/resources/assay-groups` accepts only `group_id`, `display_name` and

@@ -812,7 +812,7 @@ Routes:
 * `/admin/ui-routes`
 
 Each resource has explicit list, `/create`, `/:id/view`, and `/:id/edit` routes.
-Assay creation at `/admin/asp/create` opens the assay setup workflow. Sample
+Assay creation at `/admin/asp/create` opens the assay editor. Sample
 creation is handled through ingestion, not the admin document editor. Unknown
 admin resource URLs show the not-found page.
 

@@ -6,12 +6,9 @@
 
 ## Set up a new assay
 
-Follow [assay setup](assay-setup.md#step-by-step-add-a-new-assay). You need an active
-assay group, authors and reviewers with the required permissions, and the assay's
-analysis and reporting requirements. The guide takes you through the draft,
-activation and validation sample. Saving a draft does not activate an assay.
+[Install assay resources](install-assay-resources.md) in dependency order, then verify the scope with a validation sample.
 
-## Change an existing setup
+## Change an existing resource
 
 Use [planning configuration changes](planning-configuration-changes.md) before
 editing an active resource. It explains which changes affect current samples,

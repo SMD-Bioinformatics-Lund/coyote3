@@ -11,8 +11,8 @@ validation and approval requirements still apply.
 
 | Intended change | Resource or workflow | Check before saving |
 | --- | --- | --- |
-| Physical assay design or required input files | ASP; use [assay setup](assay-setup.md) for a new assay. | Modality, assay family, coverage, and ingest file policy. |
-| Enable analyses, change default filters, or configure reporting | ASPC for the assay/diagnosis/environment. | Available input data, supported intents and selected lists. Compatible published rules supply automatic narrative; their absence warns rather than blocking setup. |
+| Physical assay design or required input files | ASP; use [Install assay resources](install-assay-resources.md) for initial activation and revisions. | Modality, assay family, coverage, and ingest file policy. |
+| Enable analyses, change default filters, or configure reporting | ASPC for the assay/diagnosis/environment. | Check available input data, supported intents and selected lists. Automatic narrative requires compatible published reporting rules. |
 | Change reusable gene membership | ISGL. | Assay/group eligibility, list types, diagnosis scopes, and whether the list is public. |
 | Register a named clinical scope | Shared diagnosis definition and its assay associations. | Which assays need the scope, and which ASPCs must be configured separately. |
 | Disable availability for one assay/diagnosis pair | That assay's diagnosis association. | Shared definition status and the effect on new selections. |
@@ -37,10 +37,10 @@ from a later configuration.
 | Boundary | Established behavior |
 | --- | --- |
 | Group availability | Blocks specified new operations without cascading inactive flags into children or deleting historical records. |
+| Shared gene list | One reviewed change updates all affected configurations, including group associations. Existing samples retain their captured membership. |
 | Shared diagnosis | Global definition status and per-assay association status remain distinct. Sharing a scope does not share ASPCs or rules. |
 | Sample filters | Existing filters remain authoritative until an explicit supported change or reset. |
 | Published rules | Exact compatible scope is selected before permitted assay Base fallback; published content is immutable. |
-| Setup activation | Revalidates dependencies and writes staged operational resources together after independent review. |
 | Public catalog | Has its own approval/publication lifecycle; catalog editing does not change ingest or clinical filters. |
 | Saved reports | Retain confirmed findings, configuration, filter, and rule provenance. |
 
@@ -51,7 +51,7 @@ from a later configuration.
 2. Verify enabled analyses, filter selections, gene scope, report preview, and
    applicable access restrictions. Include the relevant failure condition, such as
    missing required data or an incompatible rule scope.
-3. Complete the resource's required review and publication workflow. Setup approval
+3. Complete the resource's required review and publication workflow. Resource publication
    does not publish clinical rules or the public catalog.
 4. If a concurrent-edit conflict occurs, reload and compare revisions before
    reapplying the change. Do not overwrite another editor's changes using raw database writes.
@@ -65,7 +65,7 @@ or assume that restoring application code reverses database changes.
 ## Resource-specific procedures
 
 - [Assay groups](assay-groups.md) and [shared diagnoses](assay-diagnoses.md).
-- [Assay setup and activation](assay-setup.md).
+- [Install assay resources](install-assay-resources.md).
 - [Analysis and reporting availability](assay-analysis-availability.md).
 - [Clinical reporting rules](../reference/clinical-reporting-rules.md).
 - [Public catalog publication](public-assay-catalog.md).

@@ -97,10 +97,10 @@ they are not extra TOML files to create on the host.
 
 | Item | Detailed reference | Procedure |
 | --- | --- | --- |
-| Assay / ASP and configuration / ASPC | [Resource definitions and missing prerequisites](../administration/clinical-configuration-resources.md), [analysis availability](../administration/assay-analysis-availability.md) | [Add an assay](../administration/assay-setup.md) |
-| Assay group and named diagnoses | [Groups](../administration/assay-groups.md), [definitions and associations](../administration/assay-diagnoses.md) | [Setup order](../administration/assay-setup.md#when-order-matters) |
-| Gene lists / ISGL | [List types and clinical scope](../user-guide/gene-lists-and-assay-context.md) | [Configure selected lists](../administration/assay-setup.md#4-prepare-the-gene-lists-that-filters-will-select) |
-| Reporting rule set | [Rule syntax, validation and publication](../reference/clinical-reporting-rules.md) | [Optional assay rule preparation](../administration/assay-setup.md#5-optionally-publish-reporting-rules) |
+| Assay / ASP and configuration / ASPC | [Resource definitions and missing prerequisites](../administration/clinical-configuration-resources.md), [analysis availability](../administration/assay-analysis-availability.md) | [Add an assay](../administration/install-assay-resources.md) |
+| Assay group and named diagnoses | [Groups](../administration/assay-groups.md), [definitions and associations](../administration/assay-diagnoses.md) | [Setup order](../administration/install-assay-resources.md) |
+| Gene lists / ISGL | [List types and clinical scope](../user-guide/gene-lists-and-assay-context.md) | [Configure selected lists](../administration/install-assay-resources.md) |
+| Reporting rule set | [Rule syntax, validation and publication](../reference/clinical-reporting-rules.md) | [Optional assay rule preparation](../administration/install-assay-resources.md) |
 | Finding query policy | [Base queries and inheritance](../administration/query-rules.md) | [Create and activate a policy](../administration/query-rules.md#create-and-activate-a-policy) |
 | Reusable profiles and environment promotion | [Scope, precedence and reviewed publication](../administration/configuration-publication.md) | Assay configurations → Profiles and promotions |
 | Users, roles and permissions | [Access model](../administration/permissions-and-access.md), [permission identifiers](../administration/permission-catalog.md) | [Administration](../administration/administration-guide.md) |

@@ -110,7 +110,7 @@ Metadata and new links are saved in one transaction with a shared revision check
 Removing a link could leave ASPCs and report-rule scopes without a registered
 association. Links are therefore additive: deactivation excludes a scope from new
 selections while preserving its identity and history. Existing samples, annotations
-and saved reports are not rewritten. New configurations and setup validation
+and saved reports are not rewritten. New configurations
 still require active associations. Adding an assay does not create its ASPCs,
 ISGLs or report rules automatically; configure those separately.
 
@@ -164,20 +164,7 @@ it does not duplicate the shared diagnosis definition. Disabling one association
 not disable the other. Base configurations belong to each assay and do not require
 a shared diagnosis record.
 
-For a new assay, use the [Assay setup workspace](assay-setup.md) to save the
-following configuration as a draft and activate it after independent review.
-The individual resource pages remain available for existing assays.
-
-1. Save the draft assay definition with its identifier, registered active group,
-   family and DNA/RNA category. The operational ASP is created only at activation.
-2. Use the implicit Base scope, or associate additional named diagnoses as needed.
-   A base-only assay needs no diagnosis registry entries. Named diagnoses do not
-   require an ISGL to exist first.
-3. Stage gene lists and prepare compatible published reporting rules for the intended scope.
-4. Stage each required ASPC. Both its diagnosis selector and the clinical-rule creation selector
-   offer Base by default and list active definitions belonging to the selected ASP.
-5. Validate and activate the setup, with optional review, then configure public
-   catalog presentation through its separate publication workflow.
+Register the shared diagnosis with the required assay IDs, or edit its associations later. Install the active ASP before creating a named ASPC. See [install assay resources](install-assay-resources.md).
 
 Registering a diagnosis does not create gene lists, clinical rules, an ASPC, or public
 catalog content. ISGL `diagnosis` remains an existing gene-list association field;
@@ -185,9 +172,7 @@ changing it does not register or remove diagnoses. New clinical-rule scopes are
 validated against the registry, including imported definitions. Catalog content
 retains its existing authoring workflow and configuration references.
 
-Retirement excludes a scope from new ASPC assignments. Existing ASPCs remain
-editable with their original scope, and historical samples and reports are not
-modified. Changing an ASPC's assay or diagnosis requires creating another ASPC.
+Retirement excludes a scope from new ASPC assignments. Historical configurations, samples and reports retain their recorded scope. Changing an ASPC's assay or diagnosis requires creating another ASPC.
 This registry does not change ingest resolution or existing sample ASPC bindings.
 
 ## Persistence And API

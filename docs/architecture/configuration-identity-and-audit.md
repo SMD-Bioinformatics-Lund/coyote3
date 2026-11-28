@@ -47,10 +47,8 @@ changed separator was normalized differently by another service.
 
 ![Managed configuration update flow](../assets/diagrams/configuration-resource-update.svg)
 
-ASP, ASPC, and ISGL are immutable, versioned configuration resources. Each
-business key has exactly one active document and may have multiple retired
-revisions. Administrators edit the active definition by creating its successor;
-the previous document remains available for reconstruction.
+ASP, ASPC and ISGL each have a stable identifier. Each identifier can have one
+active revision and retained historical revisions. Each sample uses its recorded ASPC.
 
 | Resource | Stable key | Revision key | Owns |
 |---|---|---|---|
@@ -58,34 +56,21 @@ the previous document remains available for reconstruction.
 | ASPC | `aspc_id` | `(aspc_id, version)` | Environment-specific enabled analyses, filter profiles, reporting configuration, and rule resolution scope |
 | ISGL | `isgl_id` | `(isgl_id, version)` | Typed curated genes and permitted assay/diagnosis associations |
 
-The `base` diagnosis is the explicit default for an ASP with no diagnosis-specific
-configuration. If a sample requests a diagnosis that does not have an active
-ASPC, Coyote4 may resolve the active `base` ASPC when it explicitly permits
-fallback in the same environment. The sample retains the requested diagnosis;
-the exact referenced release supplies the resolved diagnosis. The UI shows this as a
-configuration warning because the configured default, rather than a matching
-diagnosis configuration, was used.
+When intake or a sample update requests a named diagnosis, its shared definition
+and assay association must both be active. If its environment has no matching
+ASPC, the active `base` configuration can supply the defaults. The sample keeps
+the requested diagnosis and the UI identifies the fallback.
 
 ### Revision protocol
 
-1. A new business identifier starts with one active document at version `1`.
-2. An edit validates a complete successor payload before changing persistence.
-3. The successor keeps the same business identifier, receives `version + 1`,
-   and records the previous ObjectId in `supersedes_id`.
-4. The previous revision becomes inactive and records `retired_by`,
-   `retired_on`, and `retired_reason`.
-5. The successor is inserted as the only active revision.
+1. Creating a resource activates version 1. Editing it creates the next active version and records the previous ObjectId in `supersedes_id`.
+2. An ASP or shared ISGL edit advances the affected active configurations in the same transaction. Samples keep their previous ASPC until explicitly updated.
+3. Version history and the audit trail retain the superseded revisions and the actor responsible.
 
 Active reads remain unambiguous because a partial unique index permits only one
 active document per business identifier. Compound unique indexes prevent two
-documents from using the same business identifier and version. MongoDB
-transactions make rotation atomic on replica sets. The standalone development
-path uses guarded writes and restores the previous active revision if insertion
-of the successor fails.
-
-Deactivation and reactivation are lifecycle operations on the latest revision;
-they do not rewrite its clinical payload. Any payload edit always creates a new
-revision.
+documents from using the same business identifier and version. Activation and
+its audit record require a MongoDB replica set.
 
 ## Audit Events
 
@@ -102,8 +87,8 @@ the operational retention policy. Events contain the following context.
 
 | Field | Meaning |
 |---|---|
-| Event type | Domain action such as ASP update, ASPC creation, or ISGL deletion |
-| Resource type | `asp`, `aspc`, or `genelist` |
+| Event type | Domain action such as `configuration.created` or `configuration.revision_rotated` |
+| Resource type | Component collection or assay identity |
 | Resource identifier | Business key and display identity needed to find the affected resource |
 | Actor | Authenticated user responsible for the action |
 | Timestamp | UTC time at which the request completed |
@@ -144,21 +129,15 @@ Current configuration and report reproducibility serve different purposes.
    selected gene-list context, reportable finding snapshots, rendered output,
    and static-rule identity/content hash.
 
-Consequently, a later ASPC edit affects future preparation but does not change
-an already saved report. The sample and report retain the resolved ASPC ObjectId,
-business key, and version, while the retired ASPC revision remains in MongoDB.
-The saved report remains interpretable with the exact configuration and rule
-source used at the time it was created.
+New samples use the active configuration for their scope. An existing sample changes its ASPC
+when an authorized user reviews and applies the update with a reason. A saved
+report retains the configuration and rule evidence captured when it was created.
 
 ## Operational Migration Policy
 
-One-time migrations can normalize existing identifiers, remove superseded
-configuration records, and establish the first-version active state. This is a
-data-conversion operation only. It does not define the ongoing lifecycle of
-clinical configuration and it does not remove operational audit events.
-
-After migration, all changes use the managed administration paths so that
-validation, authorization, and audit recording are applied consistently.
+For a first installation, upload the editable definitions on their individual Admin pages.
+Successful imports receive local revision IDs, timestamps and actors. Reporting rules go through
+their publication workflow. See [Install assay resources](../administration/install-assay-resources.md).
 
 ## Configuration Relationships
 

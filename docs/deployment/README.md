@@ -30,7 +30,7 @@ The installation procedure includes the commands and checks in order.
 ## After installation
 
 Complete the [acceptance checklist](acceptance-checklist.md), then
-[configure and validate the assays](../administration/assay-setup.md).
+[configure and validate the assays](../administration/install-assay-resources.md).
 Use [operations](../operations/README.md) for routine checks and incident recovery.
 
 ## What deployment preserves

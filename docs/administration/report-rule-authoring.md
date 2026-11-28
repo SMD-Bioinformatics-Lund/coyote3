@@ -13,10 +13,7 @@ to an assay, diagnosis and language. A diagnosis of `base` means the base scope;
 it does not stand for every named diagnosis. Published versions retain their
 review history. Editing a draft does not change a published report snapshot.
 
-Reporting rules are optional during assay setup. Until compatible rules are
-published, reports remain available without an automatically generated summary;
-assay setup and report preview show a warning. Published rules must pass validation
-before they can supply report wording.
+Reporting rules can be published after installing the assay and its configuration. If compatible wording is unavailable, report preview warns and omits the automatic summary.
 
 ## Target separate SNV profiles
 
@@ -48,9 +45,9 @@ still rejected. Choose DNA or RNA yourself when the assay is not registered yet.
 
 Once the assay is available, open **Assay association** in the draft and select
 **Link to assay**, **Link to diagnosis**, then **Link assay**. Only assays with the
-same DNA/RNA analyte are offered. The server validates the active assay or saved
-setup scope and its diagnosis association. Registering the originally planned ID
-also makes that scope available without needing to change the ID.
+same DNA/RNA analyte are offered. The server checks that the assay is active and
+that the selected diagnosis is Base or has an active association with the assay.
+If you register the planned assay ID, the draft already points to it.
 
 Linking edits the same draft, retaining its document ID, creator and revision
 history. A changed scope receives the next content version in the target scope.

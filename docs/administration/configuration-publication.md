@@ -4,8 +4,7 @@ Open **Assay configurations → Profiles and promotions** to manage reusable def
 and review configuration releases for another environment.
 
 The page heading is **Configuration governance**. This workflow is optional: you
-do not need to create profiles or promotion proposals to complete an assay setup
-or import an assay configuration (ASPC).
+do not need to create profiles or promotion proposals to install an assay or configuration (ASPC).
 
 | Resource or workflow | Purpose |
 | --- | --- |
@@ -15,10 +14,7 @@ or import an assay configuration (ASPC).
 
 An empty **Reusable profiles** table means no profiles match the current view;
 it does not mean assay configurations are missing. Manage those on **Assay
-configurations**. For an unpublished assay setup, import its ASPC in **Assay setup
-→ Configurations → Import configuration JSON**. The standalone resource uploader
-requires the referenced operational resources to exist. See
-[configuration imports](bulk-installation.md#json-configuration-transfer).
+configurations**. Use its bulk uploader to install ASPCs for active assays.
 
 ![Scoped profile compilation, sample pins and independently reviewed promotion](../assets/diagrams/configuration-publication.svg)
 
@@ -106,6 +102,6 @@ Listing requires `assay.config:list`; creating drafts and proposals requires
 content hash and target revision. These permissions do not grant permission to
 delete samples or publish clinical annotations.
 
-See [assay setup](assay-setup.md), [resource field contracts](clinical-resource-fields.md),
+See [Install assay resources](install-assay-resources.md), [resource field contracts](clinical-resource-fields.md),
 [query policy resolution](../reference/query-condition-fields.md) and
 [report snapshots](../reference/report-snapshots.md).

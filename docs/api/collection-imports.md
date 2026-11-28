@@ -16,7 +16,7 @@ These fields describe the request envelope, not the nested collection document.
 The document must satisfy the selected [collection contract](../reference/mongodb-collections.md).
 Use [file-format conventions](../reference/file-format-conventions.md) to distinguish
 JSON objects, arrays and NDJSON. Generic collection import is not a replacement
-for assay setup, rule publication or sample-bundle ingestion.
+for versioned resource installation, rule publication or sample-bundle ingestion.
 
 | JSON field | Required for | Default / omission behavior | Meaning |
 | --- | --- | --- | --- |

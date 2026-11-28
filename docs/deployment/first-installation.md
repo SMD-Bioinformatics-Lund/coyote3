@@ -610,60 +610,9 @@ under controlled access and test the recovery procedure. See
 
 ## 12. Add the center's clinical configuration
 
-Use **Admin > Assay setup** for each new assay. The application is running at this
-point, but infrastructure and bootstrap alone do not create a clinically usable
-assay. ASP means assay definition; ASPC means its scope/environment configuration;
-ISGL means an analysis-specific in-silico gene list.
+Install the center's definitions from their individual **Admin** pages. Register active assay groups, diagnosis associations and selected gene lists, then install the ASPs and the ASPCs for the required environments. See [install assay resources](../administration/install-assay-resources.md) for the order and bulk upload steps.
 
-![Assay definition, approval and activation order](../assets/diagrams/resource-setup-order.svg)
-
-| Order | Action in the application | Required result before continuing |
-| --- | --- | --- |
-| 1 | Assign setup administration and clinical-rule roles/scopes. | Setup review is optional; authorized authors can activate directly. Clinical-rule publication retains its independent review requirements. |
-| 2 | Create or select an active assay group. | The assay's parent group exists and is available. Reuse an existing suitable group. |
-| 3 | Create and save the **Assay** step in Assay setup. | Stable ASP ID, group, DNA/RNA category, family, covered genes and expected/required input files are defined. This is a draft, not an ingest-ready ASP. |
-| 4 | Select **Scopes** and target environments. | Base is included automatically. Register/reuse any active named diagnosis definitions, refresh them and select the needed scopes. Their assay associations are created at activation. |
-| 5 | Prepare **Gene lists** if filters will select them. | Each selected ISGL has the correct type, genes and assay/group/scope bindings. Leave this step empty if no list is required. |
-| 6 (optional) | Use **Open rule builder** to author, test, review and publish automatic report wording. | If publishing, use a compatible assay/scope/analyte/language release and refresh rules in setup. If omitted, reports remain available without automatic summary text, with a warning. |
-| 7 | Save the **Base / production** configuration. Other combinations are optional. | Each supplied ASPC must have supported analyses, valid filters, eligible selected lists and compatible report settings. Other configurations can be added later from **Assay Configurations**. |
-| 8 | Resolve **Review** readiness errors and **Publish and activate**, or submit for optional colleague review. | Operational ASP, associations, staged ISGLs and ASPCs are committed together. Merely saving/submitting a draft does not enable ingest. |
-| 9 | Verify user access and ingest an approved validation sample. | The intended ASPC resolves; evidence, tabs, gene filters, report preview, saved report and audit records behave as approved. Review any Base-fallback warning. |
-| 10 | Publish public assay catalog content if needed. | The separate catalog approval workflow exposes the offering. It is not required to activate the assay or review its samples. |
-
-**Order is conditional.** Shared diagnosis definitions may be prepared before an
-assay. Selected ISGLs must be eligible before their dependent ASPCs are approved.
-Reporting rules can be drafted against a planned assay ID and linked later;
-publication requires an available compatible scope. Rules may be published before
-or after setup activation. Base needs no diagnosis record. Missing report wording,
-unselected gene lists and public catalog entries do not block setup.
-
-**Missing resources have different effects.** A missing active group blocks new
-setup/ingest; a missing selected ISGL blocks configuration validation; a missing
-selected ASPC combination blocks setup activation. Missing published reporting
-rules produce a warning and omit automatic summary text. An existing incompatible
-or invalid publication still fails compatibility checks.
-During sample resolution, a missing named ASPC may fall back to Base in the same
-environment with a warning; without either ASPC, ingest fails. Required missing
-inputs reject ingest, whereas optional expected inputs produce missing-evidence
-status. Creating a catalog entry cannot resolve any of these clinical prerequisites.
-
-The [assay setup procedure](../administration/assay-setup.md#step-by-step-add-a-new-assay)
-provides the form-level steps for this same workflow when adding later assays.
-If the assay needs finding-selection exceptions, prepare and independently approve
-[query rules](../administration/query-rules.md) after activation and before validation
-ingest. Group rules may be published earlier; assay and named-diagnosis scopes need
-their active registry records. Missing scoped query rules use the installed defaults.
-These rules are separate from the reporting rules in step 6. Bootstrap installs
-the [group and default query policies](../administration/query-rules.md#installation-and-storage)
-and four dedicated query-rule roles. Review their effective criteria for each assay.
-For optional text during Tier I–III bulk classification, author
-[bulk annotation templates](../reference/clinical-reporting-rules.md#bulk-annotation-templates)
-for the required finding types and reporting language, then review and publish them.
-Ordinary classification does not require these templates.
-The [resource reference](../administration/clinical-configuration-resources.md)
-describes each item's purpose, relationships and missing-prerequisite behavior.
-JSON import/export remains subject to the same validation and permissions; it is
-not a way to create unresolved references or bypass approval.
+Publish [reporting rules](../administration/report-rule-authoring.md) when automatic wording is required. Configure any [query rules](../administration/query-rules.md) through their own review workflow. Verify permissions, the resolved ASPC, filter choices, report preview and audit trail with an approved validation sample. Publish the public catalog separately if required.
 
 ## 13. Establish backup and recovery
 

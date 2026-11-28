@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="4622" viewBox="0 0 1360 4622" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="4434" viewBox="0 0 1360 4434" role="img" aria-labelledby="title description">
 <title id="title">primary.asp_configs field dependencies</title>
 <desc id="description">Each arrow goes from the stored source field to its referenced key or lookup target. Arrows are not MongoDB foreign-key constraints.</desc>
 <defs>
@@ -122,16 +122,16 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
 </g>
 <g class="purple"><path d="M600 2207H760" class="connection" marker-end="url(#arrow-purple)"/></g>
 <text x="40" y="2320" class="figure-note">snapshot provenance · many → one</text>
-<g class="entity blue" data-namespace="primary.assay_setups"><title>primary.assay_setups</title><use href="#icon-database" x="271" y="2366" width="58" height="58" aria-hidden="true"/><text x="300" y="2450" text-anchor="middle" class="entity-title">primary.assay_setups</text>
-<text x="300" y="2475" text-anchor="middle" class="entity-detail">content.configurations[]</text>
+<g class="entity blue" data-namespace="primary.configuration_promotions"><title>primary.configuration_promotions</title><use href="#icon-database" x="271" y="2366" width="58" height="58" aria-hidden="true"/><text x="300" y="2450" text-anchor="middle" class="entity-title">primary.configuration_promotions</text>
+<text x="300" y="2475" text-anchor="middle" class="entity-detail">source_id</text>
 </g>
 <g class="entity purple" data-namespace="primary.asp_configs"><title>primary.asp_configs</title><use href="#icon-database" x="1031" y="2366" width="58" height="58" aria-hidden="true"/><text x="1060" y="2450" text-anchor="middle" class="entity-title">primary.asp_configs</text>
-<text x="1060" y="2475" text-anchor="middle" class="entity-detail">asp_id + diagnosis_id + environment</text>
+<text x="1060" y="2475" text-anchor="middle" class="entity-detail">_id</text>
 </g>
 <g class="purple"><path d="M600 2395H760" class="connection" marker-end="url(#arrow-purple)"/></g>
-<text x="40" y="2508" class="figure-note">staged documents · one → many</text>
+<text x="40" y="2508" class="figure-note">string ObjectId · many → one</text>
 <g class="entity blue" data-namespace="primary.configuration_promotions"><title>primary.configuration_promotions</title><use href="#icon-database" x="271" y="2554" width="58" height="58" aria-hidden="true"/><text x="300" y="2638" text-anchor="middle" class="entity-title">primary.configuration_promotions</text>
-<text x="300" y="2663" text-anchor="middle" class="entity-detail">source_id</text>
+<text x="300" y="2663" text-anchor="middle" class="entity-detail">target_id</text>
 </g>
 <g class="entity purple" data-namespace="primary.asp_configs"><title>primary.asp_configs</title><use href="#icon-database" x="1031" y="2554" width="58" height="58" aria-hidden="true"/><text x="1060" y="2638" text-anchor="middle" class="entity-title">primary.asp_configs</text>
 <text x="1060" y="2663" text-anchor="middle" class="entity-detail">_id</text>
@@ -139,23 +139,23 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
 <g class="purple"><path d="M600 2583H760" class="connection" marker-end="url(#arrow-purple)"/></g>
 <text x="40" y="2696" class="figure-note">string ObjectId · many → one</text>
 <g class="entity blue" data-namespace="primary.configuration_promotions"><title>primary.configuration_promotions</title><use href="#icon-database" x="271" y="2742" width="58" height="58" aria-hidden="true"/><text x="300" y="2826" text-anchor="middle" class="entity-title">primary.configuration_promotions</text>
-<text x="300" y="2851" text-anchor="middle" class="entity-detail">target_id</text>
+<text x="300" y="2851" text-anchor="middle" class="entity-detail">candidate</text>
 </g>
 <g class="entity purple" data-namespace="primary.asp_configs"><title>primary.asp_configs</title><use href="#icon-database" x="1031" y="2742" width="58" height="58" aria-hidden="true"/><text x="1060" y="2826" text-anchor="middle" class="entity-title">primary.asp_configs</text>
-<text x="1060" y="2851" text-anchor="middle" class="entity-detail">_id</text>
+<text x="1060" y="2851" text-anchor="middle" class="entity-detail">aspc_id + version</text>
 </g>
 <g class="purple"><path d="M600 2771H760" class="connection" marker-end="url(#arrow-purple)"/></g>
-<text x="40" y="2884" class="figure-note">string ObjectId · many → one</text>
-<g class="entity blue" data-namespace="primary.configuration_promotions"><title>primary.configuration_promotions</title><use href="#icon-database" x="271" y="2930" width="58" height="58" aria-hidden="true"/><text x="300" y="3014" text-anchor="middle" class="entity-title">primary.configuration_promotions</text>
-<text x="300" y="3039" text-anchor="middle" class="entity-detail">candidate</text>
+<text x="40" y="2884" class="figure-note">snapshot · many → one</text>
+<g class="entity blue" data-namespace="primary.public_assay_catalog"><title>primary.public_assay_catalog</title><use href="#icon-database" x="271" y="2930" width="58" height="58" aria-hidden="true"/><text x="300" y="3014" text-anchor="middle" class="entity-title">primary.public_assay_catalog</text>
+<text x="300" y="3039" text-anchor="middle" class="entity-detail">modalities.{modality}.categories.{key}.aspc_id</text>
 </g>
 <g class="entity purple" data-namespace="primary.asp_configs"><title>primary.asp_configs</title><use href="#icon-database" x="1031" y="2930" width="58" height="58" aria-hidden="true"/><text x="1060" y="3014" text-anchor="middle" class="entity-title">primary.asp_configs</text>
-<text x="1060" y="3039" text-anchor="middle" class="entity-detail">aspc_id + version</text>
+<text x="1060" y="3039" text-anchor="middle" class="entity-detail">aspc_id</text>
 </g>
 <g class="purple"><path d="M600 2959H760" class="connection" marker-end="url(#arrow-purple)"/></g>
-<text x="40" y="3072" class="figure-note">snapshot · many → one</text>
+<text x="40" y="3072" class="figure-note">optional binding · many ↔ many</text>
 <g class="entity blue" data-namespace="primary.public_assay_catalog"><title>primary.public_assay_catalog</title><use href="#icon-database" x="271" y="3118" width="58" height="58" aria-hidden="true"/><text x="300" y="3202" text-anchor="middle" class="entity-title">primary.public_assay_catalog</text>
-<text x="300" y="3227" text-anchor="middle" class="entity-detail">modalities.{modality}.categories.{key}.aspc_id</text>
+<text x="300" y="3227" text-anchor="middle" class="entity-detail">modalities.{modality}.categories.{key}.aspc_ids.{environment}</text>
 </g>
 <g class="entity purple" data-namespace="primary.asp_configs"><title>primary.asp_configs</title><use href="#icon-database" x="1031" y="3118" width="58" height="58" aria-hidden="true"/><text x="1060" y="3202" text-anchor="middle" class="entity-title">primary.asp_configs</text>
 <text x="1060" y="3227" text-anchor="middle" class="entity-detail">aspc_id</text>
@@ -163,23 +163,23 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
 <g class="purple"><path d="M600 3147H760" class="connection" marker-end="url(#arrow-purple)"/></g>
 <text x="40" y="3260" class="figure-note">optional binding · many ↔ many</text>
 <g class="entity blue" data-namespace="primary.public_assay_catalog"><title>primary.public_assay_catalog</title><use href="#icon-database" x="271" y="3306" width="58" height="58" aria-hidden="true"/><text x="300" y="3390" text-anchor="middle" class="entity-title">primary.public_assay_catalog</text>
-<text x="300" y="3415" text-anchor="middle" class="entity-detail">modalities.{modality}.categories.{key}.aspc_ids.{environment}</text>
+<text x="300" y="3415" text-anchor="middle" class="entity-detail">resource_revisions.{offering_id}.configuration_id</text>
 </g>
 <g class="entity purple" data-namespace="primary.asp_configs"><title>primary.asp_configs</title><use href="#icon-database" x="1031" y="3306" width="58" height="58" aria-hidden="true"/><text x="1060" y="3390" text-anchor="middle" class="entity-title">primary.asp_configs</text>
-<text x="1060" y="3415" text-anchor="middle" class="entity-detail">aspc_id</text>
+<text x="1060" y="3415" text-anchor="middle" class="entity-detail">aspc_id + version</text>
 </g>
 <g class="purple"><path d="M600 3335H760" class="connection" marker-end="url(#arrow-purple)"/></g>
-<text x="40" y="3448" class="figure-note">optional binding · many ↔ many</text>
-<g class="entity blue" data-namespace="primary.public_assay_catalog"><title>primary.public_assay_catalog</title><use href="#icon-database" x="271" y="3494" width="58" height="58" aria-hidden="true"/><text x="300" y="3578" text-anchor="middle" class="entity-title">primary.public_assay_catalog</text>
-<text x="300" y="3603" text-anchor="middle" class="entity-detail">resource_revisions.{offering_id}.configuration_id</text>
+<text x="40" y="3448" class="figure-note">snapshot provenance · one → many</text>
+<g class="entity purple" data-namespace="primary.asp_configs"><title>primary.asp_configs</title><use href="#icon-database" x="271" y="3494" width="58" height="58" aria-hidden="true"/><text x="300" y="3578" text-anchor="middle" class="entity-title">primary.asp_configs</text>
+<text x="300" y="3603" text-anchor="middle" class="entity-detail">filters.{intent}.snv.snvlists[]</text>
 </g>
-<g class="entity purple" data-namespace="primary.asp_configs"><title>primary.asp_configs</title><use href="#icon-database" x="1031" y="3494" width="58" height="58" aria-hidden="true"/><text x="1060" y="3578" text-anchor="middle" class="entity-title">primary.asp_configs</text>
-<text x="1060" y="3603" text-anchor="middle" class="entity-detail">aspc_id + version</text>
+<g class="entity blue" data-namespace="primary.insilico_genelists"><title>primary.insilico_genelists</title><use href="#icon-database" x="1031" y="3494" width="58" height="58" aria-hidden="true"/><text x="1060" y="3578" text-anchor="middle" class="entity-title">primary.insilico_genelists</text>
+<text x="1060" y="3603" text-anchor="middle" class="entity-detail">isgl_id</text>
 </g>
 <g class="purple"><path d="M600 3523H760" class="connection" marker-end="url(#arrow-purple)"/></g>
-<text x="40" y="3636" class="figure-note">snapshot provenance · one → many</text>
+<text x="40" y="3636" class="figure-note">selection · many ↔ many</text>
 <g class="entity purple" data-namespace="primary.asp_configs"><title>primary.asp_configs</title><use href="#icon-database" x="271" y="3682" width="58" height="58" aria-hidden="true"/><text x="300" y="3766" text-anchor="middle" class="entity-title">primary.asp_configs</text>
-<text x="300" y="3791" text-anchor="middle" class="entity-detail">filters.{intent}.snv.snvlists[]</text>
+<text x="300" y="3791" text-anchor="middle" class="entity-detail">filters.{intent}.cnv.cnvlists[]</text>
 </g>
 <g class="entity blue" data-namespace="primary.insilico_genelists"><title>primary.insilico_genelists</title><use href="#icon-database" x="1031" y="3682" width="58" height="58" aria-hidden="true"/><text x="1060" y="3766" text-anchor="middle" class="entity-title">primary.insilico_genelists</text>
 <text x="1060" y="3791" text-anchor="middle" class="entity-detail">isgl_id</text>
@@ -187,7 +187,7 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
 <g class="purple"><path d="M600 3711H760" class="connection" marker-end="url(#arrow-purple)"/></g>
 <text x="40" y="3824" class="figure-note">selection · many ↔ many</text>
 <g class="entity purple" data-namespace="primary.asp_configs"><title>primary.asp_configs</title><use href="#icon-database" x="271" y="3870" width="58" height="58" aria-hidden="true"/><text x="300" y="3954" text-anchor="middle" class="entity-title">primary.asp_configs</text>
-<text x="300" y="3979" text-anchor="middle" class="entity-detail">filters.{intent}.cnv.cnvlists[]</text>
+<text x="300" y="3979" text-anchor="middle" class="entity-detail">filters.{intent}.fusion.fusionlists[]</text>
 </g>
 <g class="entity blue" data-namespace="primary.insilico_genelists"><title>primary.insilico_genelists</title><use href="#icon-database" x="1031" y="3870" width="58" height="58" aria-hidden="true"/><text x="1060" y="3954" text-anchor="middle" class="entity-title">primary.insilico_genelists</text>
 <text x="1060" y="3979" text-anchor="middle" class="entity-detail">isgl_id</text>
@@ -195,27 +195,19 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
 <g class="purple"><path d="M600 3899H760" class="connection" marker-end="url(#arrow-purple)"/></g>
 <text x="40" y="4012" class="figure-note">selection · many ↔ many</text>
 <g class="entity purple" data-namespace="primary.asp_configs"><title>primary.asp_configs</title><use href="#icon-database" x="271" y="4058" width="58" height="58" aria-hidden="true"/><text x="300" y="4142" text-anchor="middle" class="entity-title">primary.asp_configs</text>
-<text x="300" y="4167" text-anchor="middle" class="entity-detail">filters.{intent}.fusion.fusionlists[]</text>
+<text x="300" y="4167" text-anchor="middle" class="entity-detail">filters.{intent}.translocation.fusionlists[]</text>
 </g>
 <g class="entity blue" data-namespace="primary.insilico_genelists"><title>primary.insilico_genelists</title><use href="#icon-database" x="1031" y="4058" width="58" height="58" aria-hidden="true"/><text x="1060" y="4142" text-anchor="middle" class="entity-title">primary.insilico_genelists</text>
 <text x="1060" y="4167" text-anchor="middle" class="entity-detail">isgl_id</text>
 </g>
 <g class="purple"><path d="M600 4087H760" class="connection" marker-end="url(#arrow-purple)"/></g>
 <text x="40" y="4200" class="figure-note">selection · many ↔ many</text>
-<g class="entity purple" data-namespace="primary.asp_configs"><title>primary.asp_configs</title><use href="#icon-database" x="271" y="4246" width="58" height="58" aria-hidden="true"/><text x="300" y="4330" text-anchor="middle" class="entity-title">primary.asp_configs</text>
-<text x="300" y="4355" text-anchor="middle" class="entity-detail">filters.{intent}.translocation.fusionlists[]</text>
+<g class="entity blue" data-namespace="primary.edit_leases"><title>primary.edit_leases</title><use href="#icon-database" x="271" y="4246" width="58" height="58" aria-hidden="true"/><text x="300" y="4330" text-anchor="middle" class="entity-title">primary.edit_leases</text>
+<text x="300" y="4355" text-anchor="middle" class="entity-detail">_id (kind=aspc)</text>
 </g>
-<g class="entity blue" data-namespace="primary.insilico_genelists"><title>primary.insilico_genelists</title><use href="#icon-database" x="1031" y="4246" width="58" height="58" aria-hidden="true"/><text x="1060" y="4330" text-anchor="middle" class="entity-title">primary.insilico_genelists</text>
-<text x="1060" y="4355" text-anchor="middle" class="entity-detail">isgl_id</text>
+<g class="entity purple" data-namespace="primary.asp_configs"><title>primary.asp_configs</title><use href="#icon-database" x="1031" y="4246" width="58" height="58" aria-hidden="true"/><text x="1060" y="4330" text-anchor="middle" class="entity-title">primary.asp_configs</text>
+<text x="1060" y="4355" text-anchor="middle" class="entity-detail">aspc_id</text>
 </g>
 <g class="purple"><path d="M600 4275H760" class="connection" marker-end="url(#arrow-purple)"/></g>
-<text x="40" y="4388" class="figure-note">selection · many ↔ many</text>
-<g class="entity blue" data-namespace="primary.edit_leases"><title>primary.edit_leases</title><use href="#icon-database" x="271" y="4434" width="58" height="58" aria-hidden="true"/><text x="300" y="4518" text-anchor="middle" class="entity-title">primary.edit_leases</text>
-<text x="300" y="4543" text-anchor="middle" class="entity-detail">_id (kind=aspc)</text>
-</g>
-<g class="entity purple" data-namespace="primary.asp_configs"><title>primary.asp_configs</title><use href="#icon-database" x="1031" y="4434" width="58" height="58" aria-hidden="true"/><text x="1060" y="4518" text-anchor="middle" class="entity-title">primary.asp_configs</text>
-<text x="1060" y="4543" text-anchor="middle" class="entity-detail">aspc_id</text>
-</g>
-<g class="purple"><path d="M600 4463H760" class="connection" marker-end="url(#arrow-purple)"/></g>
-<text x="40" y="4576" class="figure-note">encoded operational key · 0..1 per resource kind/key</text>
+<text x="40" y="4388" class="figure-note">encoded operational key · 0..1 per resource kind/key</text>
 </svg>

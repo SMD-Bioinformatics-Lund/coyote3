@@ -44,7 +44,7 @@ with a different release.
 
 Create assay groups, diagnosis definitions, assays, assay–diagnosis associations,
 gene lists, query rules and configuration revisions using
-[assay setup](../../administration/assay-setup.md). Select the exact destination
+[Install assay resources](../../administration/install-assay-resources.md). Select the exact destination
 `current_aspc_id` for every sample review. Identifiers use lowercase; original
 sample ObjectIds and specimen identifiers retain their identity.
 

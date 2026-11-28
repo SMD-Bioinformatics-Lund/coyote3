@@ -8,10 +8,14 @@
   coverage and biomarkers, with combined or separate somatic/germline workflows.
 - Versioned assay, gene-list and environment configuration; configurable analysis
   order and query/reporting rules with drafts, review, publication and provenance.
+- ASP, ASPC and gene-list imports activate individual revisions. An assay or shared gene-list edit advances affected active configurations in the same transaction. Existing samples can preview and apply a newer revision from settings or filters.
 - HTML/PDF reporting through `smd-reports`, with reviewed previews, immutable
   finding snapshots and traceable saved reports.
 - Assay/environment access control, scoped API credentials, session administration
   local and administrator-assisted LDAP account recovery, and durable audit records.
+- Live in-app notifications and a five-message header preview. Existing installations
+  using the restricted identity role need its updated read-only change-stream grants
+  for immediate audit-derived notices.
 - Coyote Relay ingestion and recovery in the application workspace; independently
   maintained Atlas reference bundles, isolated Demo installations and a Python
   client for external integrations.

@@ -2,7 +2,7 @@
 
 ASP, ASPC and ISGL records are maintained through application forms and governed
 workflows. They are not files that a deploying center must place in the configuration
-directory. Use [assay setup](assay-setup.md) for creation order and
+directory. Use [Install assay resources](install-assay-resources.md) for creation order and
 [resource responsibilities](clinical-configuration-resources.md) for dependencies.
 
 The tables describe the typed record contract and important normalization behavior.
@@ -24,7 +24,7 @@ An ASP defines the physical assay and its input policy. Full contract:
 | `display_name` | Required; no default | Human-readable assay name. |
 | `description` | Optional; null | Assay description. |
 | `expected_files` | Omitted selects category defaults; explicit `[]` remains empty | Allowed input keys. Expected does not by itself mean mandatory. |
-| `required_files` | Contract default `[]` | Mandatory keys, all of which must also be expected. Review the setup form's explicit selections. |
+| `required_files` | Contract default `[]` | Mandatory input keys. Each must also appear in the assay's `expected_files`. |
 | `supported_analyses` | Omitted or null resolves all eligible analyses; explicit `[]` supports none | Implemented capabilities permitted by the family and accepted inputs. ASPCs can enable a subset. The resolved list is persisted. |
 | `covered_genes`, `germline_genes` | Optional; each `[]` | Physical gene scope; missing genes do not imply genome-wide validation. |
 | `accredited` | Optional; `false` | Center-declared accreditation status, not approval conferred by the application. |
@@ -32,7 +32,7 @@ An ASP defines the physical assay and its input policy. Full contract:
 | `platform`, `read_mode` | Optional at the record boundary; null | Supported platform and compatible read mode. Read technology is derived when platform is present. |
 | `read_length`, `target_region_size` | Optional; null | Design read length and target size; preserve unknown values rather than zero. |
 | `igv` | Optional; null | Alignment viewer paths, detailed in [alignment references](../reference/sample-manifest.md#alignment-references-for-igv). |
-| `is_active` | Contract default `true` | Availability is also subject to the group and setup activation checks. |
+| `is_active` | Contract default `true` | Availability is also subject to the availability of the parent group. |
 
 Changing file policy affects subsequent validation. It does not manufacture missing
 sample evidence. Changing display text does not change the stable assay identity.
@@ -96,7 +96,7 @@ An ISGL selects genes for supported analyses. Full contract:
 | `list_type` | Supply explicitly | Omission/null initially selects all configured types, which can fail the standard/ad-hoc compatibility check. Use only the intended supported types. |
 | `adhoc` | Optional; `false` | Uses ad-hoc analysis types and excludes the list from standard ASPC gene-list choices. Leave false for routine curated lists. |
 | `genes` | Optional; `[]` | Curated genes; an empty array adds no genes. Germline membership resolves from the selected assay's germline genes. |
-| `asp_ids`, `asp_groups` | Default `[]`; eligibility validated by workflow | Assay/group bindings. Empty arrays leave the list unassigned; supplied identifiers must be valid. See [linking existing lists](assay-setup.md#gene-list-creation-order-and-associations). |
+| `asp_ids`, `asp_groups` | Default `[]`; eligibility validated by workflow | Assay/group bindings. Empty arrays leave the list unassigned; supplied identifiers must be valid. See [linking existing lists](install-assay-resources.md). |
 | `diagnosis`, `aliases` | Optional; each `[]` | Diagnosis scope and alternate lookup/display names. |
 | `is_public` | Optional; `false` | Allows an active list and its genes in public gene-list views. Does not publish an assay offering or select the list for analysis. |
 | `is_active` | Optional; `true` | Whether the list can be selected, subject to eligibility. |

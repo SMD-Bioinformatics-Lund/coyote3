@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1426" viewBox="0 0 1360 1426" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1238" viewBox="0 0 1360 1238" role="img" aria-labelledby="title description">
 <title id="title">primary.clinical_rule_sets field dependencies</title>
 <desc id="description">Each arrow goes from the stored source field to its referenced key or lookup target. Arrows are not MongoDB foreign-key constraints.</desc>
 <defs>
@@ -50,36 +50,28 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
 </g>
 <g class="purple"><path d="M600 515H760" class="connection" marker-end="url(#arrow-purple)"/></g>
 <text x="40" y="628" class="figure-note">scope lookup · many → one</text>
-<g class="entity purple" data-namespace="primary.clinical_rule_sets"><title>primary.clinical_rule_sets</title><use href="#icon-database" x="271" y="674" width="58" height="58" aria-hidden="true"/><text x="300" y="758" text-anchor="middle" class="entity-title">primary.clinical_rule_sets</text>
-<text x="300" y="783" text-anchor="middle" class="entity-detail">scope.asp_id</text>
+<g class="entity blue" data-namespace="primary.clinical_rule_revisions"><title>primary.clinical_rule_revisions</title><use href="#icon-database" x="271" y="674" width="58" height="58" aria-hidden="true"/><text x="300" y="758" text-anchor="middle" class="entity-title">primary.clinical_rule_revisions</text>
+<text x="300" y="783" text-anchor="middle" class="entity-detail">rule_set_oid</text>
 </g>
-<g class="entity blue" data-namespace="primary.assay_setups"><title>primary.assay_setups</title><use href="#icon-database" x="1031" y="674" width="58" height="58" aria-hidden="true"/><text x="1060" y="758" text-anchor="middle" class="entity-title">primary.assay_setups</text>
-<text x="1060" y="783" text-anchor="middle" class="entity-detail">asp_id</text>
+<g class="entity purple" data-namespace="primary.clinical_rule_sets"><title>primary.clinical_rule_sets</title><use href="#icon-database" x="1031" y="674" width="58" height="58" aria-hidden="true"/><text x="1060" y="758" text-anchor="middle" class="entity-title">primary.clinical_rule_sets</text>
+<text x="1060" y="783" text-anchor="middle" class="entity-detail">_id</text>
 </g>
 <g class="purple"><path d="M600 703H760" class="connection" marker-end="url(#arrow-purple)"/></g>
-<text x="40" y="816" class="figure-note">authoring lookup · many → one</text>
+<text x="40" y="816" class="figure-note">string identity · many → one</text>
 <g class="entity blue" data-namespace="primary.clinical_rule_revisions"><title>primary.clinical_rule_revisions</title><use href="#icon-database" x="271" y="862" width="58" height="58" aria-hidden="true"/><text x="300" y="946" text-anchor="middle" class="entity-title">primary.clinical_rule_revisions</text>
-<text x="300" y="971" text-anchor="middle" class="entity-detail">rule_set_oid</text>
+<text x="300" y="971" text-anchor="middle" class="entity-detail">document</text>
 </g>
 <g class="entity purple" data-namespace="primary.clinical_rule_sets"><title>primary.clinical_rule_sets</title><use href="#icon-database" x="1031" y="862" width="58" height="58" aria-hidden="true"/><text x="1060" y="946" text-anchor="middle" class="entity-title">primary.clinical_rule_sets</text>
-<text x="1060" y="971" text-anchor="middle" class="entity-detail">_id</text>
+<text x="1060" y="971" text-anchor="middle" class="entity-detail">_id + revision</text>
 </g>
 <g class="purple"><path d="M600 891H760" class="connection" marker-end="url(#arrow-purple)"/></g>
-<text x="40" y="1004" class="figure-note">string identity · many → one</text>
-<g class="entity blue" data-namespace="primary.clinical_rule_revisions"><title>primary.clinical_rule_revisions</title><use href="#icon-database" x="271" y="1050" width="58" height="58" aria-hidden="true"/><text x="300" y="1134" text-anchor="middle" class="entity-title">primary.clinical_rule_revisions</text>
-<text x="300" y="1159" text-anchor="middle" class="entity-detail">document</text>
+<text x="40" y="1004" class="figure-note">snapshot · many → one</text>
+<g class="entity blue" data-namespace="primary.edit_leases"><title>primary.edit_leases</title><use href="#icon-database" x="271" y="1050" width="58" height="58" aria-hidden="true"/><text x="300" y="1134" text-anchor="middle" class="entity-title">primary.edit_leases</text>
+<text x="300" y="1159" text-anchor="middle" class="entity-detail">_id (kind=clinical-rules)</text>
 </g>
 <g class="entity purple" data-namespace="primary.clinical_rule_sets"><title>primary.clinical_rule_sets</title><use href="#icon-database" x="1031" y="1050" width="58" height="58" aria-hidden="true"/><text x="1060" y="1134" text-anchor="middle" class="entity-title">primary.clinical_rule_sets</text>
-<text x="1060" y="1159" text-anchor="middle" class="entity-detail">_id + revision</text>
+<text x="1060" y="1159" text-anchor="middle" class="entity-detail">_id</text>
 </g>
 <g class="purple"><path d="M600 1079H760" class="connection" marker-end="url(#arrow-purple)"/></g>
-<text x="40" y="1192" class="figure-note">snapshot · many → one</text>
-<g class="entity blue" data-namespace="primary.edit_leases"><title>primary.edit_leases</title><use href="#icon-database" x="271" y="1238" width="58" height="58" aria-hidden="true"/><text x="300" y="1322" text-anchor="middle" class="entity-title">primary.edit_leases</text>
-<text x="300" y="1347" text-anchor="middle" class="entity-detail">_id (kind=clinical-rules)</text>
-</g>
-<g class="entity purple" data-namespace="primary.clinical_rule_sets"><title>primary.clinical_rule_sets</title><use href="#icon-database" x="1031" y="1238" width="58" height="58" aria-hidden="true"/><text x="1060" y="1322" text-anchor="middle" class="entity-title">primary.clinical_rule_sets</text>
-<text x="1060" y="1347" text-anchor="middle" class="entity-detail">_id</text>
-</g>
-<g class="purple"><path d="M600 1267H760" class="connection" marker-end="url(#arrow-purple)"/></g>
-<text x="40" y="1380" class="figure-note">encoded operational key · 0..1 per resource kind/key</text>
+<text x="40" y="1192" class="figure-note">encoded operational key · 0..1 per resource kind/key</text>
 </svg>

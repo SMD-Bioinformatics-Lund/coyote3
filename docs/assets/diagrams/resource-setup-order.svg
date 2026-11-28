@@ -56,7 +56,7 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
     <title>People and assay definition</title>
     <use href="#icon-users" x="321.43" y="163.0" width="42" height="42" aria-hidden="true" />
     <text x="342.43" y="223.0" text-anchor="middle" class="entity-title">People and assay definition</text>
-    <text x="342.43" y="245.0" text-anchor="middle" class="entity-detail">Authorized authors, reviewers and active group.</text>
+    <text x="342.43" y="245.0" text-anchor="middle" class="entity-detail">Resource permissions and an active assay group.</text>
     <text x="342.43" y="263.0" text-anchor="middle" class="entity-detail">Assay identity, modality, family and physical coverage.</text>
     <text x="342.43" y="281.0" text-anchor="middle" class="entity-detail">Reference data required for the enabled analyses.</text>
   </g>
@@ -85,10 +85,10 @@ text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
     <text x="1017.57" y="456.0" text-anchor="middle" class="entity-detail">Catalog offerings have their own publication review.</text>
   </g>
   <g class="entity purple" data-node="4" data-left="194.29" data-right="1165.71" data-top="550.0" data-bottom="660.0">
-    <title>Setup review and activation</title>
+    <title>Save the configuration</title>
     <use href="#icon-processor" x="659.0" y="553.0" width="42" height="42" aria-hidden="true" />
-    <text x="680.0" y="613.0" text-anchor="middle" class="entity-title">Setup review and activation</text>
-    <text x="680.0" y="635.0" text-anchor="middle" class="entity-detail">Validate required resources; review before activation is optional.</text>
+    <text x="680.0" y="613.0" text-anchor="middle" class="entity-title">Save the configuration</text>
+    <text x="680.0" y="635.0" text-anchor="middle" class="entity-detail">Validate the active assay, diagnosis and selected lists.</text>
     <text x="680.0" y="653.0" text-anchor="middle" class="entity-detail">Correct missing configuration and consistency errors before ingest.</text>
   </g>
   <path class="connection blue" d="M282 300 V335" marker-end="url(#arrow-blue)" transform="scale(1.2142857142857142 1)" />

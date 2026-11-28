@@ -11,7 +11,7 @@ integration, use the [ingestion API reference](sample-ingestion.md).
   by the [uv development guide](../core/uv-development.md).
 - Confirm that the destination API has Relay installed and an ingestion worker
   running. The standard application deployment includes both.
-- Ask the administrator to complete [assay setup](../administration/assay-setup.md)
+- Ask the administrator to complete [Install assay resources](../administration/install-assay-resources.md)
   for the manifest's assay, diagnosis and environment.
 - Obtain a [managed service credential](sample-ingestion.md#managed-service-credentials)
   scoped to that assay and environment, with **Upload a background sample bundle**

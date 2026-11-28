@@ -22,7 +22,7 @@ when this reference is generated.
 | --- | --- |
 | [Complete collection inventory](inventory.md) | Every database-qualified collection, its binding and detailed dependency section. |
 | [Assays, diagnoses and gene lists](configuration.md) | ASP/ASPC, assay groups, named diagnoses, associations, lists, blacklist and coverage exclusions. |
-| [Drafts, publications and revision history](workflows.md) | Setup staging, configuration profiles/promotions, rule versions, revision snapshots and public catalogs. |
+| [Drafts, publications and revision history](workflows.md) | Configuration profiles and promotions, rule versions, revision snapshots and public catalogs. |
 | [Samples, findings, annotations and reports](clinical.md) | Sample evidence collections, shared VEP records, comments, clinical annotations and report-time snapshots. |
 | [Identity, permissions and audit](identity.md) | User/role/permission identifiers, sessions, historical actors and integrity chains. |
 | [Knowledgebase and reference evidence](knowledgebase.md) | HGNC/VEP, provider identifiers, coordinate/transcript lookups, COSMIC product payloads and release manifests. |
@@ -83,8 +83,7 @@ prove that all referenced resources exist.
 | `blacklist.assay` | Physical scope key; migration bundle `assay_group` is translated to it | An additional physical field that can be copied without conversion. |
 
 The implicit diagnosis `base` has no required `diagnoses` record. Gene-list
-`diagnosis[]` tags do not create assay/diagnosis associations. A draft assay setup
-can precede the operational ASP: it is a publication candidate, not an orphan.
+`diagnosis[]` tags do not create assay/diagnosis associations.
 
 ## Snapshots, authors and hashes
 
@@ -93,9 +92,6 @@ paths inherit the parent's relationships with that prefix, but describe the
 historical revision. For example:
 
 ```text
-assay_setup_revisions.document.content.panel.asp_group
-  → assay_groups.group_id (historical setup context)
-
 clinical_rule_revisions.document.scope.asp_id
   → assay_specific_panels.asp_id (historical rule scope)
 
@@ -137,10 +133,9 @@ Draft activation and publication have their own transaction/review requirements.
 | 7. Reports and saved findings | `reports`, `reported_variants`, original artifact files | Preserve report IDs, BSON references, saved text/tier and report-time configuration. Restore latest-report pointers only after their targets exist. |
 | 8. History and operational reconciliation | Revision documents, audit chains, pending outbox/artifact work, notification read/dismissal state | Check hash chains and exact version ownership. Reauthenticate sessions; do not copy active edit leases into the new environment. Reconcile jobs before replay. |
 
-Some dependency graphs contain intentional cycles: samples point to their latest
-report, while reports point back to samples; a setup can reference a rule authored
-for its reserved assay before activation. Use staged application and final
-validation rather than discarding one side of these relationships.
+Samples point to their latest report, and reports point back to their sample.
+Restore the latest-report pointer after loading both records and verify that
+the report belongs to that sample.
 
 For clinical configuration renames, inspect **incoming references** on the target
 collection before changing a key. This includes stored snapshots and actor/history

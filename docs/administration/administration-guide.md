@@ -8,7 +8,7 @@ is required to review audit records.
 
 For resource definitions, prerequisites and the effect of missing configuration,
 see [clinical configuration resources](clinical-configuration-resources.md).
-Follow [assay setup](assay-setup.md) when introducing an assay. Deployment-owned
+Follow [Install assay resources](install-assay-resources.md) when introducing an assay. Deployment-owned
 files and their settings are listed in the [configuration reference](../configuration/README.md).
 
 ## Deleting unpublished documents
@@ -30,13 +30,11 @@ prevents deletion; refresh and inspect the current version before retrying.
 | Clinical report rules | Draft, submitted, clinical review, approved, rejected | `clinical_rules:draft` |
 | Query rules | Draft, approved | `query_rules:draft` |
 | Assay catalog | Draft, submitted, approved, rejected | `catalog:draft` |
-| Assay setup | Draft, submitted | `assay.panel:delete` |
 
 > [!WARNING]
 > Deletion permanently removes the unpublished version and its private revision
 > snapshots. An audit receipt remains. Published and retired versions cannot be
-> deleted through these actions. Deleting an assay setup does not delete separately
-> saved assays, gene lists or configurations.
+> deleted through these actions.
 
 Ordinary administrative records use their resource-specific deletion permissions
 and protections; this workflow applies to documents with publication states.
@@ -224,7 +222,7 @@ An ASP defines the physical assay and its input requirements:
 - Assay identity and associated design metadata.
 
 An ISGL can narrow selected review genes without changing the ASP's physical coverage.
-New assay resources follow the [assay setup and activation workflow](assay-setup.md).
+New assay resources follow the [Install assay resources](install-assay-resources.md).
 
 Values backed by platform constants, such as `DNA`, `RNA`, `hematology`, `solid`, `panel-dna`, `wgs`, `illumina`, and `nanopore`, are shown as semantic badges in admin tables and read-only views. This makes configuration scans faster without relying on raw text alone.
 

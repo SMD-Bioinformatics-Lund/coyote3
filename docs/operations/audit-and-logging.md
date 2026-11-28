@@ -116,7 +116,7 @@ MongoDB transaction as their data changes:
 - Clinical rule creation, content edits, lifecycle transitions, publication,
   baseline capture and draft deletion.
 - Public catalog revisions and publication.
-- Assay setup revisions and publication bundles.
+- Individual assay, configuration and gene-list revisions.
 - Assay, ASPC and gene-list creation, revision rotation and availability changes.
 - Assay-group creation and availability changes; diagnosis definitions and associations.
 - Report saves, sample-bundle ingestion, collection-ingest transaction callbacks,
@@ -338,7 +338,7 @@ the audit collection. A valid local password-reset request emits a security
 notification to active admin/superuser accounts and a corresponding
 `authentication.password_reset.requested` audit event.
 
-Marking a notification read does not clear it. Read messages remain in the tray
+Read messages remain in the notification center
 until recipient dismissal, their visibility deadline, or sender withdrawal.
 Closing a toast marks it read without clearing the inbox item. New administrative
 broadcasts snapshot the selected active recipients, including the all-users option;
@@ -355,7 +355,7 @@ treated as durable operational broadcasts.
 
 | Event | Notification audience |
 | --- | --- |
-| Assay, ASPC, assay group, ISGL, diagnosis, association or assay setup changed through administration | All signed-in active users |
+| Assay, ASPC, assay group, ISGL, diagnosis or association changed through administration | All signed-in active users |
 | Knowledgebase release published through the release-registry workflow, or public OncoKB refresh completed | All signed-in active users |
 | Sample report saved successfully | Active users assigned to the sample's assay group whose assay and environment scopes also match; wildcard assignments are respected |
 
@@ -364,14 +364,17 @@ everyone. Failed operations, report previews, password events and sample edits d
 not become global activity notices. Private security notifications retain their
 existing recipient rules. Activity notifications are in-app messages, not automatic emails.
 
-The audit replay worker delivers committed activity in batches of at most 100.
+When a browser opens its inbox stream, the API starts shared MongoDB change
+streams for notifications, supported audit events, committed report receipts and
+knowledgebase releases. Each API process shares its watchers across browser tabs.
+The audit replay worker also reconciles missed activity in batches of at most 100.
 It reads managed-resource success events, transaction-owned report-save receipts,
 and published knowledgebase release metadata from their configured databases.
 Bundled reference installation and VEP metadata/diagram maintenance also register
 successful publications. Skipping an already installed reference does not create a notice.
 Stable event IDs make delivery retry-safe and preserve existing recipient state.
 Late audit-outbox arrivals remain eligible within the notification retention window.
-The worker and beat must be running; browser polling retrieves the resulting notices.
+Keep the maintenance worker and beat running for recovery after a disconnect.
 Direct MongoDB edits without a supported audit event or release-registry entry do
 not generate notifications. No database migration is required for this delivery path.
 
@@ -427,7 +430,8 @@ include `audit_events` in protected backup and restore procedures.
 
 The bundled MongoDB initializer assigns the `coyote4_runtime_identity` custom role
 instead of database-wide identity `readWrite`. The runtime can read and insert
-clinical audit events and inspect their indexes. It cannot update/delete those
+clinical audit events and inspect their indexes. Live notifications also use collection-scoped
+`changeStream` on the clinical and operational audit collections. It cannot update/delete those
 events, drop the collection, change validators, or create/drop indexes. Mutable
 chain heads and expiring operational events have separate collection privileges.
 Replay uses insert-and-handle-duplicate semantics, never an update upsert.

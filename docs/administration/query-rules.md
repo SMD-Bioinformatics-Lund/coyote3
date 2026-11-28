@@ -360,7 +360,7 @@ publish a new version when adapting a policy.
 - For assay scope, register an active ASP belonging to that group.
 - For diagnosis scope, create an active diagnosis definition and associate it with the ASP.
   `base` means no specific diagnosis; it is not a separate diagnosis scope.
-- Complete the assay's [ASPC and gene-list configuration](assay-setup.md). Query rules
+- Complete the assay's [ASPC and gene-list configuration](install-assay-resources.md). Query rules
   do not create analysis availability, gene lists or missing finding data.
 - Assign the permissions below to the author, reviewer and publisher. The reviewer
   must differ from both the draft creator and its most recent editor.

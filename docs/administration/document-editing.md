@@ -12,7 +12,6 @@ over the active editor's work.
 | Users, roles and permission policies | The account, role or permission identifier |
 | Assays, assay configurations and gene lists | The stable resource identifier, across retained versions |
 | Diagnosis definitions | The shared diagnosis identifier |
-| Assay setup | The saved setup draft |
 | Query rules and reporting rules | The selected rule version |
 | Assay catalog | The selected catalog version |
 | Application controls | The application's controls document |
@@ -88,7 +87,7 @@ acquisition, retain its revision precondition, and release the lease after savin
 or cancelling. Do not share a session UUID between independent editors.
 
 The registered kinds are `users`, `roles`, `permissions`, `asp`, `aspc`, `genelists`,
-`diagnoses`, `assay-setups`, `query-rules`, `clinical-rules`, `assay-catalog`,
+`diagnoses`, `query-rules`, `clinical-rules`, `assay-catalog`,
 `controls`, `samples` and `sample-filters`. Controls use identity `default`.
 Sample-filter leases require `sample:edit:own` and the current user's sample scope;
 the admin sample editor requires `sample:edit:global`.

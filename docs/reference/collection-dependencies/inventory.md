@@ -60,8 +60,6 @@ is listed below. Database labels are logical services, not deployment database n
 | `primary.app_controls` | [primary.app_controls](operations.md#primary-app-controls) | `OPERATIONAL_COLLECTIONS.app_controls` |
 | `primary.asp_configs` | [primary.asp_configs](configuration.md#primary-asp-configs) | `aspc_collection` |
 | `primary.assay_groups` | [primary.assay_groups](configuration.md#primary-assay-groups) | `assay_groups_collection` |
-| `primary.assay_setup_revisions` | [primary.assay_setup_revisions](workflows.md#primary-assay-setup-revisions) | `assay_setup_revisions_collection` |
-| `primary.assay_setups` | [primary.assay_setups](workflows.md#primary-assay-setups) | `assay_setups_collection` |
 | `primary.assay_specific_panels` | [primary.assay_specific_panels](configuration.md#primary-assay-specific-panels) | `asp_collection` |
 | `primary.audit_outbox` | [primary.audit_outbox](operations.md#primary-audit-outbox) | `OPERATIONAL_COLLECTIONS.audit_outbox` |
 | `primary.biomarkers` | [primary.biomarkers](clinical.md#primary-biomarkers) | `biomarkers_collection` |

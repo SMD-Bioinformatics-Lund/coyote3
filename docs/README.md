@@ -10,7 +10,7 @@ pipeline. Start with the task you need.
 ## Find a guide {#start-with-a-task}
 
 - **[Review and report a sample](user-guide/clinical-review-workflow.md):** check findings, save your interpretation and issue a report.
-- **[Configure an assay](administration/assay-setup.md#step-by-step-add-a-new-assay):** prepare its settings, activate them and check a validation sample.
+- **[Configure an assay](administration/install-assay-resources.md):** prepare its settings, activate them and check a validation sample.
 - **[Try Coyote4 with synthetic samples](deployment/demo-installation.md):** choose Docker or native processes with dedicated demo storage.
 - **Install Coyote4:** choose [Docker](deployment/first-installation.md) or [native Linux/WSL](deployment/installation-operations.md#native-application-on-wsl-or-linux).
 - **Update an existing installation:** [upgrade the release](deployment/application-upgrades.md) or [restart the same release](deployment/application-redeployment.md).

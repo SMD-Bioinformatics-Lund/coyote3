@@ -101,5 +101,5 @@ configuration. A new capability requires a software release with input validatio
 ingestion, persistence contracts, analysis handlers, review UI, reporting behavior
 and regression coverage. The release-owned registry must match those implementations.
 
-Use [assay setup](assay-setup.md) to configure an existing workflow and
+Use [Install assay resources](install-assay-resources.md) to configure an existing workflow and
 [analysis availability](assay-analysis-availability.md) for file-dependent choices.
