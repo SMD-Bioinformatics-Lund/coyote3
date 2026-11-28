@@ -48,7 +48,7 @@ def test_runtime_role_cannot_change_or_drop_clinical_audit_records():
     protected = next(
         item for item in role["privileges"] if item["resource"]["collection"] == "audit_events"
     )
-    assert set(protected["actions"]) == {"find", "insert", "listIndexes"}
+    assert set(protected["actions"]) == {"changeStream", "find", "insert", "listIndexes"}
     assert not role["roles"]
     assert all(item["resource"]["db"] == "synthetic_identity" for item in role["privileges"])
     assert POLICY.read_text() == policy_text()

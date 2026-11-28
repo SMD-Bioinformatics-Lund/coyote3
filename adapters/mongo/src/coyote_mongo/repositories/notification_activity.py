@@ -3,11 +3,13 @@
 
 """Read committed activity for retry-safe notification delivery across database endpoints."""
 
+from collections.abc import Callable
 from datetime import datetime
 from hashlib import sha256
 from typing import Any
 
 from bson import ObjectId
+from pymongo.change_stream import CollectionChangeStream
 
 from coyote_mongo.config.collections import load_collection_section
 from coyote_mongo.config.operational_collections import (
@@ -17,12 +19,15 @@ from coyote_mongo.config.operational_collections import (
 from coyote_mongo.config.settings import AuditContext
 from coyote_mongo.repositories.mutations import write_with_audit
 
+_ACTIVITY_EVENTS = ("report.saved", "knowledgebase.oncokb_public.refresh.completed")
+_CONFIGURATION_TYPES = ("asp", "aspc", "assay_group", "diagnosis", "assay_diagnosis", "genelist")
+
 
 class NotificationActivityRepository:
     """Read audit events and knowledgebase releases without modifying either source."""
 
     @classmethod
-    def from_store(cls, store: Any, *, config: dict) -> "NotificationActivityRepository":
+    def from_store(cls, store: Any, *, config: dict[str, Any]) -> "NotificationActivityRepository":
         """Resolve configured source and destination collections on their owning clients.
 
         Args:
@@ -72,7 +77,9 @@ class NotificationActivityRepository:
         ]
         self._pending_progress: dict[str, Any] | None = None
 
-    def pending(self, *, since: datetime, environment: str, limit: int = 100) -> list[dict]:
+    def pending(
+        self, *, since: datetime, environment: str, limit: int = 100
+    ) -> list[dict[str, Any]]:
         """Find undelivered committed events, including late audit-outbox arrivals.
 
         Args:
@@ -112,28 +119,20 @@ class NotificationActivityRepository:
             state,
             budget,
         )
-        events = [event for event in events if self._notifiable(event)]
+        events = [
+            event
+            for event in events
+            if event.get("outcome") == "success"
+            and (
+                event.get("event_type") in _ACTIVITY_EVENTS
+                or event.get("event_type") == "api.mutation.succeeded"
+                and (event.get("resource") or {}).get("type") in _CONFIGURATION_TYPES
+            )
+        ]
         for release in releases:
             if release.get("status") not in {"active", "retired"}:
                 continue
-            identity = ObjectId(
-                sha256(
-                    f"knowledgebase:{release['_id']}:{release['published_at'].isoformat()}".encode()
-                ).hexdigest()[:24]
-            )
-            events.append(
-                {
-                    "_id": identity,
-                    "event_type": "knowledgebase.release.published",
-                    "occurred_at": release["published_at"],
-                    "resource": {
-                        "type": "knowledgebase",
-                        "id": str(release["_id"]),
-                        "name": str(release.get("source") or release["_id"]),
-                    },
-                    "metadata": {"release": str(release.get("release") or "")},
-                }
-            )
+            events.append(self.release_event(release))
         delivered = {
             row["_id"]
             for row in self.notifications.find(
@@ -149,39 +148,122 @@ class NotificationActivityRepository:
         return result
 
     @staticmethod
-    def _notifiable(event: dict[str, Any]) -> bool:
-        """Select supported successful activity from a bounded source page.
+    def release_event(release: dict[str, Any]) -> dict[str, Any]:
+        """Use the same release identity for live updates and scheduled reconciliation."""
+        identity = f"knowledgebase:{release['_id']}:{release['published_at'].isoformat()}"
+        return {
+            "_id": ObjectId(sha256(identity.encode()).hexdigest()[:24]),
+            "event_type": "knowledgebase.release.published",
+            "occurred_at": release["published_at"],
+            "resource": {
+                "type": "knowledgebase",
+                "id": str(release["_id"]),
+                "name": str(release.get("source") or release["_id"]),
+            },
+            "metadata": {"release": str(release.get("release") or "")},
+        }
 
-        Args:
-            event: Committed audit document, including outcome, operation and resource type.
+    def live_sources(
+        self, environment: str
+    ) -> dict[str, Callable[[], CollectionChangeStream[dict[str, Any]]]]:
+        """Return collection-specific change streams for committed inbox and activity writes."""
 
-        Returns:
-            Whether the operation belongs to a supported activity-notification category.
-        """
-        if event.get("outcome") != "success":
-            return False
-        kind = event.get("event_type")
-        return kind in {
-            "report.saved",
-            "knowledgebase.oncokb_public.refresh.completed",
-            "assay_setup.submit",
-        } or (
-            kind == "api.mutation.succeeded"
-            and (event.get("resource") or {}).get("type")
-            in {
-                "asp",
-                "aspc",
-                "assay_group",
-                "diagnosis",
-                "assay_diagnosis",
-                "assay_setup",
-                "genelist",
-            }
-        )
+        def watch(
+            collection: Any, match: dict[str, Any], fields: dict[str, Any], *, updates: bool = False
+        ) -> Callable[[], CollectionChangeStream[dict[str, Any]]]:
+            pipeline = [{"$match": match}, {"$project": {"_id": 1, **fields}}]
+            return lambda: collection.watch(
+                pipeline,
+                full_document="updateLookup" if updates else None,
+                max_await_time_ms=1000,
+            )
+
+        audit = {
+            "operationType": "insert",
+            "fullDocument.source.environment": environment,
+            "fullDocument.outcome": "success",
+            "fullDocument.category": {"$ne": "database_mutation"},
+            "$or": [
+                {"fullDocument.event_type": {"$in": _ACTIVITY_EVENTS}},
+                {
+                    "fullDocument.event_type": "api.mutation.succeeded",
+                    "fullDocument.resource.type": {"$in": _CONFIGURATION_TYPES},
+                },
+            ],
+        }
+        fields = {
+            key: "$fullDocument." + key
+            for key in (
+                "_id",
+                "event_type",
+                "occurred_at",
+                "resource",
+                "metadata",
+                "actor",
+            )
+        }
+        # Preserve the MongoDB resume token in _id; the business event lives under document.
+        audit_fields = {"document": fields}
+        db = self.notifications.database
+        return {
+            "inbox": watch(
+                self.notifications,
+                {
+                    "$or": [
+                        {"operationType": {"$in": ["insert", "replace"]}},
+                        {
+                            "operationType": "update",
+                            "updateDescription.updatedFields.withdrawn_on": {"$exists": True},
+                        },
+                    ],
+                },
+                {"audience": "$fullDocument.audience", "recipients": "$fullDocument.recipients"},
+                updates=True,
+            ),
+            "audit": watch(self.audit, audit, audit_fields),
+            "operational": watch(self.operational, audit, audit_fields),
+            "report": watch(
+                db[OPERATIONAL_COLLECTIONS.audit_outbox],
+                {
+                    "operationType": "insert",
+                    "fullDocument.route": self.audit_context.route,
+                    "fullDocument.event.source.environment": environment,
+                    "fullDocument.event.event_type": "report.saved",
+                    "fullDocument.event.outcome": "success",
+                },
+                {"document": {key: "$fullDocument.event." + key for key in fields}},
+            ),
+            "release": watch(
+                self.versions,
+                {
+                    "operationType": {"$in": ["insert", "update", "replace"]},
+                    "fullDocument.status": {"$in": ["active", "retired"]},
+                    "fullDocument.published_at": {"$type": "date"},
+                },
+                {
+                    "document": {
+                        key: "$fullDocument." + key
+                        for key in (
+                            "_id",
+                            "published_at",
+                            "release",
+                            "source",
+                        )
+                    }
+                },
+                updates=True,
+            ),
+        }
 
     def _scan_source(
-        self, collection: Any, query: dict, timestamp: str, name: str, state: dict, budget: int
-    ) -> list[dict]:
+        self,
+        collection: Any,
+        query: dict[str, Any],
+        timestamp: str,
+        name: str,
+        state: dict[str, Any],
+        budget: int,
+    ) -> list[dict[str, Any]]:
         """Read bounded forward and cyclic reconciliation pages using stable compound cursors.
 
         Reconciliation catches delayed outbox events older than the forward watermark.

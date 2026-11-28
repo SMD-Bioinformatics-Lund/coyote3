@@ -13,9 +13,11 @@ from coyote.contracts.notifications import (
     NotificationListPayload,
     NotificationRecipientsPayload,
 )
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
+from fastapi.responses import StreamingResponse
 
 from coyote_api.app.deps.application import get_notifications
+from coyote_api.app.deps.services import get_activity_notification_service
 from coyote_api.app.utilities.serialization import convert_to_serializable
 from coyote_api.interfaces.http.tags import TAG_NOTIFICATIONS
 from coyote_api.security.access import ApiUser, require_access
@@ -36,6 +38,20 @@ def notification_inbox(
 ):
     """Return only notifications visible to the authenticated user."""
     return convert_to_serializable(service.inbox(limit=limit, offset=offset))
+
+
+@router.get("/api/v1/notifications/events", include_in_schema=False)
+async def notification_events(
+    request: Request, user: ApiUser = Depends(require_access())
+) -> StreamingResponse:
+    """Signal a changed inbox; notification contents require a fresh authorized inbox read."""
+    return StreamingResponse(
+        request.app.state.notification_feed.events(
+            user.username, get_activity_notification_service
+        ),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+    )
 
 
 @router.patch(

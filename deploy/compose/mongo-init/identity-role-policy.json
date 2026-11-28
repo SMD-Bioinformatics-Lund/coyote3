@@ -93,6 +93,7 @@
       },
       {
         "actions": [
+          "changeStream",
           "find",
           "insert",
           "remove",
@@ -106,6 +107,7 @@
       },
       {
         "actions": [
+          "changeStream",
           "find",
           "insert",
           "listIndexes"

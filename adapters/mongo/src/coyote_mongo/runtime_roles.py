@@ -128,7 +128,7 @@ def identity_role(database: str) -> dict[str, Any]:
         database: Explicit identity database namespace.
 
     Returns:
-        Custom role definition. Clinical events permit find/insert/listIndexes only;
+        Custom role definition. Clinical events permit reads, change streams, inserts and index inspection;
         chain heads are mutable, and operational events can undergo retention cleanup.
         Token records permit lookup, creation, revocation and index inspection,
         without token deletion or index administration.
@@ -148,14 +148,14 @@ def identity_role(database: str) -> dict[str, Any]:
         (OPERATIONAL_COLLECTIONS.audit_outbox, ["find", "insert", "remove"]),
         (
             OPERATIONAL_COLLECTIONS.operational_audit_events,
-            ["find", "insert", "remove", "createIndex", "listIndexes"],
+            ["changeStream", "find", "insert", "remove", "createIndex", "listIndexes"],
         ),
     ):
         privileges.append({"resource": {"db": database, "collection": name}, "actions": actions})
     privileges.append(
         {
             "resource": {"db": database, "collection": mapping["audit_events_collection"]},
-            "actions": ["find", "insert", "listIndexes"],
+            "actions": ["changeStream", "find", "insert", "listIndexes"],
         }
     )
     privileges.append(

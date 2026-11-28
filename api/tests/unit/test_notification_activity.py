@@ -139,35 +139,6 @@ def test_shared_events_reach_every_user_and_replay_preserves_read_state():
     assert not inbox.inbox(user=principal("other.group"))["notifications"][0]["read"]
 
 
-def test_assay_review_request_reaches_only_assignee_and_links_with_deployment_prefix():
-    """Committed assignment events use retry-safe delivery and a scoped inbox audience."""
-    client, delivery, inbox, repo = fixture()
-    delivery.app_prefix = "/coyote4"
-    source = event(
-        "assay_setup.submit",
-        "assay_setup",
-        metadata={"reviewer": "group.reader", "asp_id": "synthetic"},
-    )
-    client.identity.audit.insert_one(source)
-    assert delivery.deliver() == 1
-    notices = inbox.inbox(user=principal("group.reader"))["notifications"]
-    assert len(notices) == 1
-    assert notices[0]["title"] == "Assay setup review requested"
-    assert notices[0]["resource"]["uri"] == "/coyote4/admin/assay-setups?setup=demo"
-    assert inbox.inbox(user=principal("other.group"))["notifications"] == []
-    repo.mark_read(str(source["_id"]), "group.reader")
-    assert delivery.deliver() == 0
-    assert inbox.inbox(user=principal("group.reader"))["notifications"][0]["read"]
-
-
-def test_historical_unassigned_review_request_does_not_broadcast():
-    """Old submission events without an assignee never expand their audience to everyone."""
-    client, delivery, inbox, _ = fixture()
-    client.identity.audit.insert_one(event("assay_setup.submit", "assay_setup", metadata={}))
-    assert delivery.deliver() == 1
-    assert inbox.inbox(user=principal("group.reader"))["notifications"] == []
-
-
 def test_inbox_pagination_keeps_read_messages_and_has_no_duplicate_pages():
     client, _, _, repo = fixture()
     now = datetime.now(timezone.utc)
@@ -501,3 +472,93 @@ def test_sample_lookup_failure_is_retried_without_losing_the_notification():
     assert client.app.notifications.count_documents({}) == 0
     delivery.samples.get_notification_sample.side_effect = None
     assert delivery.deliver() == 1
+
+
+def test_live_audit_selection_and_replay_preserve_one_notification(monkeypatch):
+    """A committed scoped change is deliverable immediately and replay preserves read state."""
+    client, delivery, inbox, _ = fixture()
+    source = event()
+    client.identity.audit.insert_one(source)
+    changes = client.mock.changes
+    for document in (
+        source,
+        event(source={"environment": "staging"}),
+        event(outcome="failure"),
+        event(resource="unrelated"),
+    ):
+        changes.insert_one({"operationType": "insert", "fullDocument": document})
+    monkeypatch.setattr(
+        delivery.activity.audit,
+        "watch",
+        lambda pipeline, **options: changes.aggregate(pipeline),
+        raising=False,
+    )
+    selected = list(delivery.activity.live_sources("production")["audit"]())
+    assert len(selected) == 1
+    delivery.deliver_event(selected[0]["document"])
+    (row,) = inbox.inbox(user=principal("group.reader"))["notifications"]
+    assert row["id"] == str(source["_id"])
+    inbox.mark_read(notification_id=row["id"], username="group.reader")
+    assert delivery.deliver() == 0
+    assert inbox.inbox(user=principal("group.reader"))["unread_count"] == 0
+
+
+def test_committed_report_notifies_its_group_before_audit_replay(monkeypatch):
+    """An outbox insert can deliver immediately; another deployment's receipt is ignored."""
+    from coyote_mongo.config.operational_collections import OPERATIONAL_COLLECTIONS
+
+    client, delivery, inbox, _ = fixture()
+    source = event("report.saved", "report", metadata={"sample_oid": "sample", "report_num": 2})
+    changes = client.mock.changes
+    correct_route = delivery.activity.audit_context.route
+    for route, record in (
+        ("different-installation", source),
+        (correct_route, {**source, "outcome": "failure"}),
+        (correct_route, source),
+    ):
+        changes.insert_one(
+            {"operationType": "insert", "fullDocument": {"route": route, "event": record}}
+        )
+    monkeypatch.setattr(
+        client.app[OPERATIONAL_COLLECTIONS.audit_outbox],
+        "watch",
+        lambda pipeline, **options: changes.aggregate(pipeline),
+        raising=False,
+    )
+    (change,) = delivery.activity.live_sources("production")["report"]()
+    delivery.deliver_event(change["document"])
+    assert (
+        inbox.inbox(user=principal("group.reader"))["notifications"][0]["title"]
+        == "Sample reported"
+    )
+    assert not inbox.inbox(user=principal("other.group"))["notifications"]
+    client.identity.audit.insert_one(source)
+    assert delivery.deliver() == 0
+
+
+def test_live_release_and_reconciliation_share_the_publication_identity(monkeypatch):
+    client, delivery, inbox, _ = fixture()
+    release = {
+        "_id": ObjectId(),
+        "status": "active",
+        "source": "fixture",
+        "release": "v2",
+        "published_at": datetime.now(timezone.utc),
+    }
+    client.kb.versions.insert_one(release)
+    changes = client.mock.changes
+    for status in ("active", "draft"):
+        changes.insert_one(
+            {"operationType": "update", "fullDocument": {**release, "status": status}}
+        )
+    monkeypatch.setattr(
+        delivery.activity.versions,
+        "watch",
+        lambda pipeline, **options: changes.aggregate(pipeline),
+        raising=False,
+    )
+    (change,) = delivery.activity.live_sources("production")["release"]()
+    delivery.deliver_event(delivery.activity.release_event(change["document"]))
+    assert delivery.deliver() == 0
+    (row,) = inbox.inbox(user=principal("group.reader"))["notifications"]
+    assert row["title"] == "Knowledgebase updated"

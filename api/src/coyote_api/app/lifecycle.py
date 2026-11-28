@@ -13,6 +13,7 @@ from importlib import import_module
 from coyote_api.app.runtime_setup import ApiRuntimeContext, create_runtime_context
 from coyote_api.app.runtime_state import bind_runtime_context, clear_runtime_context
 from coyote_api.config.paths import initialize_storage_directories
+from coyote_api.infra.notifications.live import NotificationFeed
 
 _runtime_bootstrap_lock = threading.RLock()
 _runtime_initialized = False
@@ -124,16 +125,19 @@ def create_lifespan(*, testing: bool, development: bool):
         """
         global _lifespan_owners
         acquired = False
+        feed = NotificationFeed()
         try:
             with _runtime_bootstrap_lock:
                 _lifespan_owners += 1
                 acquired = True
                 runtime = ensure_runtime_initialized(testing=testing, development=development)
                 _app.state.runtime = runtime
+                _app.state.notification_feed = feed
             initialize_storage_directories()
             yield
         finally:
             if acquired:
+                await feed.close()
                 if _app is not None:
                     _app.state.runtime = None
                 with _runtime_bootstrap_lock:
