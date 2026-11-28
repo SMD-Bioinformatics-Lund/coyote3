@@ -319,6 +319,7 @@ class NativeInstaller(Installer):
                     "--",
                     "--outDir",
                     str(self.directory / "frontend"),
+                    "--emptyOutDir",
                 ],
                 label="Frontend build",
                 process_env=self.public_environment(),
