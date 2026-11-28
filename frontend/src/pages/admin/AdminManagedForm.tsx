@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
-import { Surface } from "@/components/ui/surface"
 import { LoadingIndicator } from "@/components/ui/loading-indicator"
+import { Surface } from "@/components/ui/surface"
 import { cn } from "@/lib/utils"
 import {
   normalizeList,
@@ -86,8 +86,8 @@ export function AdminManagedForm({
     })
     setValues(updated)
   }
-  return (
-    <Surface as="section" variant="card" className="min-w-0 p-4">
+  const content = (
+    <>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="type-section-title">{mode === "create" ? "Create" : mode === "view" ? "View" : "Edit"} {spec.title}</h2>
@@ -119,9 +119,17 @@ export function AdminManagedForm({
             && (!form.fields[name].visible_when || String(values[form.fields[name].visible_when!.field] ?? "") === form.fields[name].visible_when!.value)
           ))
           if (!sectionFields.length) return null
+          const onlyField = sectionFields.length === 1 ? form.fields[sectionFields[0]] : undefined
+          const useSectionLabel = sectionName !== "general" && ["reporting-structured", "catalog-structured"].includes(onlyField?.display_type || "")
           return (
-            <fieldset key={sectionName} className="min-w-0 border-t border-border pt-4">
-              <legend className="pr-3 type-section-title text-foreground">{sectionName.replaceAll("_", " ")}</legend>
+            <fieldset key={sectionName} className={cn("min-w-0 border-border",
+              useSectionLabel && onlyField?.display_type === "catalog-structured"
+                ? "rounded-lg border bg-background/50 px-3 pb-2"
+                : useSectionLabel ? "border-t pt-2" : "border-t pt-4")}>
+              <legend className="pr-3 type-section-title text-foreground">
+                {sectionName.replaceAll("_", " ")}
+                {useSectionLabel && onlyField?.required && mode !== "view" && !onlyField.readonly && !onlyField.readonly_mode?.includes(mode) && <span className="ml-1 text-destructive">*</span>}
+              </legend>
               {sectionName === "configuration scope" && mode === "edit" && (
                 <p className="mb-4 type-supporting text-muted-foreground">Assay, diagnosis and environment identify this configuration. Use Copy as new to create another scope.</p>
               )}
@@ -136,6 +144,7 @@ export function AdminManagedForm({
                         field={field}
                         value={values[name]}
                         mode={mode}
+                        hideLabel={useSectionLabel}
                         onChange={(next) => updateField(name, next)}
                         formValues={values}
                       />
@@ -153,6 +162,7 @@ export function AdminManagedForm({
           {isSaving ? <LoadingIndicator className="h-4 w-4" /> : <icon.save className="h-4 w-4" />}{saveLabel}
         </Button>
       </footer>}
-    </Surface>
+    </>
   )
+  return <Surface as="section" variant="card" className="min-w-0 p-4">{content}</Surface>
 }

@@ -11,6 +11,16 @@ import { resource as users } from "./users/resource"
 
 export type AdminFormMode = "create" | "edit" | "view"
 
+export function isVersionedAssayResource(key: string) {
+  return key === "asp" || key === "aspc" || key === "genelists"
+}
+
+// A library change can advance several configurations while samples keep their pinned revision.
+export const assayRevisionQueryKeys = [
+  ["admin-resource", "aspc"], ["admin-resource-versions"], ["admin-resource-context"],
+  ["assay-gene-lists"], ["sample"], ["sample-configuration-preview"],
+] as const
+
 export type AdminResourceSpec = {
   key: string
   title: string
@@ -61,6 +71,7 @@ export type FormField = {
   default?: any
   groups?: Array<{
     title: string
+    help?: string
     category?: string
     requires_analysis?: string[]
     requires_intent?: string[]

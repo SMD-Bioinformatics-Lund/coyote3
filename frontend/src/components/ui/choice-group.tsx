@@ -13,15 +13,19 @@ export interface Choice {
   disabled?: boolean
 }
 
-/** Shared inset checkbox control for raised choice groups and admin forms. */
-export function ChoiceOption({ option, checked, disabled, onCheckedChange }: {
+/** A labelled checkbox for grouped or inline choices. */
+export function ChoiceOption({ option, checked, disabled, inline = false, onCheckedChange }: {
   option: Choice
   checked: boolean
   disabled?: boolean
+  inline?: boolean
   onCheckedChange: (checked: boolean) => void
 }) {
   return (
-    <label className={cn("form-option flex min-w-0 gap-2.5 px-3 py-2", option.description ? "items-start" : "items-center")}>
+    <label className={cn("flex min-w-0 gap-2", option.description ? "items-start" : "items-center",
+      inline
+        ? "min-h-7 cursor-pointer rounded px-1 hover:has-[:enabled]:bg-muted has-[:disabled]:cursor-default has-[:disabled]:text-muted-foreground"
+        : "form-option gap-2.5 px-3 py-2")}>
       <input
         type="checkbox"
         className={cn("size-4 shrink-0 accent-primary", option.description && "mt-0.5")}
@@ -31,7 +35,7 @@ export function ChoiceOption({ option, checked, disabled, onCheckedChange }: {
         onChange={event => onCheckedChange(event.target.checked)}
       />
       <span className="min-w-0 type-body-sm">
-        <span className="block break-words font-medium text-foreground">{option.label}</span>
+        <span className={cn("block break-words font-medium", !inline && "text-foreground")}>{option.label}</span>
         {option.description && <span className="block break-words type-meta text-muted-foreground">{option.description}</span>}
       </span>
     </label>

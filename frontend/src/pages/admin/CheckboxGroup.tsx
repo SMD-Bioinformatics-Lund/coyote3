@@ -15,16 +15,20 @@ import { ChoiceOption } from "@/components/ui/choice-group"
 
 export function CheckboxGroup({
   field,
+  label = field.label,
   value,
   onChange,
   disabled,
   formValues,
+  inline = false,
 }: {
   field: FormField
+  label?: string
   value: any
   onChange: (next: any[]) => void
   disabled?: boolean
   formValues?: Record<string, any>
+  inline?: boolean
 }) {
   const selected = new Set(normalizeList(value))
   const conditional = field.conditional_options
@@ -77,6 +81,7 @@ export function CheckboxGroup({
     }
     return (
       <textarea
+        aria-label={label}
         value={normalizeList(value).join("\n")}
         onChange={(event) => onChange(normalizeList(event.target.value))}
         disabled={disabled}
@@ -136,14 +141,14 @@ export function CheckboxGroup({
     )
   }
   return (
-    <div className="form-option-group max-h-56 overflow-auto rounded-xl p-3" aria-disabled={disabled || undefined}>
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+    <div className={inline ? undefined : "form-option-group max-h-56 overflow-auto rounded-xl p-3"} aria-disabled={disabled || undefined}>
+      <div className={inline ? "flex flex-wrap items-center gap-x-2 gap-y-0.5" : "grid gap-2 sm:grid-cols-2 xl:grid-cols-3"}>
         {options.map((option) => {
           const value = optionValue(option)
           const label = optionLabel(option) || value
           const description = optionDescription(option)
           return (
-            <ChoiceOption key={value} option={{ value, label, description: description || undefined }}
+            <ChoiceOption key={value} inline={inline} option={{ value, label, description: description || undefined }}
               checked={visibleSelected.has(value)}
               disabled={disabled || !allowed.has(value)}
               onCheckedChange={(checked) => {

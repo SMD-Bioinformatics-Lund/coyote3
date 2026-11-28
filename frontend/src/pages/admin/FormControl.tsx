@@ -18,6 +18,7 @@ import {
 } from "@/pages/admin/resource-list"
 import type { AdminFormMode, FormField } from "@/pages/admin/resource-specs"
 import { CheckboxGroup } from "./CheckboxGroup"
+import { OrderedCheckboxGroup } from "./OrderedCheckboxGroup"
 import { ObjectFieldEditor } from "./ObjectFieldEditor"
 import { readFormPath, writeFormPath } from "./form-paths"
 import { useId, useState, type ComponentProps } from "react"
@@ -68,12 +69,15 @@ export function StructuredObjectField({
   const selectedAnalyses = new Set(normalizeList(formValues?.analysis_types).map((item) => item.toUpperCase()))
   const selectedIntents = new Set(normalizeList(formValues?.analysis_intents || ["somatic"]).map((item) => item.toLowerCase()))
   const isFilter = field.display_type === "filters-structured"
+  const isReporting = field.display_type === "reporting-structured"
+  const isCatalog = field.display_type === "catalog-structured"
+  const groupId = useId()
   const reportSections = new Set(normalizeList(objectValue.report_sections
     ?? field.groups?.flatMap(group => group.fields).find(item => item.key === "report_sections")?.default))
   const visibleFields = (group: NonNullable<FormField["groups"]>[number]) => group.fields.filter(nested => (
     (!nested.requires_analysis || normalizeList(nested.requires_analysis).some(item => selectedAnalyses.has(item.toUpperCase())))
     && (!nested.requires_intent || normalizeList(nested.requires_intent).some(item => selectedIntents.has(item.toLowerCase())))
-    && (field.display_type !== "reporting-structured" || !nested.key.startsWith("reportable_tiers.")
+    && (!isReporting || !nested.key.startsWith("reportable_tiers.")
       || reportSections.has(nested.key.slice("reportable_tiers.".length)))
   ))
   const visibleGroups = (field.groups || []).filter((group: any) => (
@@ -89,64 +93,72 @@ export function StructuredObjectField({
       else groupedFilters.set(category, { title: category, fields: [...group.fields] })
     }
   }
-  const displayGroups = isFilter ? [...groupedFilters.values()] : visibleGroups
+  const displayGroups = (isFilter ? [...groupedFilters.values()] : visibleGroups)
+    .map(group => ({ ...group, fields: visibleFields(group) }))
+    .filter(group => group.fields.length)
+  const hasTiers = isReporting && displayGroups.some(group => group.fields.some(nested => nested.key.startsWith("reportable_tiers.")))
   return (
-    <div className="min-w-0 space-y-4">
+    <div className={isReporting ? "grid min-w-0 gap-2.5 @3xl/report:grid-cols-2" : "min-w-0 space-y-4"}>
       {isFilter && !visibleGroups.length && <p role="status" className="p-4 type-body text-muted-foreground">No filter groups apply to the selected analyses and intents.</p>}
-      {displayGroups.filter(group => visibleFields(group).length > 0).map((group) => (
-        <fieldset key={group.title} aria-label={group.title} className={isFilter ? "min-w-0 overflow-hidden rounded-lg border border-border bg-background shadow-sm" : "min-w-0 space-y-2"}>
-          <h4 className={isFilter ? "border-l-4 border-primary bg-muted px-3 py-2 type-label font-semibold text-foreground" : "text-xs font-semibold uppercase text-muted-foreground"}>{group.title}</h4>
-          <div className={isFilter ? "grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-6" : "grid gap-3 md:grid-cols-2 xl:grid-cols-3"}>
-            {visibleFields(group).map((nested) => {
+      {displayGroups.map((group, index) => {
+        const fields = group.fields
+        const ordered = fields.some(nested => nested.display_type === "ordered-checkboxes")
+        const panel = isReporting ? cn("min-w-0 rounded-lg border border-border bg-background/50 px-3 py-2.5",
+          (ordered || (!hasTiers && fields.some(nested => nested.key === "report_sections"))) && "col-span-full") : undefined
+        const controls = (
+          <div className={cn(
+            isFilter ? "grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-6"
+              : "grid grid-cols-[repeat(auto-fit,minmax(min(100%,13rem),1fr))] gap-x-3 gap-y-2",
+            ordered && "grid-cols-1 @3xl/report:grid-cols-2",
+          )}>
+            {fields.map((nested) => {
+              const type = nested.type || "text"
               const nestedField: FormField = {
                 ...nested,
-                display_type:
-                  nested.type === "checkbox-group"
-                    ? "checkbox-group"
-                    : nested.type === "checkbox"
-                      ? "checkbox"
-                      : nested.type === "select"
-                        ? "select"
-                      : nested.type === "textarea" || nested.type === "list"
-                        ? "textarea"
-                        : "input",
-                data_type:
-                  nested.type === "int"
-                    ? "int"
-                    : nested.type === "float"
-                      ? "float"
-                      : nested.type === "checkbox"
-                        ? "bool"
-                        : nested.type === "list"
-                          ? "list"
-                          : nested.type,
+                display_type: nested.display_type ?? (
+                  type === "list" ? "textarea" : ["checkbox-group", "checkbox", "select", "textarea"].includes(type) ? type : "input"
+                ),
+                data_type: type === "checkbox" ? "bool" : type,
               }
               return (
-                <div key={nested.key} className={isFilter ? (nested.type === "checkbox-group" ? "min-w-0 xl:col-span-3" : "min-w-0 xl:col-span-2") : "min-w-0"}>
-                <FormControl
-                  key={nested.key}
-                  name={nested.key}
-                  field={nestedField}
-                  value={readFormPath(objectValue, nested.key) ?? nested.default ?? defaultForField(nestedField)}
-                  mode="edit"
-                  onChange={(nextValue) => {
-                    const coerced = coerceFieldValue(nestedField, nextValue)
-                    onChange(writeFormPath(
-                      objectValue,
-                      nested.key,
-                      coerced === undefined && nextValue === "" ? "" : coerced,
-                    ))
-                  }}
-                  disabled={disabled}
-                  compact
-                  formValues={formValues}
-                />
+                <div key={nested.key} className={cn("min-w-0",
+                  isFilter && (nested.type === "checkbox-group" ? "xl:col-span-3" : "xl:col-span-2"),
+                  ordered && "not-first:border-t not-first:border-border not-first:pt-2 @3xl/report:not-first:border-l @3xl/report:not-first:border-t-0 @3xl/report:not-first:pt-0 @3xl/report:not-first:pl-3",
+                )}>
+                  <FormControl
+                    name={nested.key}
+                    field={nestedField}
+                    value={readFormPath(objectValue, nested.key) ?? nested.default ?? defaultForField(nestedField)}
+                    mode="edit"
+                    onChange={(nextValue) => {
+                      const coerced = coerceFieldValue(nestedField, nextValue)
+                      onChange(writeFormPath(
+                        objectValue,
+                        nested.key,
+                        coerced === undefined && nextValue === "" ? "" : coerced,
+                      ))
+                    }}
+                    disabled={disabled}
+                    compact
+                    inlineChoices={isReporting || isCatalog}
+                    formValues={formValues}
+                  />
                 </div>
               )
             })}
           </div>
+        )
+        if (!group.help && fields.length === 1 && (isCatalog || (isReporting && fields[0].type === "checkbox-group"))) {
+          return <div key={group.title} className={panel}>{controls}</div>
+        }
+        const showHelp = group.help && !(ordered && disabled)
+        const descriptionId = showHelp ? `${groupId}-${index}` : undefined
+        return <fieldset key={group.title} aria-label={group.title} aria-describedby={descriptionId} className={cn("min-w-0", panel, isFilter && "overflow-hidden rounded-lg border border-border bg-background shadow-sm")}>
+          <h4 className={isFilter ? "border-l-4 border-primary bg-muted px-3 py-2 type-label font-semibold text-foreground" : "mb-1.5 text-sm font-semibold text-foreground"}>{group.title}</h4>
+          {showHelp && <p id={descriptionId} className="mb-2 type-body-sm text-muted-foreground">{group.help}</p>}
+          {controls}
         </fieldset>
-      ))}
+      })}
     </div>
   )
 }
@@ -159,6 +171,8 @@ export function FormControl({
   onChange,
   disabled,
   compact = false,
+  hideLabel = false,
+  inlineChoices = false,
   formValues,
 }: {
   name: string
@@ -168,6 +182,8 @@ export function FormControl({
   onChange: (next: any) => void
   disabled?: boolean
   compact?: boolean
+  hideLabel?: boolean
+  inlineChoices?: boolean
   formValues?: Record<string, any>
 }) {
   const readOnly = disabled || mode === "view" || field.readonly || Boolean(field.derive_from) || field.readonly_mode?.includes(mode)
@@ -183,6 +199,19 @@ export function FormControl({
   const newIdentifier = mode === "create" && !readOnly && !field.options && (!field.display_type || field.display_type === "input") && ["asp_id", "isgl_id"].includes(name)
   const identifierError = newIdentifier && Boolean(value) && !/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/.test(String(value))
   const commonClass = "form-control w-full rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
+  const structured = ["filters-structured", "reporting-structured", "catalog-structured"].includes(field.display_type || "")
+  const jsonEditor = field.display_type === "jsoneditor" || field.display_type === "jsoneditor-or-upload" || field.data_type === "json"
+  const grouped = structured || (jsonEditor && !Array.isArray(value)) || ["assay-access", "checkbox-group", "multi-select", "ordered-checkboxes", "color"].includes(field.display_type || "")
+  const inlineCheckbox = inlineChoices && field.display_type === "checkbox"
+
+  if (readOnly && inlineChoices && ["input", "select"].includes(field.display_type || "")) {
+    const options = optionsForDependency(field, formValues) ?? field.options ?? []
+    const option = options.find(item => optionValue(item) === String(value ?? ""))
+    return <dl className="min-w-0">
+      <dt className="type-meta text-muted-foreground">{label}</dt>
+      <dd className="mt-0.5 wrap-anywhere type-body-sm text-foreground">{(option ? optionLabel(option) : String(value ?? "")) || "—"}</dd>
+    </dl>
+  }
 
   if (field.display_type === "user-settings") {
     return (
@@ -209,11 +238,12 @@ export function FormControl({
       environments={field.environment_options || []} disabled={readOnly} />
   } else if (field.display_type === "checkbox") {
     const checked = Boolean(value)
-    control = (
-      <label className="flex min-h-9 items-center gap-2 rounded-lg border border-border bg-background/60 px-2 py-1.5 text-sm">
-        <input type="checkbox" checked={checked} disabled={readOnly} onChange={(event) => onChange(event.target.checked)} />
+    const checkbox = <input type="checkbox" checked={checked} disabled={readOnly} aria-describedby={help ? helpId : undefined} onChange={(event) => onChange(event.target.checked)} />
+    control = inlineCheckbox ? checkbox : (
+      <span className="flex min-h-9 items-center gap-2 rounded-lg border border-border bg-background/60 px-2 py-1.5 text-sm">
+        {checkbox}
         <span>{checked ? "Enabled" : "Disabled"}</span>
-      </label>
+      </span>
     )
   } else if (field.display_type === "select") {
     const dependentOptions = optionsForDependency(field, formValues)
@@ -227,11 +257,13 @@ export function FormControl({
         })}
       </select>
     )
+  } else if (field.display_type === "ordered-checkboxes") {
+    control = <OrderedCheckboxGroup options={field.options} value={value} onChange={onChange} disabled={readOnly} />
   } else if (field.display_type === "checkbox-group" || field.display_type === "multi-select") {
-    control = <CheckboxGroup field={field} value={value} onChange={onChange} disabled={readOnly} formValues={formValues} />
-  } else if (field.display_type === "filters-structured" || field.display_type === "reporting-structured" || field.display_type === "catalog-structured") {
+    control = <CheckboxGroup field={field} label={label} value={value} onChange={onChange} disabled={readOnly} formValues={formValues} inline={inlineChoices} />
+  } else if (structured) {
     control = <StructuredObjectField field={field} value={value} onChange={onChange} disabled={readOnly} formValues={formValues} />
-  } else if (field.display_type === "jsoneditor" || field.display_type === "jsoneditor-or-upload" || field.data_type === "json") {
+  } else if (jsonEditor) {
     control = Array.isArray(value) ? (
       <ListTextarea
         value={value}
@@ -311,15 +343,25 @@ export function FormControl({
   }
 
   const outlined = ["input", "text", "textarea", "select", "password", "email", "number"].includes(field.display_type || "input") && field.data_type !== "json" && !field.groups
+  const caption = <>{label}{field.required && !readOnly && <span className="ml-1 text-destructive">*</span>}</>
   return (
-    <div className={compact ? "text-xs" : "text-sm"}>
-      <label className={cn("block", outlined ? "relative pt-2" : "space-y-1")}>
+    <div className={cn(compact ? "text-xs" : "text-sm",
+      field.display_type === "reporting-structured" && "@container/report",
+      hideLabel && field.display_type === "catalog-structured" && "flex flex-wrap items-center gap-x-4",
+      readOnly && ["reporting-structured", "catalog-structured"].includes(field.display_type || "") && "structured-form-readonly")}>
+      {hideLabel && structured ? control : grouped ? (
+        <fieldset className="min-w-0" aria-describedby={help ? helpId : undefined}>
+          <legend className={cn("mb-1 font-medium text-foreground", inlineChoices && "font-semibold")}>{caption}</legend>
+          {control}
+        </fieldset>
+      ) : inlineCheckbox ? (
+        <label className="inline-flex min-h-8 items-center gap-2 type-body-sm font-medium">{control}{caption}</label>
+      ) : <label className={cn("block", outlined ? "relative pt-2" : "space-y-1")}>
         <span className={cn("flex items-center gap-1 font-medium", outlined ? "form-field-label absolute left-3 top-0 z-10 px-1 type-meta text-muted-foreground" : "text-foreground")}>
-          {label}
-          {field.required && !readOnly && <span className="text-destructive">*</span>}
+          {caption}
         </span>
         {control}
-      </label>
+      </label>}
       {newIdentifier && <span className={cn("block text-xs font-normal normal-case tracking-normal", identifierError ? "text-destructive" : "text-muted-foreground")}>Use lowercase identifiers: hyphens between distinct terms and underscores within an assay name, such as tumwgs-hema or hematology_gmsv1.</span>}
       {help && <span id={helpId} className="mt-1 block text-xs font-normal normal-case tracking-normal text-muted-foreground">{help}</span>}
     </div>
