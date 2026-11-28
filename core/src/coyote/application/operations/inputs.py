@@ -36,11 +36,6 @@ from coyote.contracts.resource_fields import (
 )
 from coyote.contracts.samples import ConfigurationApplyRequest
 from coyote.contracts.schemas.assay_groups import AssayGroupCreate, AssayGroupStatus
-from coyote.contracts.schemas.assay_setup import (
-    AssaySetupAction,
-    AssaySetupContent,
-    AssaySetupUpdate,
-)
 from coyote.contracts.schemas.clinical_rules import (
     ClinicalRuleDecision,
     ClinicalRuleDraftCreate,
@@ -73,9 +68,6 @@ __all__ = [
     "AssayField",
     "AssayGroupCreate",
     "AssayGroupStatus",
-    "AssaySetupAction",
-    "AssaySetupContent",
-    "AssaySetupUpdate",
     "ClinicalRuleDecision",
     "ClinicalRuleDraftCreate",
     "ClinicalRuleDraftUpdate",

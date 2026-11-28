@@ -80,7 +80,7 @@ Raises:
 ### `AdministrationServices`
 
 ```python
-AdministrationServices(*, users: 'Callable[[], UserManagementService]', recovery: 'Callable[[], AccountRecoveryService]', sessions: 'Callable[[], SessionActivityRepository]', roles: 'Callable[[], RoleManagementService]', permissions: 'Callable[[], PermissionManagementService]', assays: 'Callable[[], AspService]', assay_groups: 'Callable[[], AssayGroupService]', diagnoses: 'Callable[[], DiagnosisService]', assay_configurations: 'Callable[[], AspcService]', gene_lists: 'Callable[[], IsglService]', sample_administration: 'Callable[[], ResourceSampleService]', assay_setups: 'Callable[[], AssaySetupService]', catalog_authoring: 'Callable[[], PublicAssayCatalogManagementService]', reference_data: 'Callable[[], ResourceFieldService]') -> 'None'
+AdministrationServices(*, users: 'Callable[[], UserManagementService]', recovery: 'Callable[[], AccountRecoveryService]', sessions: 'Callable[[], SessionActivityRepository]', roles: 'Callable[[], RoleManagementService]', permissions: 'Callable[[], PermissionManagementService]', assays: 'Callable[[], AspService]', assay_groups: 'Callable[[], AssayGroupService]', diagnoses: 'Callable[[], DiagnosisService]', assay_configurations: 'Callable[[], AspcService]', gene_lists: 'Callable[[], IsglService]', sample_administration: 'Callable[[], ResourceSampleService]', catalog_authoring: 'Callable[[], PublicAssayCatalogManagementService]', reference_data: 'Callable[[], ResourceFieldService]') -> 'None'
 ```
 
 ```text
@@ -448,195 +448,6 @@ Raises:
         or the operation's existing business rules reject the request.
 ```
 
-### `AssaySetups`
-
-```python
-AssaySetups(runtime: 'ApplicationRuntime', service: 'Callable[[], AssaySetupService]') -> 'None'
-```
-
-```text
-Authorized assay setups operations shared by HTTP and local callers.
-```
-
-#### `AssaySetups.create_setup`
-
-```python
-AssaySetups.create_setup(self, *, payload: 'AssaySetupContent') -> 'dict[str, Any]'
-```
-
-```text
-Reserve an assay identifier and save a draft without creating an active ASP.
-
-Args:
-    payload: Authored fields validated against the managed resource contract.
-
-Returns:
-    Mutation outcome with the affected resource identity and available revision metadata.
-
-Raises:
-    AppError: Authentication, required grants (assay.panel:create, assay.panel:create, assay.config:create, gene_list.insilico:create), validation
-        or the operation's existing business rules reject the request.
-```
-
-#### `AssaySetups.delete_setup`
-
-```python
-AssaySetups.delete_setup(self, *, identifier: 'str', revision: 'int') -> 'dict[str, Any]'
-```
-
-```text
-Delete an unchanged draft or submitted setup; requires assay.panel:delete.
-
-Args:
-    identifier: Saved setup or catalog-version identifier.
-    revision: Expected saved revision; concurrent changes are rejected.
-
-Returns:
-    Mutation outcome with the affected resource identity and available revision metadata.
-
-Raises:
-    AppError: Authentication, required grants (assay.panel:delete), validation
-        or the operation's existing business rules reject the request.
-```
-
-#### `AssaySetups.list_setups`
-
-```python
-AssaySetups.list_setups(self) -> 'dict[str, Any]'
-```
-
-```text
-List saved setup summaries; requires assay.panel:list.
-
-Returns:
-    Requested resource records and the existing catalog or revision metadata.
-
-Raises:
-    AppError: Authentication, required grants (assay.panel:list), validation
-        or the operation's existing business rules reject the request.
-```
-
-#### `AssaySetups.new_setup_context`
-
-```python
-AssaySetups.new_setup_context(self) -> 'dict[str, Any]'
-```
-
-```text
-Return the assay form and optional scope choices for a new setup.
-
-Returns:
-    Form definitions, current values and permitted choices for the requested resource.
-
-Raises:
-    AppError: Authentication, required grants (assay.panel:create), validation
-        or the operation's existing business rules reject the request.
-```
-
-#### `AssaySetups.publish_setup`
-
-```python
-AssaySetups.publish_setup(self, *, identifier: 'str', payload: 'AssaySetupAction') -> 'dict[str, Any]'
-```
-
-```text
-Publish and atomically activate a complete draft or optionally reviewed setup.
-
-Args:
-    identifier: Saved assay setup identifier.
-    payload: Expected revision and optional publication notes.
-
-Returns:
-    Published setup snapshot after its resources are activated atomically.
-
-Raises:
-    AppError: Authentication, required grants (assay.panel:edit, assay.panel:create, assay.config:create, gene_list.insilico:create), validation
-        or the operation's existing business rules reject the request.
-```
-
-#### `AssaySetups.return_setup`
-
-```python
-AssaySetups.return_setup(self, *, identifier: 'str', payload: 'AssaySetupAction') -> 'dict[str, Any]'
-```
-
-```text
-Return a submitted setup to draft with the caller's explanation.
-
-Args:
-    identifier: Submitted assay setup identifier.
-    payload: Expected revision and required explanation for returning to draft.
-
-Returns:
-    Editable draft snapshot at the next revision.
-
-Raises:
-    AppError: Authentication, required grants (assay.panel:edit), validation
-        or the operation's existing business rules reject the request.
-```
-
-#### `AssaySetups.save_setup`
-
-```python
-AssaySetups.save_setup(self, *, identifier: 'str', payload: 'AssaySetupUpdate') -> 'dict[str, Any]'
-```
-
-```text
-Save the current draft revision; submitted and published setups are immutable.
-
-Args:
-    identifier: Saved setup or catalog-version identifier.
-    payload: Authored fields validated against the managed resource contract.
-
-Returns:
-    Mutation outcome with the affected resource identity and available revision metadata.
-
-Raises:
-    AppError: Authentication, required grants (assay.panel:edit, assay.panel:create, assay.config:create, gene_list.insilico:create), validation
-        or the operation's existing business rules reject the request.
-```
-
-#### `AssaySetups.setup_context`
-
-```python
-AssaySetups.setup_context(self, *, identifier: 'str') -> 'dict[str, Any]'
-```
-
-```text
-Inspect staged configuration, readiness and revision history without writing data.
-
-Args:
-    identifier: Saved setup or catalog-version identifier.
-
-Returns:
-    Form definitions, current values and permitted choices for the requested resource.
-
-Raises:
-    AppError: Authentication, required grants (assay.panel:view), validation
-        or the operation's existing business rules reject the request.
-```
-
-#### `AssaySetups.submit_setup`
-
-```python
-AssaySetups.submit_setup(self, *, identifier: 'str', payload: 'AssaySetupAction') -> 'dict[str, Any]'
-```
-
-```text
-Validate staged resources and assign optional review to an eligible colleague.
-
-Args:
-    identifier: Saved assay setup identifier.
-    payload: Expected revision, eligible reviewer in assignee and optional notes.
-
-Returns:
-    Mutation outcome with the affected resource identity and available revision metadata.
-
-Raises:
-    AppError: Authentication, required grants (assay.panel:edit, assay.panel:create, assay.config:create, gene_list.insilico:create), validation
-        or the operation's existing business rules reject the request.
-```
-
 ### `Assays`
 
 ```python
@@ -863,7 +674,7 @@ CatalogAuthoring.delete_version(self, *, identifier: 'str', revision: 'int') -> 
 Delete an unchanged unpublished version; requires catalog:draft.
 
 Args:
-    identifier: Saved setup or catalog-version identifier.
+    identifier: Catalog version to delete.
     revision: Expected saved revision; concurrent changes are rejected.
 
 Returns:
@@ -4838,7 +4649,7 @@ Resolve the registered CNV raster profile after current sample authorization.
 #### `Sample.preview_configuration`
 
 ```python
-Sample.preview_configuration(self, *, retain_overrides: 'bool' = False) -> 'dict[str, Any]'
+Sample.preview_configuration(self, *, retain_overrides: 'bool' = True) -> 'dict[str, Any]'
 ```
 
 ```text
@@ -5738,119 +5549,6 @@ AssayGroupStatus.trim_reason(value: object) -> object
 Reject whitespace-only reasons after trimming.
 ```
 
-### `AssaySetupAction`
-
-```python
-AssaySetupAction(*, revision: Annotated[int, Ge(ge=1)], reason: Annotated[str, MaxLen(max_length=2000)] = '', assignee: Annotated[str | None, MinLen(min_length=1), MaxLen(max_length=200)] = None) -> None
-```
-
-```text
-Concurrency precondition, notes and reviewer for optional review submission.
-```
-
-### `AssaySetupContent`
-
-```python
-AssaySetupContent(*, panel: coyote.contracts.schemas.assay.AssaySpecificPanelsDoc, scopes: Annotated[list[str], MaxLen(max_length=100)] = <factory>, environments: Annotated[list[str], MaxLen(max_length=20)] = <factory>, gene_lists: Annotated[list[dict[str, Any]], MaxLen(max_length=100)] = <factory>, existing_gene_list_ids: Annotated[list[str], MaxLen(max_length=100)] = <factory>, configurations: Annotated[list[dict[str, Any]], MaxLen(max_length=200)] = <factory>) -> None
-```
-
-```text
-Assay definition and staged resources with implicit Base and production selections.
-```
-
-#### `AssaySetupContent.canonical_environments`
-
-```python
-AssaySetupContent.canonical_environments(values: list[str]) -> list[str]
-```
-
-```text
-Include production once and validate optional configuration environments.
-
-Args:
-    values: Selected clinical configuration environments; empty selects production.
-
-Returns:
-    Production followed by normalized, unique optional environments.
-
-Raises:
-    ValueError: A selected environment is unsupported.
-```
-
-#### `AssaySetupContent.canonical_gene_list_ids`
-
-```python
-AssaySetupContent.canonical_gene_list_ids(values: list[str]) -> list[str]
-```
-
-```text
-Normalize and deduplicate shared list references before staging links.
-
-Args:
-    values: Selected existing gene-list identifiers; empty means no explicit links.
-
-Returns:
-    Canonical identifiers in selection order.
-
-Raises:
-    ValueError: A reference is not a valid clinical identifier.
-```
-
-#### `AssaySetupContent.canonical_scopes`
-
-```python
-AssaySetupContent.canonical_scopes(values: list[str]) -> list[str]
-```
-
-```text
-Include Base once and canonicalize optional named scope identifiers.
-```
-
-#### `AssaySetupContent.prepare_panel`
-
-```python
-AssaySetupContent.prepare_panel(value: Any) -> Any
-```
-
-```text
-Prepare an assay form for validation without requiring derived modality.
-
-Args:
-    value: Submitted assay document or an already validated model.
-
-Returns:
-    A copy without display counts or application-managed audit metadata,
-    with missing modality derived from a known sequencing family. The
-    creation time is retained for stable snapshot reads; the save service
-    discards imported audit fields before creating a draft.
-```
-
-#### `AssaySetupContent.prepare_staged_records`
-
-```python
-AssaySetupContent.prepare_staged_records(value: Any) -> Any
-```
-
-```text
-Discard imported audit metadata from staged gene lists and configurations.
-
-Args:
-    value: Staged record list, or invalid input left for contract validation.
-
-Returns:
-    Record content with application-owned metadata removed.
-```
-
-### `AssaySetupUpdate`
-
-```python
-AssaySetupUpdate(*, revision: Annotated[int, Ge(ge=1)], content: coyote.contracts.schemas.assay_setup.AssaySetupContent) -> None
-```
-
-```text
-Replace draft content only at the revision the editor loaded.
-```
-
 ### `ClinicalRuleDecision`
 
 ```python
@@ -5904,7 +5602,7 @@ Reason and optional assignee for a requested lifecycle transition.
 ### `ConfigurationApplyRequest`
 
 ```python
-ConfigurationApplyRequest(*, expected_version: Annotated[int, Ge(ge=1)], configuration_id: Annotated[str, MinLen(min_length=1)], reason: Annotated[str, MinLen(min_length=1), MaxLen(max_length=2000)], retain_overrides: bool = False) -> None
+ConfigurationApplyRequest(*, expected_version: Annotated[int, Ge(ge=1)], configuration_id: Annotated[str, MinLen(min_length=1)], reason: Annotated[str, MinLen(min_length=1), MaxLen(max_length=2000)], retain_overrides: bool = True, accept_incompatible_overrides: bool = False) -> None
 ```
 
 ```text

@@ -46,19 +46,19 @@ Coverage measures the complete `coyote_api` namespace and branches with a 75% fl
 It writes `.coverage` and `coverage/coverage.xml` here; add `--cov-report=html` for
 `coverage/html/`. Smoke runs do not enforce the full-suite coverage floor.
 
-## Assay setup checks
+## Assay resource checks
 
-From the repository root, the API and browser checks use controlled fixtures:
+Run the individual resource and sample revision tests from the repository root.
 
 ```bash
-.venv/bin/pytest -q api/tests/unit/test_assay_setup.py --no-cov
-npm --prefix frontend run test:e2e -- assay-setup.spec.ts
+.venv/bin/pytest -q core/tests/unit/test_aspc_contract_flow.py core/tests/unit/test_configuration_apply_flow.py
+npm --prefix frontend run test:unit -- src/components/admin/BulkInstall.test.tsx
 ```
 
-Transaction checks require `ASSAY_SETUP_TEST_MONGO_URI` pointing to an explicitly
+Transaction checks require `ASSAY_RESOURCE_TEST_MONGO_URI` pointing to an explicitly
 disposable local replica set. They create and remove their own synthetic database.
 Never use production credentials or a production/forwarded database endpoint.
 
 ```bash
-.venv/bin/pytest -q tests/integration/test_assay_setup_transactions.py --no-cov
+.venv/bin/pytest -q tests/integration/test_assay_resource_transactions.py --no-cov
 ```

@@ -37,3 +37,19 @@ def test_isgl_aliases_are_labels_not_scope_identifiers():
             displayname="Test",
             aliases=[123],
         )
+
+
+def test_shared_definition_can_precede_its_assays():
+    from unittest.mock import Mock
+
+    from coyote.application.resources.diagnoses import DiagnosisService
+    from coyote.contracts.schemas.diagnoses import SharedDiagnosisCreate
+
+    panels, diagnoses = Mock(), Mock()
+    panels.get_asp.return_value = None
+    result = DiagnosisService(panels=panels, diagnoses=diagnoses).create_definition(
+        SharedDiagnosisCreate(diagnosis_id="named", display_name="Named", asp_ids=["future"]),
+        actor="installer",
+    )
+    assert diagnoses.create_definition.call_args.args[1] == ["future"]
+    assert result["meta"]["unresolved_asp_ids"] == ["future"]

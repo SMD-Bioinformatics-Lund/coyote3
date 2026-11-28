@@ -623,6 +623,7 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
         analysis_intents: list[str] | None = None,
         expected_version: int | None = None,
         settings_reason: str | None = None,
+        apply_latest: bool = False,
     ) -> None:
         """Commit sample settings and their before/after audit receipt atomically.
 
@@ -633,6 +634,7 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
             analysis_intents: Replacement intents, or None to retain existing intents.
             expected_version: Optimistic concurrency precondition, when supplied.
             settings_reason: Operator explanation recorded in the audit event.
+            apply_latest: Recheck the currently eligible release when changing a sample's pin.
 
         Raises:
             AppError: The sample is absent or its operation version changed.
@@ -661,6 +663,14 @@ class SampleRepository(SampleStatisticsMixin, BaseRepository):
             )
             if previous is None:
                 raise api_error(409, "Sample settings changed. Reload the sample before saving.")
+            if apply_latest:
+                active = self.adapter.assay_configuration_repository.active_revision_for_sample(
+                    previous, session=session
+                )
+                if not active or not aspc or active != aspc["_id"]:
+                    raise api_error(
+                        409, "The active configuration changed. Review the update again."
+                    )
             enqueue_audit(
                 self.get_collection().database,
                 session,

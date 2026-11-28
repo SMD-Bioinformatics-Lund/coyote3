@@ -24,6 +24,7 @@ def get_formatted_assay_config(
     assay_panel_repository,
     assay_configuration_repository,
     use_sample_revision: bool = True,
+    allow_missing_active: bool = False,
 ) -> dict:
     """Resolve and format the assay configuration for a sample document.
 
@@ -82,6 +83,8 @@ def get_formatted_assay_config(
             DIAGNOSIS_BASE_ID,
         )
         used_base_configuration = bool(assay_config)
+    if not assay_config and allow_missing_active:
+        return {}
     if not assay_config:
         raise setup_error(
             (

@@ -325,6 +325,15 @@ class InternalIngestService:
         Their initial intent profiles and ASPC lineage come from the resolved
         ASPC for the exact ASP, diagnosis, and environment scope.
         """
+        diagnosis = str(payload.get("diagnosis_id") or "base").strip().lower()
+        if diagnosis != "base":
+            active = {"diagnosis_id": diagnosis, "is_current": True, "is_active": True}
+            read = self.collection_gateway.find_document
+            if not read("diagnoses", active) or not read(
+                "diagnosis_associations",
+                {**active, "asp_id": str(payload["asp_id"]).strip().lower()},
+            ):
+                raise ValueError(f"Diagnosis '{diagnosis}' is unavailable for this assay")
         resolved = assay_default_filters(
             lambda query: self.collection_gateway.find_document("asp_configs", query),
             payload,

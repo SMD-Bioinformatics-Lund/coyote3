@@ -19,16 +19,13 @@ import re
 from coyote.config.constants import normalize_clinical_identifier
 from coyote.contracts.operations import OperationResult
 
-from coyote_mongo.repositories.audit_outbox import insert_audited, update_audited
-from coyote_mongo.repositories.base import BaseRepository
-from coyote_mongo.repositories.revision_rotation import rotate_active_revision
-from coyote_mongo.results import operation_from_insert_one, operation_from_update
+from coyote_mongo.repositories.assay_components import AssayComponentRepository, library_rows
 
 
 # -------------------------------------------------------------------------
 # Class Definition
 # -------------------------------------------------------------------------
-class ISGLRepository(BaseRepository):
+class ISGLRepository(AssayComponentRepository):
     """
     Coyote in silico gene asp database repository
 
@@ -37,6 +34,8 @@ class ISGLRepository(BaseRepository):
     Additionally, it includes methods for performing advanced queries, filtering, and calculations
     related to gene asp, asp_ids, diagnoses, and associated metadata.
     """
+
+    identity_field = "isgl_id"
 
     def __init__(self, adapter):
         """
@@ -195,11 +194,17 @@ class ISGLRepository(BaseRepository):
         return list(self.get_collection().find(query, {"genes": 0}).sort([("created_on", -1)]))
 
     def search_isgls(
-        self, *, q: str = "", page: int = 1, per_page: int = 30, is_active: bool | None = True
+        self,
+        *,
+        q: str = "",
+        page: int = 1,
+        per_page: int = 30,
+        latest_only: bool = False,
+        is_active: bool | None = True,
     ) -> tuple[list[dict], int]:
         """Search genelists directly in MongoDB and return paged results."""
         query: dict = {}
-        if is_active is not None:
+        if is_active is not None and not latest_only:
             query["is_active"] = is_active
         normalized_q = str(q or "").strip()
         if normalized_q:
@@ -219,6 +224,11 @@ class ISGLRepository(BaseRepository):
         per_page = max(1, min(int(per_page or 30), 200))
         skip = (page - 1) * per_page
         col = self.get_collection()
+        if latest_only:
+            rows, total = library_rows(
+                col, self.identity_field, query, {"isgl_id": 1}, skip, per_page, {"genes": 0}
+            )
+            return rows, total
         total = int(col.count_documents(query))
         docs = list(
             col.find(query, {"genes": 0}).sort([("created_on", -1)]).skip(skip).limit(per_page)
@@ -419,24 +429,8 @@ class ISGLRepository(BaseRepository):
         return {"assay_isgl_counts": assay_rows}
 
     def create_genelist(self, data: dict) -> OperationResult:
-        """
-        Insert a new gene list into the database.
-
-        This method adds a new gene list document to the database collection
-        using the provided configuration dictionary.
-
-        Args:
-            data (dict): A dictionary containing the gene list data to be inserted.
-
-        Returns:
-            Structured write result for the insert.
-        """
-        result = insert_audited(
-            self.get_collection(), self.ensure_isgl_id(dict(data)), context=self.audit_context
-        )
-        operation = operation_from_insert_one(result)
-        self.invalidate_dashboard_metrics()
-        return operation
+        """Create the first active revision."""
+        return self.publish_revision(self.ensure_isgl_id(dict(data)))
 
     def rotate_isgl(
         self,
@@ -446,72 +440,21 @@ class ISGLRepository(BaseRepository):
         expected_version: int,
         retire_fields: dict,
     ) -> OperationResult:
-        """Retire the active ISGL revision and insert its successor."""
-        operation = rotate_active_revision(
-            self.get_collection(),
-            context=self.audit_context,
-            selector=self._isgl_lookup_query(isgl_id),
+        """Publish a successor and retire the expected active revision."""
+        return self.publish_revision(
+            self.ensure_isgl_id(dict(updated_data)),
             expected_version=expected_version,
-            new_document=self.ensure_isgl_id(dict(updated_data)),
             retire_fields=retire_fields,
+            identifier=isgl_id,
         )
-        self.invalidate_dashboard_metrics()
-        return operation
 
     def toggle_isgl_active(self, isgl_id: str, active_status: bool) -> OperationResult:
-        """
-        Toggle the `is_active` field for a gene list.
-
-        This method updates the `is_active` status of a specific gene list
-        document in the database, identified by the `isgl_id`.
-
-        Args:
-            isgl_id (str): The unique identifier of the gene list to update.
-            active_status (bool): The new active status to set for the gene list.
-
-        Returns:
-            Structured write result for the update.
-        """
-        collection = self.get_collection()
-        target = collection.find_one(
-            {
-                **self._isgl_lookup_query(isgl_id),
-                "is_active": not active_status,
-            },
-            sort=[("version", -1), ("created_on", -1)],
-        )
-        result = update_audited(
-            collection,
-            {"_id": target["_id"]} if target else {"_id": None},
-            {"$set": {"is_active": active_status}},
-            context=self.audit_context,
-        )
-        operation = operation_from_update(result)
-        self.invalidate_dashboard_metrics()
-        return operation
+        """Change availability of the current library revision."""
+        return self.set_availability(isgl_id, active_status)
 
     def delete_genelist(self, isgl_id: str) -> OperationResult:
-        """
-        Delete a gene list.
-
-        This method removes a gene list document from the database collection
-        based on the provided `isgl_id`.
-
-        Args:
-            isgl_id (str): The unique identifier of the gene list to delete.
-
-        Returns:
-            Structured write result for the delete.
-        """
-        result = update_audited(
-            self.get_collection(),
-            {**self._isgl_lookup_query(isgl_id), "is_active": True},
-            {"$set": {"is_active": False}},
-            context=self.audit_context,
-        )
-        operation = operation_from_update(result)
-        self.invalidate_dashboard_metrics()
-        return operation
+        """Withdraw the current revision while retaining its history."""
+        return self.set_availability(isgl_id, False)
 
     def get_diagnoses_for_asp(
         self, asp_names: list[str], is_public: bool | None = None, adhoc: bool | None = None
@@ -671,6 +614,8 @@ class ISGLRepository(BaseRepository):
         is_active: bool | None = None,
         adhoc: bool | None = None,
         list_type: str | None = None,
+        projection: dict | None = None,
+        session=None,
     ) -> list[dict]:
         """Return active ISGLs matching either assay id or assay group."""
         scope_query = []
@@ -685,13 +630,10 @@ class ISGLRepository(BaseRepository):
             query["adhoc"] = adhoc
         if list_type is not None:
             query["list_type"] = list_type
-        projection = {
-            "genes": 0,
-            "created_on": 0,
-            "created_by": 0,
-        }
         return list(
-            self.get_collection().find(query, projection).sort([("displayname", 1), ("isgl_id", 1)])
+            self.get_collection()
+            .find(query, projection, session=session)
+            .sort([("displayname", 1), ("isgl_id", 1)])
         )
 
     def get_isgl_ids(

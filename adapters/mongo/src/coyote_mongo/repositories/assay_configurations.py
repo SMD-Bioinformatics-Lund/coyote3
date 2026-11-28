@@ -15,7 +15,7 @@ It is part of the MongoDB infrastructure layer.
 # Imports
 # -------------------------------------------------------------------------
 import re
-from typing import Any, Protocol
+from typing import Any
 
 from bson import ObjectId
 from coyote.config.constants import (
@@ -26,31 +26,21 @@ from coyote.config.constants import (
     validate_identifier,
 )
 from coyote.contracts.operations import OperationResult
-from coyote.domain.common.errors import api_error
 from coyote.domain.repository_protocols import AnalysisTypeRollup
 from pymongo import cursor
-from pymongo.collection import Collection
-from pymongo.errors import DuplicateKeyError
+from pymongo.client_session import ClientSession
 
-from coyote_mongo.repositories.audit_outbox import insert_audited, update_audited
-from coyote_mongo.repositories.base import BaseRepository
-from coyote_mongo.repositories.revision_rotation import rotate_active_revision
-from coyote_mongo.results import operation_from_insert_one, operation_from_update
+from coyote_mongo.repositories.assay_components import (
+    AssayComponentCollections,
+    AssayComponentRepository,
+    library_rows,
+)
 
 
 # -------------------------------------------------------------------------
 # Class Definition
 # -------------------------------------------------------------------------
-class AssayConfigurationCollections(Protocol):
-    """Collection binding required to construct the assay configuration repository."""
-
-    @property
-    def aspc_collection(self) -> Collection[dict[str, Any]]:
-        """Return the collection containing current and historical ASPC documents."""
-        ...
-
-
-class ASPConfigRepository(BaseRepository):
+class ASPConfigRepository(AssayComponentRepository):
     """
     ASPConfigRepository is a class responsible for managing assay configuration data
     stored in a MongoDB collection. It provides methods to perform CRUD operations
@@ -59,7 +49,9 @@ class ASPConfigRepository(BaseRepository):
     a key component for handling assay-related data efficiently in the database.
     """
 
-    def __init__(self, adapter: AssayConfigurationCollections) -> None:
+    identity_field = "aspc_id"
+
+    def __init__(self, adapter: AssayComponentCollections) -> None:
         """Retain the adapter context and bind its assay configuration collection.
 
         Args:
@@ -266,7 +258,13 @@ class ASPConfigRepository(BaseRepository):
         return self.get_collection().find({})
 
     def search_aspcs(
-        self, *, q: str = "", page: int = 1, per_page: int = 30, is_active: bool | None = True
+        self,
+        *,
+        q: str = "",
+        page: int = 1,
+        per_page: int = 30,
+        latest_only: bool = False,
+        is_active: bool | None = True,
     ) -> tuple[list[dict[str, Any]], int]:
         """Search configuration identities and metadata using a literal case-insensitive query.
 
@@ -280,7 +278,7 @@ class ASPConfigRepository(BaseRepository):
             Documents ordered by assay, diagnosis and environment, plus the total match count.
         """
         query: dict[str, Any] = {}
-        if is_active is not None:
+        if is_active is not None and not latest_only:
             query["is_active"] = is_active
         normalized_q = str(q or "").strip()
         if normalized_q:
@@ -297,6 +295,17 @@ class ASPConfigRepository(BaseRepository):
         per_page = max(1, min(int(per_page or 30), 200))
         skip = (page - 1) * per_page
         col = self.get_collection()
+        if latest_only:
+            rows, total = library_rows(
+                col,
+                self.identity_field,
+                query,
+                {"aspc_id": 1},
+                skip,
+                per_page,
+                {"gene_list_release": 0, "assay_resource_release": 0},
+            )
+            return rows, total
         total = int(col.count_documents(query))
         docs = list(
             col.find(query)
@@ -361,6 +370,38 @@ class ASPConfigRepository(BaseRepository):
         return self.get_collection().find_one(
             {**self._aspc_lookup_query(aspc_id), "is_active": True}
         )
+
+    def registered_scope(self, assay: str, profile: str, diagnosis_id: str) -> bool:
+        """Check whether a configuration already owns this scope in the component library."""
+        selector = self._scope_lookup_query(assay, profile, diagnosis_id)
+        selector.pop("is_active")
+        return self.get_collection().find_one(selector, {"_id": 1}) is not None
+
+    def intake_scope_available(
+        self, asp_id: str, diagnosis_id: str, *, session: ClientSession | None = None
+    ) -> bool:
+        """Check current assay, group and named diagnosis availability before applying a release."""
+        panel = self.adapter.asp_collection.find_one(
+            {"asp_id": asp_id, "is_active": True}, {"asp_group": 1}, session=session
+        )
+        return bool(
+            panel and self._scope_available({**panel, "asp_id": asp_id}, diagnosis_id, session)
+        )
+
+    def active_revision_for_sample(
+        self, sample: dict[str, Any], *, session: ClientSession
+    ) -> object | None:
+        """Resolve the eligible named or Base release again inside the sample update transaction."""
+        diagnosis = sample.get("diagnosis_id") or DIAGNOSIS_BASE_ID
+        if not self.intake_scope_available(sample["asp_id"], diagnosis, session=session):
+            return None
+        for scope in dict.fromkeys((diagnosis, DIAGNOSIS_BASE_ID)):
+            selector = self._scope_lookup_query(sample["asp_id"], sample["environment"], scope)
+            row = self.get_collection().find_one(selector, {"_id": 1}, session=session)
+            if row:
+                identifier: object = row["_id"]
+                return identifier
+        return None
 
     def get_aspc_no_meta(
         self, assay_id: str, profile: str = DEFAULT_ENVIRONMENT, diagnosis_id: str | None = None
@@ -432,93 +473,25 @@ class ASPConfigRepository(BaseRepository):
         expected_version: int,
         retire_fields: dict[str, Any],
     ) -> OperationResult:
-        """Retire the active ASPC revision and insert its successor."""
-        operation = rotate_active_revision(
-            self.get_collection(),
-            context=self.audit_context,
-            selector=self._aspc_lookup_query(aspc_id),
+        """Publish a successor and retire the expected active revision."""
+        return self.publish_revision(
+            self.ensure_aspc_id(dict(data)),
             expected_version=expected_version,
-            new_document=self.ensure_aspc_id(dict(data)),
             retire_fields=retire_fields,
+            identifier=aspc_id,
         )
-        self.invalidate_dashboard_metrics()
-        return operation
 
     def create_assay_config(self, data: dict[str, Any]) -> OperationResult:
-        """
-        Inserts a new assay configuration document into the collection.
-
-        Args:
-            data (dict): A dictionary containing the assay configuration fields and their values.
-
-        Returns:
-            Structured write result for the insert.
-
-        Raises:
-            AppError: If the ID/version or active assay/diagnosis/environment already exists.
-        """
-        try:
-            result = insert_audited(
-                self.get_collection(), self.ensure_aspc_id(dict(data)), context=self.audit_context
-            )
-        except DuplicateKeyError as exc:
-            raise api_error(
-                409,
-                "ASPC ID or active assay/diagnosis/environment already exists. "
-                "Choose a new ID and an unused configuration scope when copying.",
-            ) from exc
-        operation = operation_from_insert_one(result)
-        self.invalidate_dashboard_metrics()
-        return operation
+        """Create the first active revision."""
+        return self.publish_revision(self.ensure_aspc_id(dict(data)))
 
     def delete_assay_config(self, assay_id: str) -> OperationResult:
-        """
-        Deletes an assay configuration document by its ID.
-
-        Args:
-            assay_id (str): The unique identifier of the assay configuration to delete.
-
-        Returns:
-            Structured write result for the delete.
-        """
-        result = update_audited(
-            self.get_collection(),
-            {**self._aspc_lookup_query(assay_id), "is_active": True},
-            {"$set": {"is_active": False}},
-            context=self.audit_context,
-        )
-        operation = operation_from_update(result)
-        self.invalidate_dashboard_metrics()
-        return operation
+        """Withdraw the current revision while retaining its history."""
+        return self.set_availability(assay_id, False)
 
     def toggle_aspc_active(self, aspc_id: str, active_status: bool) -> OperationResult:
-        """
-        Toggles the active status of an assay configuration document by updating its 'is_active' field.
-
-        Args:
-            aspc_id (str): The unique identifier of the assay configuration to update.
-            active_status (bool): The desired active status to set for the assay configuration.
-
-        Returns:
-            Structured write result for the update.
-        """
-        collection = self.get_collection()
-        target = collection.find_one(
-            {
-                **self._aspc_lookup_query(aspc_id),
-                "is_active": not active_status,
-            },
-            sort=[("version", -1), ("created_on", -1)],
-        )
-        result = update_audited(
-            collection,
-            {"_id": target["_id"]} if target else {"_id": None},
-            {"$set": {"is_active": active_status}},
-            context=self.audit_context,
-        )
-        operation = operation_from_update(result)
-        self.invalidate_dashboard_metrics()
-        return operation
+        """Change availability of the current library revision."""
+        return self.set_availability(aspc_id, active_status)
 
     def get_all_assay_names(self, is_active: bool | None = None) -> list[str]:
         """List distinct assay identifiers, optionally selecting an activation state.

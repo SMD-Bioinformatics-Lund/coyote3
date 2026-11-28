@@ -9,7 +9,6 @@ import pytest
 from coyote_mongo.config.collections import load_collection_mapping
 from coyote_mongo.index_management import build_index_plan, retire_index
 from coyote_mongo.knowledgebase.oncokb_public_cache import OncoKbPublicCacheRepository
-from coyote_mongo.repositories.assay_setup import AssaySetupRepository
 from coyote_mongo.repositories.query_rules import QueryRuleRepository
 from coyote_mongo.runtime_adapter import MongoAdapter
 from coyote_mongo.security_indexes import ensure_security_indexes
@@ -52,33 +51,6 @@ def test_index_plan_reports_option_conflicts():
     plan = build_index_plan(adapter_for(FakeRepository(collection)))
 
     assert plan[0]["state"] == "conflict"
-
-
-@pytest.mark.parametrize("existing", [False, True])
-def test_assay_setup_index_plan_is_read_only(existing):
-    """Inspect assay setup reservations through the API startup index recorder."""
-    indexes = [
-        {"name": "setup_assay_unique", "key": {"asp_id": 1}, "unique": True},
-        {"name": "setup_status_updated", "key": {"status": 1, "updated_at": -1}},
-    ]
-    collection = FakeCollection("assay_setups", indexes if existing else [])
-    repository = AssaySetupRepository(
-        SimpleNamespace(app=mongo_runtime(), assay_setups_collection=collection)
-    )
-
-    # No create_index method on FakeCollection: inspection must never write indexes.
-    plan = build_index_plan(adapter_for(repository))
-
-    assert [(item["name"], item["keys"], item["state"]) for item in plan[:2]] == [
-        ("setup_assay_unique", (("asp_id", 1),), "present" if existing else "missing"),
-        (
-            "setup_status_updated",
-            (("status", 1), ("updated_at", -1)),
-            "present" if existing else "missing",
-        ),
-    ]
-    assert plan[0]["options"] == {"unique": True}
-    assert repository.get_collection() is collection
 
 
 @pytest.mark.parametrize("existing", [False, True])
@@ -184,7 +156,8 @@ def test_index_apply_summary_reports_incomplete_indexes(monkeypatch, capsys, sta
 
     # This test checks index selection/results; journal durability has real-database coverage.
     monkeypatch.setattr(
-        manage_mongo_indexes, "audit_maintenance", lambda *args, **kwargs: nullcontext()
+        "coyote_mongo.repositories.maintenance_audit.audit_maintenance",
+        lambda *args, **kwargs: nullcontext(),
     )
 
     adapter = Mock()
@@ -207,7 +180,8 @@ def test_standalone_index_scope_isolates_database_writes(monkeypatch, scope):
 
     # This test checks index selection/results; journal durability has real-database coverage.
     monkeypatch.setattr(
-        manage_mongo_indexes, "audit_maintenance", lambda *args, **kwargs: nullcontext()
+        "coyote_mongo.repositories.maintenance_audit.audit_maintenance",
+        lambda *args, **kwargs: nullcontext(),
     )
 
     client = mongomock.MongoClient()

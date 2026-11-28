@@ -169,6 +169,10 @@ class VariantsRepositoryProtocol(Protocol):
 class AssayConfigurationRepositoryProtocol(Protocol):
     """Protocol for assay configuration metadata operations."""
 
+    def intake_scope_available(self, asp_id: str, diagnosis_id: str) -> bool:
+        """Return whether the assay, group and requested diagnosis allow a new assignment."""
+        ...
+
     def get_aspc_revision_no_meta(self, revision_id: object) -> dict[str, Any] | None:
         """Fetch an exact stored ASPC revision without creator/updater metadata.
 

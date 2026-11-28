@@ -29,7 +29,7 @@ queue ownership, indexes, retention boundaries and failure recovery.
 
 - `samples.asp_id` must match `asp_configs.asp_id` and `assay_specific_panels.asp_id`.
 - Initial ASPC resolution uses `samples.asp_id`, `samples.diagnosis_id`, and `samples.environment`. `samples.current_aspc_id` is the exact configuration ObjectId; `current_aspc_name` is its display label for tracking, never a lookup key. `aspc_resolution` records the resolved diagnosis, Base fallback flag and warning. Runtime context is derived from that release's captured resources.
-- `insilico_genelists.asp_ids[]` and `asp_groups[]` must map to ASP/ASPC assay setup; `diagnosis[]` carries its reusable diagnosis/in-silico-diagnosis tags.
+- `insilico_genelists.asp_ids[]` and `asp_groups[]` select lists by assay or group for ASPC snapshots; `diagnosis[]` carries its reusable diagnosis/in-silico-diagnosis tags.
 - `roles.permissions[]` must reference `permissions.permission_id`.
 - `users.roles[]` must reference `roles.role_id`.
 
@@ -174,42 +174,6 @@ Optional keys:
 - `publication_serial` (int)
 - `updated_on` (datetime.datetime | None)
 - `status_reason` (str)
-
-## `assay_setup_revisions`
-
-Required keys:
-- `setup_id` (str)
-- `revision` (int)
-- `action` (str)
-- `document` (AssaySetupDoc)
-
-Optional keys:
-- `created_by` (str | None)
-- `updated_by` (str | None)
-- `system_installed` (bool)
-- `_id` (Any | None)
-
-## `assay_setups`
-
-Required keys:
-- `created_by` (str)
-- `updated_by` (str)
-- `asp_id` (str)
-- `content` (AssaySetupContent)
-- `content_editors` (list[str])
-- `created_at` (datetime)
-- `updated_at` (datetime)
-
-Optional keys:
-- `system_installed` (bool)
-- `_id` (Any | None)
-- `status` (Literal['draft', 'submitted', 'published'])
-- `revision` (int)
-- `review_reason` (str)
-- `published_by` (str | None)
-- `review_dependencies` (str | None)
-- `reviewer` (str | None)
-- `reviewed_by` (str | None)
 
 ## `assay_specific_panels`
 

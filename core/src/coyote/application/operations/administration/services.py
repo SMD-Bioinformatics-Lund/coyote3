@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from coyote.application.resources.asp import AspService
     from coyote.application.resources.aspc import AspcService
     from coyote.application.resources.assay_groups import AssayGroupService
-    from coyote.application.resources.assay_setup import AssaySetupService
     from coyote.application.resources.diagnoses import DiagnosisService
     from coyote.application.resources.fields import ResourceFieldService
     from coyote.application.resources.isgl import IsglService
@@ -44,7 +43,6 @@ class AdministrationServices:
         assay_configurations: Callable[[], AspcService],
         gene_lists: Callable[[], IsglService],
         sample_administration: Callable[[], ResourceSampleService],
-        assay_setups: Callable[[], AssaySetupService],
         catalog_authoring: Callable[[], PublicAssayCatalogManagementService],
         reference_data: Callable[[], ResourceFieldService],
     ) -> None:
@@ -62,7 +60,6 @@ class AdministrationServices:
             assay_configurations: Scope-bound assay configuration authoring.
             gene_lists: Managed gene-list authoring and inspection.
             sample_administration: Privileged sample editing and deletion workflows.
-            assay_setups: Draft-first setup validation, optional review and atomic activation.
             catalog_authoring: Catalog previews, revisions, assignment and publication.
             reference_data: Permitted fields and metadata for managed reference resources.
         """
@@ -77,6 +74,5 @@ class AdministrationServices:
         self.assay_configurations = assay_configurations
         self.gene_lists = gene_lists
         self.sample_administration = sample_administration
-        self.assay_setups = assay_setups
         self.catalog_authoring = catalog_authoring
         self.reference_data = reference_data

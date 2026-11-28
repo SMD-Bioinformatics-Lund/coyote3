@@ -44,7 +44,6 @@ from coyote.application.reporting.rna_workflow import RNAWorkflowService
 from coyote.application.resources.asp import AspService
 from coyote.application.resources.aspc import AspcService
 from coyote.application.resources.assay_groups import AssayGroupService
-from coyote.application.resources.assay_setup import AssaySetupService
 from coyote.application.resources.configuration_profiles import ConfigurationProfileService
 from coyote.application.resources.configuration_promotions import ConfigurationPromotionService
 from coyote.application.resources.diagnoses import DiagnosisService
@@ -147,11 +146,6 @@ def get_admin_diagnosis_service() -> DiagnosisService:
 def get_admin_assay_group_service() -> AssayGroupService:
     """Build registry administration against the operational database."""
     return AssayGroupService(get_store().assay_group_repository)
-
-
-def get_assay_setup_service() -> AssaySetupService:
-    """Build the governed draft-first assay setup service."""
-    return AssaySetupService(get_store())
 
 
 @_runtime_cached

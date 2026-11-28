@@ -261,7 +261,7 @@ def test_aspc_create_context_keeps_configured_asps_selectable() -> None:
         ),
         assay_configuration_repository=SimpleNamespace(),
         assay_panel_repository=SimpleNamespace(
-            get_all_asps=lambda is_active=True: [panel],
+            get_all_asps=lambda **_kwargs: [panel],
             group_options=lambda: ["hematology"],
             get_asp=lambda _asp_id: panel,
         ),
@@ -278,7 +278,7 @@ def test_aspc_create_context_keeps_configured_asps_selectable() -> None:
         {"value": "base", "label": "Base"},
         {"value": "aml", "label": "AML"},
     ]
-    service.assay_configuration_repository.get_aspc_with_id = lambda _identity: {
+    service.assay_configuration_repository.latest_revision = lambda _identity: {
         "asp_id": "hema_gmsv1",
         "diagnosis_id": "aml",
         "environment": "testing",

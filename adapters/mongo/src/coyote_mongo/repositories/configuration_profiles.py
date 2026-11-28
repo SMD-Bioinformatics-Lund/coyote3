@@ -81,6 +81,19 @@ class ConfigurationProfileRepository(BaseRepository):
             ):
                 raise api_error(409, "Promotion approval changed; reload before retrying")
             candidate = deepcopy(proposal["candidate"])
+            group = self.adapter.assay_groups_collection.update_one(
+                {"group_id": candidate["asp_group"], "is_active": True},
+                {"$inc": {"publication_serial": 1}},
+                session=session,
+            )
+            if group.matched_count != 1:
+                raise api_error(409, "The target assay group must be active before promotion")
+            if not configurations.find_one(
+                {"_id": ObjectId(proposal["source_id"]), "is_active": True},
+                {"_id": 1},
+                session=session,
+            ):
+                raise api_error(409, "The source configuration changed. Review a new promotion.")
             latest = configurations.find_one(
                 {"aspc_id": candidate["aspc_id"]}, sort=[("version", -1)], session=session
             )

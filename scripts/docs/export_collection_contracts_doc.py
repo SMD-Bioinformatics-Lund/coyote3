@@ -146,7 +146,7 @@ def main() -> int:
         "Runtime context is derived from that release's captured resources."
     )
     lines.append(
-        "- `insilico_genelists.asp_ids[]` and `asp_groups[]` must map to ASP/ASPC assay setup; "
+        "- `insilico_genelists.asp_ids[]` and `asp_groups[]` select lists by assay or group for ASPC snapshots; "
         "`diagnosis[]` carries its reusable diagnosis/in-silico-diagnosis tags."
     )
     lines.append("- `roles.permissions[]` must reference `permissions.permission_id`.")

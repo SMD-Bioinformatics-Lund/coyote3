@@ -11,21 +11,33 @@ from mongo_test_support.settings import mongo_runtime
 
 def test_custom_identity_resolves_by_scope_and_duplicate_scope_is_rejected(monkeypatch):
     monkeypatch.setattr(
-        "coyote_mongo.repositories.audit_outbox.run_transaction",
+        "coyote_mongo.repositories.assay_components.run_transaction",
         lambda _client, callback: callback(None),
     )
     monkeypatch.setattr(
-        "coyote_mongo.repositories.audit_outbox.enqueue_audit", lambda *_a, **_k: None
+        "coyote_mongo.repositories.assay_components.enqueue_audit", lambda *_a, **_k: None
     )
-    repository = ASPConfigRepository(
-        SimpleNamespace(app=mongo_runtime(), aspc_collection=mongomock.MongoClient().db.configs)
+    db = mongomock.MongoClient().db
+    adapter = SimpleNamespace(
+        app=mongo_runtime(),
+        aspc_collection=db.configs,
+        asp_collection=db.panels,
+        assay_groups_collection=db.groups,
+        insilico_genelist_collection=db.lists,
     )
+    db.groups.insert_one({"group_id": "demo", "is_active": True})
+    db.panels.insert_one(
+        {"asp_id": "synthetic", "asp_group": "demo", "asp_category": "dna", "is_active": True}
+    )
+    repository = ASPConfigRepository(adapter)
     monkeypatch.setattr(repository, "invalidate_dashboard_metrics", lambda: None)
     repository.ensure_indexes()
     document = {
         "aspc_id": "chosen-copy-id",
         "asp_id": "synthetic",
         "diagnosis_id": "base",
+        "asp_group": "demo",
+        "asp_category": "dna",
         "environment": "production",
         "is_active": True,
         "version": 1,

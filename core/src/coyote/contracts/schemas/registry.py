@@ -22,7 +22,6 @@ from coyote.contracts.schemas.assay import (
     InsilicoGenelistsDoc,
 )
 from coyote.contracts.schemas.assay_groups import AssayGroupDoc
-from coyote.contracts.schemas.assay_setup import AssaySetupDoc, AssaySetupRevisionDoc
 from coyote.contracts.schemas.clinical_rules import ClinicalRuleRevisionDoc, ClinicalRuleSetDoc
 from coyote.contracts.schemas.diagnoses import (
     DiagnosisAssociationDoc,
@@ -87,8 +86,6 @@ from coyote.contracts.schemas.variant_annotations import (
 COLLECTION_MODEL_ADAPTERS: dict[str, TypeAdapter[Any]] = {
     "configuration_profiles": TypeAdapter(ConfigurationProfileDoc),
     "configuration_promotions": TypeAdapter(ConfigurationPromotionDoc),
-    "assay_setups": TypeAdapter(AssaySetupDoc),
-    "assay_setup_revisions": TypeAdapter(AssaySetupRevisionDoc),
     "diagnoses": TypeAdapter(DiagnosisDefinitionDoc),
     "diagnosis_associations": TypeAdapter(DiagnosisAssociationDoc),
     "ingest_jobs": TypeAdapter(IngestJobDoc),

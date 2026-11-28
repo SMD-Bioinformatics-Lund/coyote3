@@ -249,37 +249,9 @@ def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
             "Available analyses depend on the assay expected input files."
         )
         tier_analyses = ["FUSION"] if spec.key == "aspc_rna" else ["SNV", "CNV", "TRANSLOCATION"]
-        fields["reporting"]["groups"].append(
-            {
-                "title": "Summary order",
-                "fields": [
-                    {
-                        "key": key,
-                        "label": label,
-                        "type": "list",
-                        "default": [],
-                        "help": (
-                            "One analysis per line, in priority order. Blank preserves the "
-                            "current order; unlisted analyses keep their relative order after "
-                            "listed analyses. DNA fusions use TRANSLOCATION. " + detail
-                        ),
-                    }
-                    for key, label, detail in [
-                        (
-                            "summary_text_order",
-                            "Summary text order",
-                            "Applies to generated text; saved comments are unchanged.",
-                        ),
-                        (
-                            "summary_table_order",
-                            "Summary table order",
-                            "Applies to report result summaries, not detailed finding cards.",
-                        ),
-                    ]
-                ],
-            }
-        )
-        fields["reporting"]["groups"].append(
+        reporting_groups = fields["reporting"]["groups"]
+        reporting_groups.insert(
+            1,
             {
                 "title": "Reportable tiers",
                 "fields": [
@@ -290,16 +262,38 @@ def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
                         "options": ["1", "2", "3", "4"],
                         "default": factory_value("reporting.reportable_tiers"),
                         "help": (
-                            "No selected tiers disables tier-based inclusion; explicitly selected findings can still be included."
+                            "With no tiers checked, only explicitly selected findings can be included."
                             if tier_analysis in {"CNV", "TRANSLOCATION"}
-                            else "No selected tiers excludes all findings of this type."
+                            else "With no tiers checked, this section includes no findings."
                         ),
                     }
                     for tier_analysis in tier_analyses
                 ],
-            }
+            },
         )
-        for group in fields["reporting"].get("groups", []):
+        reporting_groups.insert(
+            2,
+            {
+                "title": "Summary order",
+                "help": "Check analyses to put them first, then use the arrows to reorder them. "
+                "Unchecked analyses keep their usual order.",
+                "fields": [
+                    {
+                        "key": key,
+                        "label": label,
+                        "type": "list",
+                        "display_type": "ordered-checkboxes",
+                        "options": list(fields["analysis_types"]["options"]),
+                        "default": [],
+                    }
+                    for key, label in [
+                        ("summary_text_order", "Summary text order"),
+                        ("summary_table_order", "Summary table order"),
+                    ]
+                ],
+            },
+        )
+        for group in reporting_groups:
             for field in group["fields"]:
                 if field["key"] == "report_sections":
                     field["options_from_field"] = "analysis_types"
@@ -320,6 +314,8 @@ def build_form_spec(spec: ManagedResourceSpec) -> dict[str, Any]:
         )
 
     sections = _section_payload(spec.key, fields)
+    if spec.resource in {"asp", "aspc", "isgl"}:
+        fields["is_active"].update(readonly=True, hidden_mode=["create", "edit"])
 
     return {
         "form_type": spec.form_type,

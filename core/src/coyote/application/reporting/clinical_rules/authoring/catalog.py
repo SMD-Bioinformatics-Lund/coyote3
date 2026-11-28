@@ -28,21 +28,19 @@ from .assignments import ReviewAssignments
 
 
 class RuleScopeCatalog:
-    """Validate rule scopes against active assays, diagnoses and draft setups."""
+    """Supply assay, diagnosis and group choices for reporting-rule authors."""
 
     def __init__(
         self,
         *,
         assay_panel_repository: Any = None,
         assay_diagnosis_repository: Any = None,
-        assay_setup_repository: Any = None,
         assay_group_repository: Any = None,
         assignments: ReviewAssignments,
     ) -> None:
         """Bind the authoritative scope registries and reviewer option provider."""
         self.assay_panel_repository = assay_panel_repository
         self.assay_diagnosis_repository = assay_diagnosis_repository
-        self.assay_setup_repository = assay_setup_repository
         self.assay_group_repository = assay_group_repository
         self.assignments = assignments
 
@@ -147,30 +145,13 @@ class RuleScopeCatalog:
             raise api_error(422, "Biological group hierarchy is invalid", str(exc)) from exc
 
     def panels(self) -> list[dict[str, Any]]:
-        """Combine active assays with reserved setup drafts, without changing runtime lookup."""
-        panels = list(self.assay_panel_repository.get_all_asps(is_active=True))
-        if self.assay_setup_repository is not None:
-            for setup in self.assay_setup_repository.authoring_scopes():
-                panel = setup["content"]["panel"]
-                if not self.assay_panel_repository.get_asp(panel["asp_id"]):
-                    panels.append({**panel, "is_active": True})
-        return panels
+        """Return installed active assays for rule authoring."""
+        return list(self.assay_panel_repository.get_all_asps(is_active=True))
 
     def diagnoses(self, asp_id: str) -> list[dict[str, Any]]:
         """Return active registered scopes; fail closed when the repository is not configured."""
         if self.assay_diagnosis_repository is None:
             raise RuntimeError("Assay diagnosis repository is required for rule authoring")
-        if self.assay_setup_repository is not None and (
-            not self.assay_panel_repository.get_asp(asp_id)
-        ):
-            for setup in self.assay_setup_repository.authoring_scopes():
-                if setup["content"]["panel"]["asp_id"] == asp_id:
-                    definitions = self.assay_diagnosis_repository.list_definitions()
-                    return [{"diagnosis_id": DIAGNOSIS_BASE_ID, "display_name": "Base"}] + [
-                        d
-                        for d in definitions
-                        if d["diagnosis_id"] in setup["content"]["scopes"] and d["is_active"]
-                    ]
         return [{"diagnosis_id": DIAGNOSIS_BASE_ID, "display_name": "Base"}] + [
             row
             for row in self.assay_diagnosis_repository.list_for_assay(asp_id, active_only=True)
@@ -188,13 +169,11 @@ class RuleScopeCatalog:
                 existing inactive or incompatible assays are still rejected.
 
         Raises:
-            AppError: With status 409 for an unavailable assay/setup or analyte mismatch.
+            AppError: With status 409 for an unavailable assay or analyte mismatch.
         """
         if self.assay_panel_repository is None or payload.scope is None:
             return
         panel = self.assay_panel_repository.get_asp(payload.scope.asp_id)
-        if panel is None and self.assay_setup_repository is not None:
-            panel = next((p for p in self.panels() if p["asp_id"] == payload.scope.asp_id), None)
         if panel is None and allow_unregistered:
             return
         if not panel or panel.get("is_active") is False:

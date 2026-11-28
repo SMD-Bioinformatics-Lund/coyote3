@@ -217,8 +217,13 @@ def test_order_change_invalidates_the_reviewed_preview(field):
     assert preview_fingerprint("dna", context) != original
 
 
-@pytest.mark.parametrize("resource", ["aspc_dna", "aspc_rna"])
-def test_both_order_fields_are_available_in_aspc_reporting_forms(resource):
+@pytest.mark.parametrize(
+    ("resource", "fusion_name", "other_modality"),
+    [("aspc_dna", "TRANSLOCATION", "FUSION"), ("aspc_rna", "FUSION", "TRANSLOCATION")],
+)
+def test_both_order_fields_offer_valid_choices_for_the_assay_modality(
+    resource, fusion_name, other_modality
+):
     form = build_form_spec(managed_resource_spec(resource))
     fields = {
         item["key"]: item
@@ -226,4 +231,10 @@ def test_both_order_fields_are_available_in_aspc_reporting_forms(resource):
         for item in group["fields"]
     }
     for name in ("summary_text_order", "summary_table_order"):
-        assert fields[name]["type"] == "list" and fields[name]["default"] == []
+        field = fields[name]
+        assert field["display_type"] == "ordered-checkboxes"
+        assert field["type"] == "list" and field["default"] == []
+        options = field["options"]
+        assert fusion_name in options and other_modality not in options
+        assert options == fields["report_sections"]["options"]
+        assert getattr(reporting(**{name: options}), name) == options

@@ -435,7 +435,7 @@ def reset_sample_filters(
 @router.get("/api/v1/samples/{sample_id}/aspc/preview", response_model=ConfigurationPreviewPayload)
 def preview_sample_aspc(
     sample_id: str,
-    retain_overrides: bool = False,
+    retain_overrides: bool = True,
     user: ApiUser = Depends(require_access(permission="sample:edit:own")),
     service: Sample = Depends(get_sample),
 ):

@@ -19,7 +19,11 @@ from coyote.application.common.protected_records import (
     reject_system_managed_change,
     reject_system_managed_delete,
 )
-from coyote.application.common.release_resources import capture_assay_resource, capture_gene_lists
+from coyote.application.common.release_resources import (
+    assay_resource,
+    capture_assay_resource,
+    capture_gene_lists,
+)
 from coyote.application.resources.availability import available_panels, require_active_group
 from coyote.application.resources.configuration_profiles import (
     compile_profiles,
@@ -327,7 +331,7 @@ class AspcService:
         )
 
     @staticmethod
-    def _validate_analysis_types_for_panel(config: dict[str, Any], panel: dict[str, Any]) -> None:
+    def validate_analysis_types_for_panel(config: dict[str, Any], panel: dict[str, Any]) -> None:
         """Reject analyses and report sections without configured ASP input files."""
         family = str(panel.get("asp_family") or "").strip().lower()
         if family and family not in CLINICAL_VOCABULARY.analysis_types_by_family:
@@ -393,6 +397,7 @@ class AspcService:
             q=q,
             page=page,
             per_page=per_page,
+            latest_only=True,
         )
         assay_configs = [dict(item) for item in rows if isinstance(item, dict)]
         total = int(total or 0)
@@ -477,12 +482,16 @@ class AspcService:
         Returns:
             dict[str, Any]: Existing config data and edit form payload.
         """
-        assay_config = self.assay_configuration_repository.get_aspc_with_id(assay_id)
+        assay_config = self.assay_configuration_repository.latest_revision(assay_id)
         if not assay_config:
             raise api_error(404, "Assay config not found")
         assay_config = deepcopy(assay_config)
         panel = self.assay_panel_repository.get_asp(str(assay_config.get("asp_id", "")))
-        category = _normalize_asp_category((panel or {}).get("asp_category"))
+        if panel is None and assay_config.get("assay_resource_release"):
+            panel = assay_resource(assay_config)
+        category = _normalize_asp_category(
+            assay_config.get("asp_category") or (panel or {}).get("asp_category")
+        )
         spec = aspc_spec_for_category(category)
         form = build_managed_form(spec)
         form["fields"]["asp_id"]["options"] = [
@@ -552,7 +561,7 @@ class AspcService:
             raise api_error(400, "Selected ASP does not exist")
         require_active_group(self.assay_panel_repository, panel["asp_group"])
         category = _normalize_asp_category((panel or {}).get("asp_category"))
-        config.setdefault("is_active", True)
+        config["is_active"] = True
         config["system_managed"] = False
         config["system_installed"] = False
         config["asp_id"] = asp_id
@@ -561,7 +570,7 @@ class AspcService:
         config["asp_group"] = panel.get("asp_group")
         config["asp_category"] = _normalize_asp_category_doc(panel.get("asp_category"))
         config["platform"] = panel.get("platform")
-        self._validate_analysis_types_for_panel(config, panel)
+        self.validate_analysis_types_for_panel(config, panel)
         if isinstance(config.get("reporting"), dict):
             config["reporting"].pop("analysis", None)
         compile_profiles(config, panel, self.configuration_profile_repository)
@@ -612,6 +621,10 @@ class AspcService:
         assay_config = self.assay_configuration_repository.get_aspc_with_id(assay_id)
         if not assay_config:
             raise api_error(404, "Assay config not found")
+        if "expected_version" in payload and payload["expected_version"] != assay_config.get(
+            "version", 1
+        ):
+            raise api_error(409, "The active revision changed. Reload it before saving.")
         updated_config = payload.get("config", {})
         if not updated_config:
             raise api_error(400, "Missing assay config payload")
@@ -648,7 +661,7 @@ class AspcService:
         updated_doc["asp_group"] = panel.get("asp_group")
         updated_doc["asp_category"] = _normalize_asp_category_doc(panel.get("asp_category"))
         updated_doc["platform"] = panel.get("platform")
-        self._validate_analysis_types_for_panel(updated_doc, panel)
+        self.validate_analysis_types_for_panel(updated_doc, panel)
         if isinstance(updated_doc.get("reporting"), dict):
             updated_doc["reporting"].pop("analysis", None)
         prepare_profile_update(assay_config, updated_config, updated_doc)
@@ -694,7 +707,7 @@ class AspcService:
         Returns:
             dict[str, Any]: Normalized change response payload.
         """
-        assay_config = self.assay_configuration_repository.get_aspc_with_id(assay_id)
+        assay_config = self.assay_configuration_repository.latest_revision(assay_id)
         if not assay_config:
             raise api_error(404, "Assay config not found")
         reject_system_managed_change(assay_config, resource="assay configuration")
@@ -736,11 +749,10 @@ class AspcService:
             assay = str(asp_id or "").strip()
             env = str(environment or "").strip()
             if assay and env:
-                doc = self.assay_configuration_repository.get_aspc(
+                return self.assay_configuration_repository.registered_scope(
                     assay, env, str(diagnosis_id or DIAGNOSIS_BASE_ID)
                 )
-                return bool(isinstance(doc, dict) and (doc.get("aspc_id") or doc.get("_id")))
         if not resolved_id:
             return False
-        doc = self.assay_configuration_repository.get_aspc_with_id(resolved_id)
+        doc = self.assay_configuration_repository.latest_revision(resolved_id)
         return bool(isinstance(doc, dict) and (doc.get("aspc_id") or doc.get("_id")))

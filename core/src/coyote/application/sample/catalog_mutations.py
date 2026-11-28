@@ -9,7 +9,11 @@ import re
 from copy import deepcopy
 from typing import Any
 
-from coyote.application.common.release_resources import assay_resource, gene_list_resources
+from coyote.application.common.release_resources import (
+    assay_resource,
+    gene_list_changes,
+    gene_list_resources,
+)
 from coyote.config.clinical_vocabulary import CLINICAL_VOCABULARY
 from coyote.config.loaders.filter_flags import filter_flag_options
 from coyote.domain.common.biomarkers import project_biomarkers
@@ -136,7 +140,9 @@ class SampleCatalogMutationsMixin:
 
         response_sample = deepcopy(sample)
         response_sample["filters"] = self._sample_filters(sample)
-        latest_assay_config = self._get_formatted_assay_config(sample, use_sample_revision=False)
+        latest_assay_config = self._get_formatted_assay_config(
+            sample, use_sample_revision=False, allow_missing_active=True
+        )
         current_revision = str(sample.get("current_aspc_id") or "")
         latest_revision = str(latest_assay_config.get("_id") or "")
         return {
@@ -376,9 +382,7 @@ class SampleCatalogMutationsMixin:
             sample.get("_id"), normalized, expected_version=sample["version"]
         )
 
-    def preview_latest_aspc(
-        self, *, sample: dict, retain_overrides: bool = False
-    ) -> dict[str, Any]:
+    def preview_latest_aspc(self, *, sample: dict, retain_overrides: bool = True) -> dict[str, Any]:
         """Resolve a candidate configuration and its changes without modifying the sample."""
         assay_config = self._get_formatted_assay_config(sample, use_sample_revision=False)
         previous = self._get_formatted_assay_config(sample)
@@ -388,25 +392,40 @@ class SampleCatalogMutationsMixin:
             str(sample.get("asp_category") or "dna"),
             analysis_intents=analysis_intents,
         )
+        old_defaults = sample_filters_from_aspc_filters(
+            previous.get("filters"),
+            str(sample.get("asp_category") or "dna"),
+            analysis_intents=sample.get("analysis_intents"),
+        )
+        before = sample.get("filters") if sample.get("filters") is not None else old_defaults
+        unavailable: list[str] = []
+        new_lists = gene_list_resources(assay_config)
         if retain_overrides:
-            old_defaults = sample_filters_from_aspc_filters(
-                previous.get("filters"),
-                str(sample.get("asp_category") or "dna"),
-                analysis_intents=sample.get("analysis_intents"),
-            )
             for intent, targets in (sample.get("filters") or {}).items():
-                for target, values in targets.items():
+                for target, values in (targets or {}).items():
                     overrides = {
                         key: value
-                        for key, value in values.items()
-                        if value != old_defaults.get(intent, {}).get(target, {}).get(key)
+                        for key, value in (values or {}).items()
+                        if value != ((old_defaults.get(intent) or {}).get(target) or {}).get(key)
                     }
-                    if overrides and (intent not in filters or target not in filters[intent]):
-                        raise api_error(
-                            422, "Existing overrides are not compatible with this configuration"
-                        )
-                    if overrides:
-                        filters[intent][target].update(overrides)
+                    for key, value in overrides.items():
+                        path = f"{intent}.{target}.{key}"
+                        if target not in (filters.get(intent) or {}):
+                            unavailable.append(path)
+                            continue
+                        if key in {"snvlists", "fusionlists", "cnvlists"}:
+                            valid = [
+                                v
+                                for v in value or []
+                                if v in new_lists and self._is_matching_target(new_lists[v], target)
+                            ]
+                            unavailable.extend(
+                                f"{path}: {v}" for v in value or [] if v not in valid
+                            )
+                            if value and not valid:
+                                continue
+                            value = valid
+                        filters[intent][target][key] = value
         filters = normalize_sample_filters(
             filters,
             asp_category=str(sample.get("asp_category") or "dna"),
@@ -414,11 +433,39 @@ class SampleCatalogMutationsMixin:
             canonical=True,
         )
         filters = self._validate_filter_genelists(filters, configuration=assay_config)
+
+        def selected_lists(tree: dict) -> set[str]:
+            return {
+                identifier
+                for sections in tree.values()
+                for section in (sections or {}).values()
+                for field in ("snvlists", "cnvlists", "fusionlists")
+                for identifier in (section or {}).get(field) or []
+            }
+
+        old_selections = selected_lists(before)
+        recorded_lists = (
+            gene_list_resources(previous)
+            if sample.get("current_aspc_id") and previous.get("gene_list_release") is not None
+            else {}
+        )
+        new_selections = selected_lists(filters)
         return {
+            "previous_configuration": (
+                {"aspc_id": previous["aspc_id"], "version": previous.get("version")}
+                if sample.get("current_aspc_id")
+                else None
+            ),
+            "incompatible_overrides": unavailable,
+            "gene_list_changes": gene_list_changes(
+                recorded_lists,
+                new_lists,
+                old_selections | new_selections,
+            ),
             "expected_version": sample["version"],
             "configuration_id": str(assay_config["_id"]),
             "configuration": assay_config,
-            "filters_before": sample.get("filters"),
+            "filters_before": before,
             "filters_after": filters,
             "retain_overrides": retain_overrides,
             "changed_components": [
@@ -439,12 +486,19 @@ class SampleCatalogMutationsMixin:
         expected_version: int,
         configuration_id: str,
         reason: str,
-        retain_overrides: bool = False,
+        retain_overrides: bool = True,
+        accept_incompatible_overrides: bool = False,
     ) -> dict[str, Any]:
         """Apply a reviewed candidate only while the sample and candidate remain unchanged."""
         if sample["version"] != expected_version or not reason.strip():
             raise api_error(409, "Reload the configuration preview and provide a reason")
         preview = self.preview_latest_aspc(sample=sample, retain_overrides=retain_overrides)
+        if preview["incompatible_overrides"] and not accept_incompatible_overrides:
+            raise api_error(
+                422, "Review the incompatible sample overrides before applying the update"
+            )
+        if str(sample.get("current_aspc_id") or "") == configuration_id:
+            raise api_error(409, "This sample already uses the reviewed revision")
         if preview["configuration_id"] != configuration_id:
             raise api_error(409, "The active configuration changed. Review the new preview.")
         assay_config = preview["configuration"]
@@ -463,6 +517,7 @@ class SampleCatalogMutationsMixin:
             analysis_intents=analysis_intents,
             expected_version=sample["version"],
             settings_reason=reason.strip(),
+            apply_latest=True,
         )
         return {
             "aspc_id": assay_config.get("aspc_id"),

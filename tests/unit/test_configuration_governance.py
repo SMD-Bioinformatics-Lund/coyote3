@@ -209,6 +209,7 @@ def promotion(profiles):
     source_db = replay()
     sample = source_db.samples.find_one({"name": "DEMO_FUSION"})
     source = source_db.asp_configs.find_one({"_id": sample["current_aspc_id"]})
+    db.groups.insert_one({"group_id": source["asp_group"], "is_active": True})
     db.configs.insert_one(deepcopy(source))
     configs = ASPConfigRepository(adapter)
     configs.ensure_indexes()

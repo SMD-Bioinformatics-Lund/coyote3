@@ -8,22 +8,16 @@ from coyote.domain.common.configuration_transfer import configuration_content
 def test_record_metadata_is_removed_without_traversing_clinical_content():
     """Nested predicate values and pinned resource versions are authored content."""
     source = {
-        "version": 8,
-        "created_by": "old.author",
-        "reviewer": "old.reviewer",
-        "reviewed_by": "old.reviewer",
-        "panel": {"asp_id": "panel", "version": 4},
-        "gene_lists": [{"isgl_id": "genes", "version": 7, "genes": ["TP53"]}],
-        "configurations": [
-            {"asp_id": "panel", "created_on": "old", "reporting": {"reference": {"version": 3}}}
-        ],
+        "asp_id": "panel",
+        "version": 4,
+        "updated_by": "operator",
+        "reporting": {"reference": {"version": 3}},
         "content": {"condition": {"field": "status", "value": {"version": 2}}},
     }
     before = deepcopy(source)
     assert configuration_content(source) == {
-        "panel": {"asp_id": "panel"},
-        "gene_lists": [{"isgl_id": "genes", "genes": ["TP53"]}],
-        "configurations": [{"asp_id": "panel", "reporting": {"reference": {"version": 3}}}],
+        "asp_id": "panel",
+        "reporting": {"reference": {"version": 3}},
         "content": source["content"],
     }
     assert source == before

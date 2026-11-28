@@ -83,7 +83,7 @@ class DiagnosisService:
         return document
 
     def create_definition(self, payload: SharedDiagnosisCreate, *, actor: str) -> dict:
-        """Create a shared scope after validating every selected assay.
+        """Create a shared scope, retaining links to assays that are not yet available.
 
         Args:
             payload: Metadata and selected assay identifiers; no selections is allowed.
@@ -95,9 +95,14 @@ class DiagnosisService:
         if payload.diagnosis_id == DIAGNOSIS_BASE_ID:
             raise api_error(409, "Base is implicit")
         require_new_identifier(payload.diagnosis_id, label="diagnosis_id")
-        assays = [self._assay(asp_id) for asp_id in payload.asp_ids]
+        assays = payload.asp_ids
+        unresolved = []
         for asp_id in assays:
-            require_active_group(self.panels, self.panels.get_asp(asp_id)["asp_group"])
+            panel = self.panels.get_asp(asp_id)
+            if panel is None:
+                unresolved.append(asp_id)
+            else:
+                require_active_group(self.panels, panel["asp_group"])
         self.diagnoses.create_definition(
             attribute_record(payload.model_dump(exclude={"asp_ids"}), actor=actor)
             | {"updated_on": utc_now()},
@@ -106,6 +111,7 @@ class DiagnosisService:
         result = change_payload(
             resource="diagnosis", resource_id=payload.diagnosis_id, action="create"
         )
+        result["meta"]["unresolved_asp_ids"] = unresolved
         result["meta"]["asp_ids"] = assays
         result["meta"]["revision"] = {"new_version": 1, "asp_ids": assays}
         return result

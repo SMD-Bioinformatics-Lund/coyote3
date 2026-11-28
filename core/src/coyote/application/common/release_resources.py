@@ -99,3 +99,24 @@ def gene_list_resources(
             + ", ".join(sorted(missing))
         )
     return {identity: deepcopy(content[identity]) for identity in selected_ids}
+
+
+def gene_list_changes(before: dict, after: dict, identifiers: set[str]) -> list[dict]:
+    """Report gene edits only for lists whose membership both configuration revisions record."""
+    changes = []
+    for key in sorted(identifiers & before.keys() & after.keys()):
+        old, new = before[key], after[key]
+        if not isinstance(old.get("genes"), list) or not isinstance(new.get("genes"), list):
+            continue
+        old_genes, new_genes = set(old["genes"]), set(new["genes"])
+        if old_genes != new_genes:
+            changes.append(
+                {
+                    "isgl_id": key,
+                    "previous_version": old.get("version"),
+                    "version": new.get("version"),
+                    "added_genes": sorted(new_genes - old_genes),
+                    "removed_genes": sorted(old_genes - new_genes),
+                }
+            )
+    return changes

@@ -10,9 +10,7 @@
     asp_collection = "assay_specific_panels"
     diagnoses_collection = "diagnoses"
     diagnosis_associations_collection = "diagnosis_associations"
-    assay_setups_collection = "assay_setups"
     assay_groups_collection = "assay_groups"
-    assay_setup_revisions_collection = "assay_setup_revisions"
 
     blacklist_collection = "blacklist"
     annotations_collection = "annotation"

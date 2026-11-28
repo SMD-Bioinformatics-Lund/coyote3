@@ -20,17 +20,13 @@ import re
 from coyote.config.constants import normalize_clinical_identifier
 from coyote.contracts.operations import OperationResult
 
-from coyote_mongo.repositories.audit_outbox import enqueue_audit, update_audited
-from coyote_mongo.repositories.base import BaseRepository
-from coyote_mongo.repositories.revision_rotation import rotate_active_revision
-from coyote_mongo.results import operation_from_insert_one, operation_from_update
-from coyote_mongo.transactions import run_transaction
+from coyote_mongo.repositories.assay_components import AssayComponentRepository, library_rows
 
 
 # -------------------------------------------------------------------------
 # Class Definition
 # -------------------------------------------------------------------------
-class ASPRepository(BaseRepository):
+class ASPRepository(AssayComponentRepository):
     """
     Coyote assay specific asp database repository.
 
@@ -54,6 +50,8 @@ class ASPRepository(BaseRepository):
                 "group_id", {"is_active": True} if active_only else {}
             )
         )
+
+    identity_field = "asp_id"
 
     def __init__(self, adapter):
         """
@@ -230,6 +228,7 @@ class ASPRepository(BaseRepository):
         q: str = "",
         page: int = 1,
         per_page: int = 30,
+        latest_only: bool = False,
         is_active: bool | None = True,
     ) -> tuple[list[dict], int]:
         """Search assay panels and return a page with gene counts, not gene lists.
@@ -245,7 +244,7 @@ class ASPRepository(BaseRepository):
             covered_genes_count; absent or null gene lists count as zero.
         """
         query: dict = {}
-        if is_active is not None:
+        if is_active is not None and not latest_only:
             query["is_active"] = is_active
         normalized_q = str(q or "").strip()
         if normalized_q:
@@ -263,6 +262,13 @@ class ASPRepository(BaseRepository):
         per_page = max(1, min(int(per_page or 30), 200))
         skip = (page - 1) * per_page
         col = self.get_collection()
+        if latest_only:
+            rows, total = library_rows(
+                col, self.identity_field, query, {"asp_id": 1}, skip, per_page, None
+            )
+            for row in rows:
+                row["covered_genes_count"] = len(row.pop("covered_genes", []) or [])
+            return rows, total
         total = int(col.count_documents(query))
         docs = list(
             col.aggregate(
@@ -283,36 +289,8 @@ class ASPRepository(BaseRepository):
         return docs, total
 
     def create_panel(self, data: dict) -> OperationResult:
-        """
-        Insert an assay specific panel into the database.
-
-        This method adds a new assay specific panel document to the database collection.
-
-        Args:
-            data (dict): A dictionary containing the asp data to be inserted.
-
-        Returns:
-            Structured write result for the insert.
-        """
-        panel = self.ensure_asp_id(dict(data))
-
-        def create(session):
-            """Create the assay; its default scope requires no separate record."""
-            inserted = self.get_collection().insert_one(panel, session=session)
-            enqueue_audit(
-                self.get_collection().database,
-                session,
-                context=self.audit_context,
-                event_type="assay.created",
-                resource_type="assay",
-                resource_id=panel["asp_id"],
-                actor=panel.get("created_by"),
-            )
-            return operation_from_insert_one(inserted)
-
-        operation = run_transaction(self.get_collection().database.client, create)
-        self.invalidate_dashboard_metrics()
-        return operation
+        """Create the first active revision."""
+        return self.publish_revision(self.ensure_asp_id(dict(data)))
 
     def rotate_asp(
         self,
@@ -322,74 +300,21 @@ class ASPRepository(BaseRepository):
         expected_version: int,
         retire_fields: dict,
     ) -> OperationResult:
-        """Retire the active ASP revision and insert its successor."""
-        operation = rotate_active_revision(
-            self.get_collection(),
-            context=self.audit_context,
-            selector=self._asp_lookup_query(asp_id),
+        """Publish a successor and retire the expected active revision."""
+        return self.publish_revision(
+            self.ensure_asp_id(dict(asp_data)),
             expected_version=expected_version,
-            new_document=self.ensure_asp_id(dict(asp_data)),
             retire_fields=retire_fields,
+            identifier=asp_id,
         )
-        self.invalidate_dashboard_metrics()
-        return operation
 
     def toggle_asp_active(self, asp_id: str, active_status: bool) -> OperationResult:
-        """
-        Toggle the active status of an assay specific panel (ASP) in the database.
-
-        This method updates the `is_active` field of a specific ASP document
-        identified by `asp_id`.
-
-        Args:
-            asp_id (str): The unique identifier of the ASP.
-            active_status (bool): The desired active status to set.
-
-        Returns:
-            Structured write result for the update.
-        """
-        collection = self.get_collection()
-        target = collection.find_one(
-            {
-                **self._asp_lookup_query(asp_id),
-                "is_active": not active_status,
-            },
-            sort=[("version", -1), ("created_on", -1)],
-        )
-        operation = operation_from_update(
-            update_audited(
-                collection,
-                {"_id": target["_id"]} if target else {"_id": None},
-                {"$set": {"is_active": active_status}},
-                context=self.audit_context,
-            )
-        )
-        self.invalidate_dashboard_metrics()
-        return operation
+        """Change availability of the current library revision."""
+        return self.set_availability(asp_id, active_status)
 
     def delete_panel(self, asp_id: str) -> OperationResult:
-        """
-        Delete a panel from the database by its unique ID.
-
-        This method removes a single document from the database collection
-        that matches the provided `panel_id`.
-
-        Args:
-            asp_id (str): The unique identifier of the panel to be deleted.
-
-        Returns:
-            Structured write result for the delete.
-        """
-        operation = operation_from_update(
-            update_audited(
-                self.get_collection(),
-                {**self._asp_lookup_query(asp_id), "is_active": True},
-                {"$set": {"is_active": False}},
-                context=self.audit_context,
-            )
-        )
-        self.invalidate_dashboard_metrics()
-        return operation
+        """Withdraw the current revision while retaining its history."""
+        return self.set_availability(asp_id, False)
 
     def get_all_asps_unique_gene_count(self) -> int:
         """

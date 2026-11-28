@@ -49,8 +49,8 @@ class ConfigurationPromotionService:
     def propose(self, request: ConfigurationPromotionRequest, *, actor: str) -> dict:
         """Capture immutable source content and target concurrency state for independent review."""
         source = self.configurations.get_aspc_revision_no_meta(request.source_id)
-        if not source:
-            raise api_error(404, "Source configuration revision not found")
+        if not source or not source.get("is_active"):
+            raise api_error(404, "Select the active source configuration")
         if source["environment"] == request.target_environment:
             raise api_error(422, "Promotion requires a different target environment")
         assay_resource(source)

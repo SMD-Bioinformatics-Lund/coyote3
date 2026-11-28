@@ -45,49 +45,6 @@ def test_draft_creation_requires_registered_diagnoses_before_persistence():
     repository.insert.assert_not_called()
 
 
-def test_reserved_setup_scopes_validate_new_rules_and_ignore_existing_assays():
-    panel = {"asp_id": "assay_1", "asp_category": "dna", "asp_group": "demo"}
-    existing = {"asp_id": "existing", "asp_category": "dna", "asp_group": "demo"}
-    panels = SimpleNamespace(
-        get_all_asps=lambda **_: [existing],
-        get_asp=lambda identity: existing if identity == "existing" else None,
-        group_options=lambda: ["demo"],
-    )
-    setups = SimpleNamespace(
-        authoring_scopes=lambda: [
-            {"content": {"panel": existing, "scopes": ["base"]}},
-            {"content": {"panel": panel, "scopes": ["base", "named"]}},
-        ]
-    )
-    diagnoses = SimpleNamespace(
-        list_definitions=lambda: [
-            {"diagnosis_id": "named", "display_name": "Named", "is_active": True},
-            {"diagnosis_id": "unused", "display_name": "Unused", "is_active": True},
-        ],
-        list_for_assay=lambda *args, **kwargs: [],
-    )
-    service = ClinicalRuleAuthoringService(
-        Repository(),
-        assay_panel_repository=panels,
-        assay_setup_repository=setups,
-        assay_diagnosis_repository=diagnoses,
-    )
-    assert len(service.catalog.panels()) == 2
-    assert [row["diagnosis_id"] for row in service.catalog.diagnoses("assay_1")] == [
-        "base",
-        "named",
-    ]
-    assert service.catalog.diagnoses("unknown") == [
-        {"diagnosis_id": "base", "display_name": "Base"}
-    ]
-    service.catalog.validate(
-        ClinicalRuleDraftCreate(
-            scope={"asp_id": "assay_1", "diagnosis_id": "named", "analyte": "dna"},
-            name="New rule",
-        )
-    )
-
-
 def test_metadata_edit_preserves_schema_version():
     document = _document(status="draft", active=False)
     blocks = document.model_dump(mode="python")["blocks"]

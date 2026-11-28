@@ -119,3 +119,25 @@ def test_unchanged_historical_assignments_are_preserved(service):
     service._validate_diagnoses(existing, previous=existing)
     with pytest.raises(AppError):
         service._validate_diagnoses({**existing, "asp_ids": ["panel-b"]}, previous=existing)
+
+
+def test_create_retains_forward_assay_and_diagnosis_references(service):
+    repository = Mock()
+    repository.get_isgl.return_value = None
+    service.gene_list_repository = repository
+    result = service.create(
+        payload={
+            "config": {
+                "isgl_id": "shared",
+                "name": "Shared",
+                "displayname": "Shared",
+                "list_type": ["snv"],
+                "asp_ids": ["future-assay"],
+                "asp_groups": ["custom-group"],
+                "diagnosis": ["future-scope"],
+            }
+        }
+    )
+    saved = repository.create_genelist.call_args.args[0]
+    assert saved["asp_ids"] == result["meta"]["unresolved_asp_ids"] == ["future-assay"]
+    assert saved["diagnosis"] == ["future-scope"]

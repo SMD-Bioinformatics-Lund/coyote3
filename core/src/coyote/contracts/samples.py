@@ -16,7 +16,18 @@ class ConfigurationApplyRequest(BaseModel):
     expected_version: int = Field(ge=1)
     configuration_id: str = Field(min_length=1)
     reason: str = Field(min_length=1, max_length=2000)
-    retain_overrides: bool = False
+    retain_overrides: bool = True
+    accept_incompatible_overrides: bool = False
+
+
+class GeneListChange(BaseModel):
+    """Verified gene additions and removals between two recorded ISGL memberships."""
+
+    isgl_id: str
+    previous_version: int | None
+    version: int | None
+    added_genes: list[str]
+    removed_genes: list[str]
 
 
 class ConfigurationPreviewPayload(BaseModel):
@@ -25,6 +36,9 @@ class ConfigurationPreviewPayload(BaseModel):
     expected_version: int = Field(ge=1)
     configuration_id: str = Field(min_length=1)
     configuration: dict[str, Any]
+    previous_configuration: dict[str, Any] | None
+    gene_list_changes: list[GeneListChange]
+    incompatible_overrides: list[str]
     filters_before: dict[str, Any] | None
     filters_after: dict[str, Any]
     retain_overrides: bool

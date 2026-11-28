@@ -70,7 +70,9 @@ class IsglService:
         Returns:
             dict[str, Any]: Genelist rows and pagination metadata.
         """
-        rows, total = self.gene_list_repository.search_isgls(q=q, page=page, per_page=per_page)
+        rows, total = self.gene_list_repository.search_isgls(
+            q=q, page=page, per_page=per_page, latest_only=True
+        )
         genelists = [dict(item) for item in rows if isinstance(item, dict)]
         total = int(total or 0)
         return {
@@ -103,7 +105,7 @@ class IsglService:
         Returns:
             dict[str, Any]: Existing genelist data and edit form payload.
         """
-        genelist = self.gene_list_repository.get_isgl(genelist_id)
+        genelist = self.gene_list_repository.latest_revision(genelist_id)
         if not genelist:
             raise api_error(404, "Genelist not found")
         form = build_managed_form(self._spec)
@@ -178,15 +180,15 @@ class IsglService:
         if set(config.get("diagnosis") or []) - available:
             raise api_error(422, "Select registered diagnoses associated with the selected assays")
 
-    def _validate_asp_scope(self, config: dict[str, Any]) -> None:
-        """Reject ASP selections outside the ISGL's selected assay groups."""
+    def _validate_asp_scope(self, config: dict[str, Any], *, creating: bool = False) -> list[str]:
+        """Check known assay groups and return unresolved assay IDs during creation."""
         panels = {
             str(panel.get("asp_id") or "").strip().lower(): panel
             for panel in (self.assay_panel_repository.get_all_asps(is_active=True) or [])
             if isinstance(panel, dict) and panel.get("asp_id")
         }
         selected_groups = {str(value).strip().lower() for value in config.get("asp_groups", [])}
-        if selected_groups - set(self.assay_panel_repository.group_options()):
+        if not creating and selected_groups - set(self.assay_panel_repository.group_options()):
             raise api_error(422, "Select registered assay groups")
         unknown: list[str] = []
         mismatched: list[str] = []
@@ -199,7 +201,7 @@ class IsglService:
             panel_group = str(panel.get("asp_group") or "").strip().lower()
             if panel_group not in selected_groups:
                 mismatched.append(str(asp_id))
-        if unknown:
+        if unknown and not creating:
             raise api_error(400, "Unknown or inactive ASP IDs: " + ", ".join(sorted(unknown)))
         if mismatched:
             raise api_error(
@@ -207,6 +209,8 @@ class IsglService:
                 "ASP IDs must belong to the selected assay groups: "
                 + ", ".join(sorted(mismatched)),
             )
+
+        return unknown
 
     def view_context_payload(self, *, genelist_id: str, assay: str | None) -> dict[str, Any]:
         """Return the read-only view payload for a genelist.
@@ -218,7 +222,7 @@ class IsglService:
         Returns:
             dict[str, Any]: Genelist details and filtered genes.
         """
-        genelist = self.gene_list_repository.get_isgl(genelist_id)
+        genelist = self.gene_list_repository.latest_revision(genelist_id)
         if not genelist:
             raise api_error(404, "Genelist not found")
         all_genes = genelist.get("genes", [])
@@ -259,7 +263,7 @@ class IsglService:
                 config.pop(field, None)
         if not config:
             raise api_error(400, "Missing genelist config payload")
-        config.setdefault("is_active", True)
+        config["is_active"] = True
         config["system_managed"] = False
         config["system_installed"] = False
         config.pop("diagnosis_id", None)
@@ -280,12 +284,13 @@ class IsglService:
         config["updated_on"] = now
         config["version"] = 1
         config = _validated_doc(self._spec.collection, config)
-        self._validate_asp_scope(config)
-        self._validate_diagnoses(config)
+        unresolved = self._validate_asp_scope(config, creating=True)
         self.gene_list_repository.create_genelist(config)
-        return change_payload(
+        result = change_payload(
             resource="genelist", resource_id=str(config.get("isgl_id", "unknown")), action="create"
         )
+        result["meta"]["unresolved_asp_ids"] = unresolved
+        return result
 
     def update(
         self, *, genelist_id: str, payload: dict[str, Any], actor_username: str = "admin-ui"
@@ -332,7 +337,8 @@ class IsglService:
         updated_doc.pop("retired_on", None)
         updated_doc.pop("retired_reason", None)
         updated_doc = _validated_doc(self._spec.collection, updated_doc)
-        self._validate_asp_scope(updated_doc)
+        if any(updated_doc.get(key) != genelist.get(key) for key in ("asp_ids", "asp_groups")):
+            self._validate_asp_scope(updated_doc)
         self._validate_diagnoses(updated_doc, previous=genelist)
         operation = self.gene_list_repository.rotate_isgl(
             genelist_id,
@@ -367,7 +373,7 @@ class IsglService:
         Returns:
             dict[str, Any]: Normalized change response payload.
         """
-        genelist = self.gene_list_repository.get_isgl(genelist_id)
+        genelist = self.gene_list_repository.latest_revision(genelist_id)
         if not genelist:
             raise api_error(404, "Genelist not found")
         reject_system_managed_change(genelist, resource="gene list")
@@ -398,5 +404,5 @@ class IsglService:
         normalized = str(isgl_id or "").strip()
         if not normalized:
             return False
-        genelist = self.gene_list_repository.get_isgl(normalized)
+        genelist = self.gene_list_repository.latest_revision(normalized)
         return bool(isinstance(genelist, dict) and (genelist.get("isgl_id") or genelist.get("_id")))

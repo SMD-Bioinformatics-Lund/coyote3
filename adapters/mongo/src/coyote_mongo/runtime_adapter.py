@@ -22,10 +22,6 @@ from coyote_mongo.repositories.assay_configurations import ASPConfigRepository
 from coyote_mongo.repositories.assay_diagnoses import AssayDiagnosisRepository
 from coyote_mongo.repositories.assay_groups import AssayGroupRepository
 from coyote_mongo.repositories.assay_panels import ASPRepository
-from coyote_mongo.repositories.assay_setup import (
-    AssaySetupRepository,
-    AssaySetupRevisionRepository,
-)
 from coyote_mongo.repositories.bam_records import BamServiceRepository
 from coyote_mongo.repositories.biomarkers import BiomarkerRepository
 from coyote_mongo.repositories.blacklist import BlacklistRepository
@@ -81,9 +77,7 @@ CORE_REPOSITORIES: tuple[tuple[str, type[Any], str], ...] = (
     ("finding_comment_repository", FindingCommentsRepository, "finding_comments"),
     ("assay_panel_repository", ASPRepository, "asp"),
     ("assay_diagnosis_repository", AssayDiagnosisRepository, "assay_diagnoses"),
-    ("assay_setup_repository", AssaySetupRepository, "assay_setups"),
     ("assay_group_repository", AssayGroupRepository, "assay_groups"),
-    ("assay_setup_revision_repository", AssaySetupRevisionRepository, "assay_setup_revisions"),
     ("blacklist_repository", BlacklistRepository, "blacklist"),
     ("expression_repository", ExpressionRepository, "expression"),
     ("bam_record_repository", BamServiceRepository, "bam_service"),

@@ -346,16 +346,19 @@ def test_create_shared_definition_with_multiple_assays(service, repository):
         )
 
 
-def test_shared_creation_validates_every_assay_before_writing(service, repository):
-    with pytest.raises(AppError):
-        service.create_definition(
-            SharedDiagnosisCreate(
-                diagnosis_id="shared", display_name="Shared", asp_ids=["panel-a", "missing"]
-            ),
-            actor="author",
-        )
-    assert repository.definitions.count_documents({}) == 0
-    assert repository.get_collection().count_documents({}) == 0
+def test_shared_creation_retains_associations_to_planned_assays(service, repository):
+    result = service.create_definition(
+        SharedDiagnosisCreate(
+            diagnosis_id="shared", display_name="Shared", asp_ids=["panel-a", "planned"]
+        ),
+        actor="author",
+    )
+    assert result["meta"]["unresolved_asp_ids"] == ["planned"]
+    assert (
+        repository.definitions.count_documents({"diagnosis_id": "shared", "is_current": True}) == 1
+    )
+    for assay in ("panel-a", "planned"):
+        assert repository.get_current(assay, "shared")["is_active"] is True
 
 
 def test_unassigned_definition_and_duplicate_rejection(service, repository):

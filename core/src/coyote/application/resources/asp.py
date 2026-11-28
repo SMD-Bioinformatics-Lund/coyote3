@@ -62,7 +62,9 @@ class AspService:
         Returns:
             dict[str, Any]: Panel rows and pagination metadata.
         """
-        rows, total = self.assay_panel_repository.search_asps(q=q, page=page, per_page=per_page)
+        rows, total = self.assay_panel_repository.search_asps(
+            q=q, page=page, per_page=per_page, latest_only=True
+        )
         panels = [dict(item) for item in rows if isinstance(item, dict)]
         total = int(total or 0)
         return {
@@ -92,7 +94,7 @@ class AspService:
         Returns:
             dict[str, Any]: Existing panel data and edit form payload.
         """
-        panel = self.assay_panel_repository.get_asp(panel_id)
+        panel = self.assay_panel_repository.latest_revision(panel_id)
         if not panel:
             raise api_error(404, "Panel not found")
         form = build_managed_form(self._spec)
@@ -126,7 +128,7 @@ class AspService:
         family = str(config.get("asp_family") or "").strip().lower()
         if family in CLINICAL_VOCABULARY.assay_family_categories:
             config["asp_category"] = CLINICAL_VOCABULARY.assay_family_categories[family]
-        config.setdefault("is_active", True)
+        config["is_active"] = True
         config["system_managed"] = False
         config["system_installed"] = False
         config["asp_id"] = config.get("asp_id")
@@ -170,6 +172,8 @@ class AspService:
         panel = self.assay_panel_repository.get_asp(panel_id)
         if not panel:
             raise api_error(404, "Panel not found")
+        if "expected_version" in payload and payload["expected_version"] != panel.get("version", 1):
+            raise api_error(409, "The active revision changed. Reload it before saving.")
         reject_system_managed_change(panel, resource="assay panel")
         updated = payload.get("config", {})
         if not updated:
@@ -228,7 +232,7 @@ class AspService:
         Returns:
             dict[str, Any]: Normalized change response payload.
         """
-        panel = self.assay_panel_repository.get_asp(panel_id)
+        panel = self.assay_panel_repository.latest_revision(panel_id)
         if not panel:
             raise api_error(404, "Panel not found")
         reject_system_managed_change(panel, resource="assay panel")
@@ -261,5 +265,5 @@ class AspService:
         normalized = str(asp_id or "").strip()
         if not normalized:
             return False
-        panel = self.assay_panel_repository.get_asp(normalized)
+        panel = self.assay_panel_repository.latest_revision(normalized)
         return bool(isinstance(panel, dict) and (panel.get("asp_id") or panel.get("_id")))

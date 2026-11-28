@@ -5,7 +5,6 @@
 
 from .assay_configurations import AssayConfigurations
 from .assay_groups import AssayGroups
-from .assay_setups import AssaySetups
 from .assays import Assays
 from .catalog import CatalogAuthoring
 from .diagnoses import Diagnoses
@@ -27,7 +26,6 @@ __all__ = [
     "AssayConfigurations",
     "GeneLists",
     "SampleAdministration",
-    "AssaySetups",
     "CatalogAuthoring",
     "ReferenceData",
     "AdministrationServices",

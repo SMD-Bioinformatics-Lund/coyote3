@@ -61,6 +61,9 @@ def test_from_store_uses_repository_database_bindings() -> None:
     store = SimpleNamespace(
         app=mongo_runtime(),
         coyote_db=primary,
+        assay_diagnosis_repository=SimpleNamespace(
+            definitions="clinical:diagnoses", get_collection=lambda: "clinical:associations"
+        ),
         **{name: _Repository(name) for name in repository_names},
         civic_gene_collection="knowledgebase:civic_genes",
         oncokb_actionable_collection="knowledgebase:oncokb_actionable",
@@ -77,6 +80,8 @@ def test_from_store_uses_repository_database_bindings() -> None:
     gateway = IngestCollectionGateway.from_store(store)
 
     assert gateway.collection("coverage") == "coverage_repository"
+    assert gateway.collection("diagnoses") == "clinical:diagnoses"
+    assert gateway.collection("diagnosis_associations") == "clinical:associations"
     assert gateway.collection("brcaexchange") == "brca_repository"
     assert gateway.collection("civic_genes") == "knowledgebase:civic_genes"
     assert gateway.collection("oncokb_actionable") == "knowledgebase:oncokb_actionable"

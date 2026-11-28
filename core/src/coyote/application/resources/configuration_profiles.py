@@ -77,7 +77,7 @@ def prepare_profile_update(previous: dict, submitted: dict, updated: dict) -> No
     """
     overrides = deepcopy(previous.get("profile_overrides") or {})
     for kind in ("filters", "reporting"):
-        if not previous.get("profile_sources"):
+        if kind not in overrides and not previous.get("profile_sources"):
             overrides[kind] = deepcopy(previous.get(kind) or {})
         if kind in submitted:
             overrides[kind] = merge_profile_values(

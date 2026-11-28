@@ -79,12 +79,12 @@ def test_analysis_options_follow_expected_files(category, family, expected, requ
 def test_save_rejects_unavailable_analysis_and_disabled_report_section():
     panel = {"asp_category": "dna", "asp_family": "panel-dna", "expected_files": ["vcf_files"]}
     with pytest.raises(AppError, match="input files"):
-        AspcService._validate_analysis_types_for_panel({"analysis_types": ["CNV"]}, panel)
+        AspcService.validate_analysis_types_for_panel({"analysis_types": ["CNV"]}, panel)
     with pytest.raises(AppError, match="Report sections"):
-        AspcService._validate_analysis_types_for_panel(
+        AspcService.validate_analysis_types_for_panel(
             {"analysis_types": ["SNV"], "reporting": {"report_sections": ["CNV"]}}, panel
         )
-    AspcService._validate_analysis_types_for_panel(
+    AspcService.validate_analysis_types_for_panel(
         {"analysis_types": ["SNV"], "reporting": {"report_sections": ["SNV"]}}, panel
     )
 

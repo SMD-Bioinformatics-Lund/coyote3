@@ -1079,7 +1079,6 @@ RESOURCE_SECTIONS: dict[str, list[tuple[str, list[str]]]] = {
 }
 
 RESOURCE_EXCLUDED_FIELDS: dict[str, set[str]] = {
-    "asp": set(),
     "aspc_dna": {
         "id_",
         "clinical_rule_base",
@@ -1104,7 +1103,6 @@ RESOURCE_EXCLUDED_FIELDS: dict[str, set[str]] = {
         "query_policy_release",
         "clinical_rule_release",
     },
-    "isgl": set(),
     "user": {
         "password_updated_on",
         "password_recovery",

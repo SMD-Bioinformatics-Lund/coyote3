@@ -519,7 +519,7 @@ class Sample:
             edit_resource=("sample-filters", self.id),
         )
 
-    def preview_configuration(self, *, retain_overrides: bool = False) -> dict[str, Any]:
+    def preview_configuration(self, *, retain_overrides: bool = True) -> dict[str, Any]:
         """Preview the latest configuration without replacing the sample's stored settings."""
         return self._runtime.execute(
             "sample.preview_configuration",

@@ -33,7 +33,7 @@ def test_creation_overrides_submitted_provenance(monkeypatch, resource):
             assay_panel_repository=SimpleNamespace(),
             assay_diagnosis_repository=SimpleNamespace(),
         )
-        monkeypatch.setattr(service, "_validate_asp_scope", lambda config: None)
+        monkeypatch.setattr(service, "_validate_asp_scope", lambda config, *, creating: [])
         monkeypatch.setattr(service, "_validate_diagnoses", lambda config: None)
         config = {"isgl_id": "demo_genes"}
     config.update(
@@ -63,12 +63,11 @@ def test_installed_resource_status_cannot_be_changed(resource):
     """Direct service calls cannot bypass the UI's installed-record lock."""
     record = {"system_installed": True, "is_active": True}
     repository = Mock()
+    repository.latest_revision.return_value = record
     if resource == "asp":
-        repository.get_asp.return_value = record
         service = asp.AspService(assay_panel_repository=repository)
         arguments = {"panel_id": "synthetic"}
     elif resource == "aspc":
-        repository.get_aspc_with_id.return_value = record
         service = aspc.AspcService(
             assay_configuration_repository=repository,
             assay_panel_repository=Mock(),
@@ -78,7 +77,6 @@ def test_installed_resource_status_cannot_be_changed(resource):
         )
         arguments = {"assay_id": "synthetic"}
     else:
-        repository.get_isgl.return_value = record
         service = isgl.IsglService(
             gene_list_repository=repository,
             assay_panel_repository=Mock(),

@@ -14,7 +14,6 @@ from coyote.application.operations.administration import (
     AssayConfigurations,
     AssayGroups,
     Assays,
-    AssaySetups,
     CatalogAuthoring,
     Diagnoses,
     GeneLists,
@@ -186,7 +185,6 @@ class CoyoteApplication:
         self.sample_administration = SampleAdministration(
             runtime, services.administration.sample_administration
         )
-        self.assay_setups = AssaySetups(runtime, services.administration.assay_setups)
         self.catalog_authoring = CatalogAuthoring(
             runtime, services.administration.catalog_authoring
         )
@@ -280,11 +278,6 @@ class CoyoteApplication:
                         genelist_id=identity
                     )["genelist"],
                     "isgl_id",
-                ),
-                "assay-setups": EditableResource(
-                    "assay.panel:edit",
-                    lambda identity: administration.assay_setups().get(identity),
-                    "_id",
                 ),
                 "clinical-rules": EditableResource(
                     "clinical_rules:draft",

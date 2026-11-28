@@ -10,7 +10,7 @@ def transaction_audit_destination(monkeypatch):
     """Supply a synthetic audit destination when replica-set tests are enabled."""
     names = (
         "AUDIT_TEST_MONGO_URI",
-        "ASSAY_SETUP_TEST_MONGO_URI",
+        "ASSAY_RESOURCE_TEST_MONGO_URI",
         "CLINICAL_RULE_TEST_MONGO_URI",
         "REPORT_TEST_MONGO_URI",
         "LIFECYCLE_TEST_MONGO_URI",

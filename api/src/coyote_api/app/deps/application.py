@@ -19,7 +19,6 @@ from coyote.application.operations.administration import (
     AssayConfigurations,
     AssayGroups,
     Assays,
-    AssaySetups,
     CatalogAuthoring,
     Diagnoses,
     GeneLists,
@@ -218,11 +217,6 @@ def get_sample_administration(
 ) -> SampleAdministration:
     """Inject the shared authorized sample administration operations."""
     return application.sample_administration
-
-
-def get_assay_setups(application: CoyoteApplication = Depends(get_application)) -> AssaySetups:
-    """Inject the shared authorized assay setups operations."""
-    return application.assay_setups
 
 
 def get_catalog_authoring(

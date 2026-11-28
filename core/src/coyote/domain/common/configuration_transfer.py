@@ -20,6 +20,7 @@ CONFIGURATION_METADATA_FIELDS = frozenset(
         "version",
         "content_version",
         "revision",
+        "content_updated_at",
         "content_hash",
         "status",
         "active",
@@ -45,10 +46,8 @@ CONFIGURATION_METADATA_FIELDS = frozenset(
         "supersedes_id",
         "installed_by",
         "installed_on",
-        "review_dependencies",
         "reviewer",
         "reviewed_by",
-        "review_reason",
         "base_version",
         "is_current",
         "query_id",
@@ -61,25 +60,11 @@ CONFIGURATION_METADATA_FIELDS = frozenset(
 
 
 def configuration_content(value: Any) -> Any:
-    """Copy portable records while removing application-owned audit fields.
-
-    Args:
-        value: One resource record, a list of records, or assay setup content.
-
-    Returns:
-        A copy without audit fields at each record boundary, descending only into
-        setup panel, gene_lists and configurations. Arbitrary rule content, pinned
-        references and predicate values remain unchanged. Non-record values pass
-        through for the owning contract to validate; inputs are not mutated.
-    """
+    """Strip server-owned metadata at each submitted record boundary, preserving nested content."""
     if isinstance(value, list):
         return [configuration_content(item) for item in value]
     if not isinstance(value, dict):
         return value
     return {
-        key: configuration_content(nested)
-        if key in {"panel", "gene_lists", "configurations"}
-        else nested
-        for key, nested in value.items()
-        if key not in CONFIGURATION_METADATA_FIELDS
+        key: nested for key, nested in value.items() if key not in CONFIGURATION_METADATA_FIELDS
     }

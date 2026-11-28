@@ -95,7 +95,6 @@ class ClinicalRuleAuthoringService:
             revision_repository=store.clinical_rule_revision_repository,
             assay_panel_repository=store.assay_panel_repository,
             assay_diagnosis_repository=store.assay_diagnosis_repository,
-            assay_setup_repository=getattr(store, "assay_setup_repository", None),
             assay_group_repository=getattr(store, "assay_group_repository", None),
             user_repository=getattr(store, "user_repository", None),
             role_repository=getattr(store, "roles_repository", None),
@@ -109,7 +108,6 @@ class ClinicalRuleAuthoringService:
         revision_repository: Any | None = None,
         assay_panel_repository: Any | None = None,
         assay_diagnosis_repository: Any | None = None,
-        assay_setup_repository: Any | None = None,
         assay_group_repository: Any | None = None,
         user_repository: Any | None = None,
         role_repository: Any | None = None,
@@ -122,7 +120,6 @@ class ClinicalRuleAuthoringService:
             revision_repository: Reads revision history; None disables history lookup.
             assay_panel_repository: Optional active-assay validation and option source.
             assay_diagnosis_repository: Registered scopes; required when validating an assay.
-            assay_setup_repository: Unpublished setup scopes available only to rule authoring.
             assay_group_repository: Registered biological hierarchy for annotation options.
             user_repository: Optional active-user lookup for assignments.
             role_repository: Optional permission-to-role lookup for assignments.
@@ -138,7 +135,6 @@ class ClinicalRuleAuthoringService:
         self.catalog = RuleScopeCatalog(
             assay_panel_repository=assay_panel_repository,
             assay_diagnosis_repository=assay_diagnosis_repository,
-            assay_setup_repository=assay_setup_repository,
             assay_group_repository=assay_group_repository,
             assignments=self.assignments,
         )

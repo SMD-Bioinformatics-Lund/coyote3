@@ -39,48 +39,54 @@ def rotate_active_revision(
     Raises:
         RuntimeError: The expected active revision changed before retirement.
     """
-    active_selector = {
-        **selector,
-        "is_active": True,
-        "version": expected_version,
-    }
-
-    def rotate(session):
-        """Retire the captured active revision and insert its successor.
-
-        Args:
-            session: Transaction session shared by both writes.
-
-        Returns:
-            Counts for the retirement and insertion, including the successor's ID.
-
-        Raises:
-            RuntimeError: If exactly one expected active revision was not matched.
-        """
-        retired = collection.update_one(
-            active_selector,
-            {"$set": {"is_active": False, **retire_fields}},
+    return run_transaction(
+        collection.database.client,
+        lambda session: rotate_in_session(
+            collection,
             session=session,
-        )
-        if retired.matched_count != 1:
-            raise RuntimeError("Active configuration revision changed during update")
-        inserted = collection.insert_one(dict(new_document), session=session)
-        enqueue_audit(
-            collection.database,
-            session,
             context=context,
-            event_type="configuration.revision_rotated",
-            resource_type=collection.name,
-            resource_id=inserted.inserted_id,
-            actor=new_document.get("updated_by"),
-            metadata={"previous_version": expected_version, "version": new_document.get("version")},
-        )
-        return OperationResult(
-            matched_count=1,
-            modified_count=int(retired.modified_count or 0),
-            inserted_count=1,
-            requested_count=2,
-            inserted_id=str(inserted.inserted_id),
-        )
+            selector=selector,
+            expected_version=expected_version,
+            new_document=new_document,
+            retire_fields=retire_fields,
+        ),
+    )
 
-    return run_transaction(collection.database.client, rotate)
+
+def rotate_in_session(
+    collection: Any,
+    *,
+    session: Any,
+    context: AuditContext,
+    selector: dict,
+    expected_version: int,
+    new_document: dict,
+    retire_fields: dict,
+) -> OperationResult:
+    """Retire the expected active revision, insert its successor and audit both in one session."""
+    active_selector = {**selector, "is_active": True, "version": expected_version}
+    retired = collection.update_one(
+        active_selector,
+        {"$set": {"is_active": False, **retire_fields}},
+        session=session,
+    )
+    if retired.matched_count != 1:
+        raise RuntimeError("Active configuration revision changed during update")
+    inserted = collection.insert_one(dict(new_document), session=session)
+    enqueue_audit(
+        collection.database,
+        session,
+        context=context,
+        event_type="configuration.revision_rotated",
+        resource_type=collection.name,
+        resource_id=inserted.inserted_id,
+        actor=new_document.get("updated_by"),
+        metadata={"previous_version": expected_version, "version": new_document.get("version")},
+    )
+    return OperationResult(
+        matched_count=1,
+        modified_count=int(retired.modified_count or 0),
+        inserted_count=1,
+        requested_count=2,
+        inserted_id=str(inserted.inserted_id),
+    )

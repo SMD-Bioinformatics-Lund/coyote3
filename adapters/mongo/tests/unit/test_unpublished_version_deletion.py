@@ -6,17 +6,16 @@ from unittest.mock import Mock
 import mongomock
 import pytest
 from bson import ObjectId
-from coyote_mongo.repositories import assay_setup, public_assay_catalog_versions
+from coyote_mongo.repositories import public_assay_catalog_versions
 from mongo_test_support.settings import mongo_runtime
 
 
-@pytest.mark.parametrize("kind", ["setup", "catalog"])
 @pytest.mark.parametrize(
     "status", ["draft", "submitted", "approved", "rejected", "published", "retired"]
 )
 @pytest.mark.parametrize("revision", [1, 2])
 def test_deletion_checks_state_and_revision_and_preserves_other_records(
-    monkeypatch, kind, status, revision
+    monkeypatch, status, revision
 ):
     """Remove only eligible versions and their snapshots, retaining an audit receipt."""
     db = mongomock.MongoClient().synthetic
@@ -27,29 +26,18 @@ def test_deletion_checks_state_and_revision_and_preserves_other_records(
             {"_id": other, "revision": 1, "status": "published"},
         ]
     )
-    key = "setup_id" if kind == "setup" else "version_id"
+    key = "version_id"
     db.snapshots.insert_many([{key: str(oid)}, {key: str(other)}])
     db.live.insert_one({"name": "existing publication"})
-    if kind == "setup":
-        module = assay_setup
-        repository = module.AssaySetupRepository(
-            SimpleNamespace(
-                app=mongo_runtime(),
-                assay_setups_collection=db.versions,
-                assay_setup_revisions_collection=db.snapshots,
-            )
+    module = public_assay_catalog_versions
+    repository = module.PublicAssayCatalogVersionRepository(
+        SimpleNamespace(
+            app=mongo_runtime(),
+            public_assay_catalog_versions_collection=db.versions,
+            public_assay_catalog_revisions_collection=db.snapshots,
         )
-        allowed = {"draft", "submitted"}
-    else:
-        module = public_assay_catalog_versions
-        repository = module.PublicAssayCatalogVersionRepository(
-            SimpleNamespace(
-                app=mongo_runtime(),
-                public_assay_catalog_versions_collection=db.versions,
-                public_assay_catalog_revisions_collection=db.snapshots,
-            )
-        )
-        allowed = {"draft", "submitted", "approved", "rejected"}
+    )
+    allowed = {"draft", "submitted", "approved", "rejected"}
     audit = Mock()
     monkeypatch.setattr(module, "run_transaction", lambda client, operation: operation(None))
     monkeypatch.setattr(module, "enqueue_audit", audit)

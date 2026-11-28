@@ -39,7 +39,7 @@ class CatalogAuthoring:
         """Delete an unchanged unpublished version; requires catalog:draft.
 
         Args:
-            identifier: Saved setup or catalog-version identifier.
+            identifier: Catalog version to delete.
             revision: Expected saved revision; concurrent changes are rejected.
 
         Returns:

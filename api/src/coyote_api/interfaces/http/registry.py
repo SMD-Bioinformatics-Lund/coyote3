@@ -22,7 +22,6 @@ from coyote_api.interfaces.http.v1.admin.public_assay_catalog import (
 from coyote_api.interfaces.http.v1.admin.query_rules import router as query_rules_router
 from coyote_api.interfaces.http.v1.admin.resources.asp import router as resource_asp_router
 from coyote_api.interfaces.http.v1.admin.resources.aspc import router as resource_aspc_router
-from coyote_api.interfaces.http.v1.admin.resources.assay_setup import router as assay_setup_router
 from coyote_api.interfaces.http.v1.admin.resources.genelists import (
     router as resource_genelists_router,
 )
@@ -84,7 +83,6 @@ ROUTERS = (
     RouterRegistration(app_controls_router),
     RouterRegistration(resource_asp_router),
     RouterRegistration(resource_reads_router),
-    RouterRegistration(assay_setup_router),
     RouterRegistration(resource_aspc_router),
     RouterRegistration(configuration_profiles_router),
     RouterRegistration(resource_genelists_router),

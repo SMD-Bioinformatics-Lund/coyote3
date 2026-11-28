@@ -19,6 +19,7 @@ from coyote.config.constants import (
     manifest_file_preload_keys,
 )
 from coyote.domain.common.biomarkers import BIOMARKER_ANALYSES, project_biomarkers
+from coyote.domain.common.errors import api_error
 from coyote.domain.identity.assay_access import grants_for
 
 
@@ -98,14 +99,26 @@ class SampleCatalogService(SampleCatalogMutationsMixin, SampleCatalogFiltersMixi
         self.reports_base_path = str(reports_base_path or "")
 
     def _get_formatted_assay_config(
-        self, sample: dict, *, use_sample_revision: bool = True
+        self, sample: dict, *, use_sample_revision: bool = True, allow_missing_active: bool = False
     ) -> dict:
         """Resolve the sample release through the explicitly injected repositories."""
+        if (
+            not use_sample_revision
+            and not self.assay_configuration_repository.intake_scope_available(
+                sample["asp_id"], sample.get("diagnosis_id") or "base"
+            )
+        ):
+            if allow_missing_active:
+                return {}
+            raise api_error(
+                409, "The assay, group or diagnosis is unavailable for a configuration update"
+            )
         return get_formatted_assay_config(
             sample,
             assay_panel_repository=self.assay_panel_repository,
             assay_configuration_repository=self.assay_configuration_repository,
             use_sample_revision=use_sample_revision,
+            allow_missing_active=allow_missing_active,
         )
 
     @staticmethod

@@ -121,3 +121,69 @@ def test_apply_passes_exact_release_and_version_to_atomic_write(flow):
     assert kwargs["aspc"]["_id"] == "configuration-2"
     assert "aspc_resolution" not in kwargs
     assert kwargs["settings_reason"] == "Validated thresholds"
+
+
+def test_pinned_list_membership_and_partial_sample_overrides_are_reviewed_before_applying(flow):
+    service, sample, candidate = flow
+    sample["current_aspc_id"] = "configuration-1"
+    sample["filters"]["somatic"]["snv"]["snvlists"] = ["breast", "retired-list"]
+    candidate["gene_list_release"] = capture_gene_lists(
+        [{"isgl_id": "breast", "version": 2, "list_type": ["snv"], "genes": ["TP53", "BRCA1"]}]
+    )
+    preview = service.preview_latest_aspc(sample=sample)
+    assert preview["previous_configuration"]["version"] == 1
+    assert preview["gene_list_changes"] == [
+        dict(
+            isgl_id="breast", previous_version=1, version=2, added_genes=["BRCA1"], removed_genes=[]
+        ),
+    ]
+    assert preview["incompatible_overrides"] == ["somatic.snv.snvlists: retired-list"]
+    args = dict(
+        sample=sample,
+        expected_version=7,
+        configuration_id="configuration-2",
+        reason="Review expanded list",
+    )
+    with pytest.raises(AppError, match="incompatible"):
+        service.apply_latest_aspc(**args)
+    service.sample_repository.update_sample_filters.assert_not_called()
+    service.apply_latest_aspc(**args, accept_incompatible_overrides=True)
+    write = service.sample_repository.update_sample_filters.call_args
+    assert write.args[1]["somatic"]["snv"]["snvlists"] == ["breast"]
+    assert write.args[1]["somatic"]["snv"]["min_depth"] == 100
+    assert write.kwargs["aspc"]["_id"] == "configuration-2"
+
+
+def test_unpinned_sample_does_not_infer_historical_genes_from_active_list(flow):
+    service, sample, _ = flow
+    preview = service.preview_latest_aspc(sample=sample)
+    assert preview["previous_configuration"] is None
+    assert preview["gene_list_changes"] == []
+
+
+def test_new_selection_does_not_report_unchanged_list_membership_as_a_gene_edit(flow):
+    service, sample, _ = flow
+    sample["current_aspc_id"] = "configuration-1"
+    sample["filters"]["somatic"]["snv"]["snvlists"] = []
+    preview = service.preview_latest_aspc(sample=sample, retain_overrides=False)
+    assert preview["gene_list_changes"] == []
+    assert preview["filters_after"]["somatic"]["snv"]["snvlists"] == ["breast"]
+
+
+def test_list_revision_with_only_a_label_change_has_no_gene_diff(flow):
+    service, sample, candidate = flow
+    sample["current_aspc_id"] = "configuration-1"
+    candidate["gene_list_release"] = capture_gene_lists(
+        [
+            {
+                "isgl_id": "breast",
+                "version": 2,
+                "displayname": "Breast panel",
+                "list_type": ["snv"],
+                "genes": ["TP53"],
+            }
+        ]
+    )
+    preview = service.preview_latest_aspc(sample=sample)
+    assert "gene_list_release" in preview["changed_components"]
+    assert preview["gene_list_changes"] == []

@@ -10,7 +10,7 @@ from coyote.domain.exceptions import AppError
 def test_admin_aspc_analysis_types_follow_the_asp_sequencing_family():
     """Targeted RNA panels reject WTS-only capabilities while WTS accepts them."""
     with pytest.raises(AppError) as exc_info:
-        AspcService._validate_analysis_types_for_panel(
+        AspcService.validate_analysis_types_for_panel(
             {"analysis_types": ["FUSION", "EXPRESSION"]},
             {"asp_family": "panel-rna"},
         )
@@ -18,7 +18,7 @@ def test_admin_aspc_analysis_types_follow_the_asp_sequencing_family():
     assert exc_info.value.status_code == 400
     assert "EXPRESSION" in exc_info.value.message
 
-    AspcService._validate_analysis_types_for_panel(
+    AspcService.validate_analysis_types_for_panel(
         {"analysis_types": ["FUSION", "EXPRESSION", "CLASSIFICATION", "QC"]},
         {
             "asp_family": "wts",

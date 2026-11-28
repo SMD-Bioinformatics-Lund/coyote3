@@ -68,9 +68,7 @@ class MongoStore:
     assay_panel_repository: Any
     assay_diagnosis_repository: Any
     configuration_profile_repository: Any
-    assay_setup_repository: Any
     assay_group_repository: Any
-    assay_setup_revision_repository: Any
     bam_record_repository: Any
     biomarker_repository: Any
     pgx_repository: Any
@@ -120,9 +118,7 @@ class MongoStore:
         "assay_panel_repository",
         "assay_diagnosis_repository",
         "configuration_profile_repository",
-        "assay_setup_repository",
         "assay_group_repository",
-        "assay_setup_revision_repository",
         "bam_record_repository",
         "biomarker_repository",
         "pgx_repository",

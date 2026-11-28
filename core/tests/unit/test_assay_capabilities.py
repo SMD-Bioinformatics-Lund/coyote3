@@ -27,7 +27,7 @@ def test_supported_subset_constrains_configuration():
     assert panel["supported_analyses"] == ["SNV"]
     assert AspcService._analysis_types_for_panel(panel, category="dna") == ["SNV"]
     with pytest.raises(AppError, match="Analysis type"):
-        AspcService._validate_analysis_types_for_panel({"analysis_types": ["CNV"]}, panel)
+        AspcService.validate_analysis_types_for_panel({"analysis_types": ["CNV"]}, panel)
 
 
 def test_empty_subset_is_not_replaced_with_all_capabilities():
@@ -58,9 +58,9 @@ def test_dna_fusion_evidence_uses_translocation_capability():
     """DNA breakend findings have one capability; RNA fusion remains separate."""
     panel = assay(expected_files=["transloc"]).model_dump()
     assert panel["supported_analyses"] == ["TRANSLOCATION"]
-    AspcService._validate_analysis_types_for_panel(
+    AspcService.validate_analysis_types_for_panel(
         {"analysis_types": ["TRANSLOCATION"], "reporting": {"report_sections": ["TRANSLOCATION"]}},
         panel,
     )
     with pytest.raises(AppError):
-        AspcService._validate_analysis_types_for_panel({"analysis_types": ["FUSION"]}, panel)
+        AspcService.validate_analysis_types_for_panel({"analysis_types": ["FUSION"]}, panel)
