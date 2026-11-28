@@ -24,10 +24,17 @@ const toneMeta = {
   error: { icon: icon.xCircle, className: "border-destructive/35 bg-destructive/10 text-destructive" },
 }
 
+function newestFirst(a: AppNotification, b: AppNotification) {
+  return Date.parse(b.createdAt) - Date.parse(a.createdAt) || b.id.localeCompare(a.id)
+}
+
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const sessionGeneration = useRef(0)
   const inboxRequest = useRef(0)
+  const historyRequest = useRef(0)
+  const newestPage = useRef<AppNotification[]>([])
   const usernameRef = useRef("")
+  const [streamUser, setStreamUser] = useState("")
   const initializedServerInbox = useRef(false)
   const seenServerIds = useRef(new Set<string>())
   const hiddenIds = useRef(new Set<string>())
@@ -40,7 +47,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       try { if (usernameRef.current) window.sessionStorage.removeItem(sessionKey()) } catch { /* Storage may be disabled. */ }
       hiddenIds.current.clear()
       sessionGeneration.current += 1
+      newestPage.current = []
       usernameRef.current = ""
+      setStreamUser("")
       setNotifications([])
       setVisibleToasts([])
       initializedServerInbox.current = false
@@ -57,7 +66,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }, notification.tone === "error" ? 8000 : 5000)
   }, [])
 
-  const refreshServerInbox = useCallback(async () => {
+  const refreshServerInbox = useCallback(async (latestOnly = false) => {
     const generation = sessionGeneration.current
     const request = ++inboxRequest.current
     try {
@@ -67,7 +76,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         if (identityResponse.status !== 401 && identityResponse.status !== 403) return
         try { if (usernameRef.current) window.sessionStorage.removeItem(sessionKey()) } catch { /* Storage may be disabled. */ }
         hiddenIds.current.clear()
+        newestPage.current = []
+        historyRequest.current++
         usernameRef.current = ""
+        setStreamUser("")
         setNotifications([])
         setVisibleToasts([])
         initializedServerInbox.current = false
@@ -76,12 +88,21 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       }
       const identity = await identityResponse.json() as { username?: string; must_change_password?: boolean }
       if (generation !== sessionGeneration.current || request !== inboxRequest.current) return
-      if (identity.must_change_password) { setNotifications([]); setVisibleToasts([]); return }
+      if (identity.must_change_password) {
+        historyRequest.current++
+        newestPage.current = []
+        setStreamUser("")
+        setNotifications([])
+        setVisibleToasts([])
+        return
+      }
       const nextUsername = String(identity.username || "").trim().toLowerCase()
       if (!nextUsername) return
       const changedUser = usernameRef.current !== nextUsername
       if (changedUser) {
         usernameRef.current = nextUsername
+        newestPage.current = []
+        setStreamUser("")
         setNotifications([])
         setVisibleToasts([])
         initializedServerInbox.current = false
@@ -103,49 +124,98 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       })
       if (!inboxResponse.ok) return
       const payload = await inboxResponse.json() as { notifications?: ServerNotification[] }
-      let pageSize = payload.notifications?.length || 0
-      let offset = pageSize
-      while (pageSize === 200) {
-        const page = await fetch(apiPath(`/notifications?limit=200&offset=${offset}`), { credentials: "same-origin" })
-        if (!page.ok || generation !== sessionGeneration.current || request !== inboxRequest.current) return
-        const older = await page.json() as { notifications?: ServerNotification[] }
-        pageSize = older.notifications?.length || 0
-        offset += pageSize
-        payload.notifications = [...(payload.notifications || []), ...(older.notifications || [])]
-      }
-      if (generation !== sessionGeneration.current || request !== inboxRequest.current || usernameRef.current !== nextUsername) return
-      const serverNotifications = [...new Map((payload.notifications || []).map((item) => [item.id, item])).values()].map(mapServerNotification)
-        .filter((item) => !hiddenIds.current.has(item.id))
-
+      const isCurrent = () => generation === sessionGeneration.current && request === inboxRequest.current && usernameRef.current === nextUsername
+      if (!isCurrent()) return
+      let rows = payload.notifications || []
+      const newest = rows.map(mapServerNotification)
       if (initializedServerInbox.current) {
-        serverNotifications
-          .filter((item) => !item.read && !seenServerIds.current.has(item.id))
-          .slice(0, 4)
-          .forEach(showToast)
+        newest.filter(item => !item.read && !hiddenIds.current.has(item.id) && !seenServerIds.current.has(item.id))
+          .slice(0, 4).reverse().forEach(showToast)
       }
-      seenServerIds.current = new Set(serverNotifications.map((item) => item.id))
       initializedServerInbox.current = true
-      setNotifications((current) => {
-        const local = current.filter((item) => !item.persisted)
-        return [...serverNotifications, ...local]
-          .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
-      })
+      newestPage.current = newest
+      newest.forEach(item => seenServerIds.current.add(item.id))
+      setStreamUser(nextUsername)
+
+      // Keep the newest authorized page visible during history reads, including newer
+      // arrivals that displace rows across the page boundary.
+      function applySnapshot(head: AppNotification[], history?: AppNotification[]) {
+        const boundary = head.at(-1)
+        setNotifications(current => {
+          const local = current.filter(item => !item.persisted)
+          const older = boundary ? (history ?? current.filter(item => item.persisted))
+            .filter(item => newestFirst(item, boundary) > 0) : []
+          const merged = new Map([...head, ...older, ...local].map(item => [item.id, item]))
+          return [...merged.values()].filter(item => !hiddenIds.current.has(item.id)).sort(newestFirst)
+        })
+      }
+      if (rows.length < 200) {
+        historyRequest.current++
+        applySnapshot(newest, [])
+        seenServerIds.current = new Set(newest.map(item => item.id))
+        return
+      }
+      applySnapshot(newest)
+      if (latestOnly && !changedUser) return
+      const history = ++historyRequest.current
+      const historyIsCurrent = () => history === historyRequest.current && generation === sessionGeneration.current && usernameRef.current === nextUsername
+      const all = [...newest]
+      let offset = rows.length
+      while (rows.length === 200) {
+        const page = await fetch(apiPath(`/notifications?limit=200&offset=${offset}`), { credentials: "same-origin" })
+        if (!page.ok || !historyIsCurrent()) return
+        const older = await page.json() as { notifications?: ServerNotification[] }
+        if (!historyIsCurrent()) return
+        rows = older.notifications || []
+        offset += rows.length
+        all.push(...rows.map(mapServerNotification))
+      }
+      applySnapshot(newestPage.current, all)
+      seenServerIds.current = new Set([...newestPage.current, ...all].map(item => item.id))
     } catch {
-      // Notification polling must never interrupt the active clinical workflow.
+      // A later focus, stream signal or recovery poll retries the inbox read.
     }
   }, [showToast])
 
-  useEffect(() => {
-    void refreshServerInbox()
-    const interval = window.setInterval(() => void refreshServerInbox(), 30_000)
-    const refresh = () => void refreshServerInbox()
-    window.addEventListener("focus", refresh)
-    return () => {
-      inboxRequest.current += 1
-      window.clearInterval(interval)
-      window.removeEventListener("focus", refresh)
+  const refreshState = useRef({ running: false, again: false })
+  const refresh = useCallback(async () => {
+    const state = refreshState.current
+    if (state.running) { state.again = true; return }
+    state.running = true
+    try {
+      do {
+        state.again = false
+        await refreshServerInbox(true)
+      } while (state.again)
+    } finally {
+      state.running = false
     }
   }, [refreshServerInbox])
+
+  useEffect(() => {
+    const state = refreshState.current
+    const reload = () => void refreshServerInbox()
+    reload()
+    const interval = window.setInterval(reload, 30_000)
+    window.addEventListener("focus", reload)
+    window.addEventListener(SESSION_CHANGED_EVENT, reload)
+    return () => {
+      inboxRequest.current += 1
+      historyRequest.current += 1
+      state.again = false
+      window.clearInterval(interval)
+      window.removeEventListener("focus", reload)
+      window.removeEventListener(SESSION_CHANGED_EVENT, reload)
+    }
+  }, [refreshServerInbox])
+
+  useEffect(() => {
+    if (!streamUser || typeof EventSource === "undefined") return
+    const source = new EventSource(apiPath("/notifications/events"))
+    source.addEventListener("ready", refresh)
+    source.addEventListener("changed", refresh)
+    return () => source.close()
+  }, [refresh, streamUser])
 
   useEffect(() => {
     if (!usernameRef.current) return
@@ -158,7 +228,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     return subscribeNotifications((notification) => {
-      setNotifications((current) => [notification, ...current])
+      setNotifications((current) => [notification, ...current].sort(newestFirst))
       showToast(notification)
     })
   }, [showToast])

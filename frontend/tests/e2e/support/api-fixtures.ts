@@ -81,6 +81,10 @@ export async function installApiFixtures(page: Page, resolver?: ApiResolver) {
       await route.fulfill({ json: { contacts: [], links: [] } })
       return
     }
+    if (path === "/api/v1/notifications/events") {
+      await route.fulfill({ status: 204 })
+      return
+    }
     if (path === "/api/v1/notifications") {
       await route.fulfill({ json: { notifications: [] } })
       return

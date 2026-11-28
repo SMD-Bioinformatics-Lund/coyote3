@@ -14,6 +14,7 @@ import { api, ApiClientError } from "@/lib/api"
 import type { SampleNavigationCountsPayload } from "@/lib/generated"
 import { appPath } from "@/lib/runtime-paths"
 import { runtimeConfig } from "@/lib/runtime-config"
+import { NotificationBell } from "@/components/notifications/NotificationBell"
 import { useNotifications } from "@/components/notifications/use-notifications"
 import { GlobalLoadingIndicator } from "@/components/layout/AppLoader"
 import { BrandLogo } from "@/components/layout/BrandLogo"
@@ -50,8 +51,9 @@ export function Layout() {
     location.pathname === "/public" ||
     location.pathname.startsWith("/public/")
   const [isCollapsed, setIsCollapsed] = useState(true)
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [headerMenu, setHeaderMenu] = useState<"user" | "notifications" | null>(null)
   const [activeAssayCategory, setActiveAssayCategory] = useState<string | null>(null)
+  const headerControls = useRef<HTMLDivElement>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const assayMenuRef = useRef<HTMLDivElement>(null)
   const mainScrollRef = useRef<HTMLElement>(null)
@@ -115,8 +117,10 @@ export function Layout() {
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setIsUserMenuOpen(false)
+      if (!headerControls.current?.contains(event.target as Node)) {
+        setHeaderMenu(null)
+      } else if (!userMenuRef.current?.contains(event.target as Node)) {
+        setHeaderMenu(current => current === "user" ? null : current)
       }
       if (assayMenuRef.current && !assayMenuRef.current.contains(event.target as Node)) {
         setActiveAssayCategory(null)
@@ -320,7 +324,7 @@ export function Layout() {
         <span className="app-canvas-frame" />
         <span className="app-canvas-frame" />
       </div>
-      <header className="app-chrome-surface z-30 h-16 flex-shrink-0 rounded-none border-0 text-chrome-foreground">
+      <header className={cn("app-chrome-surface h-16 flex-shrink-0 rounded-none border-0 text-chrome-foreground", headerMenu ? "z-[81]" : "z-30")}>
         <div className="flex h-full w-full items-center justify-between gap-4 px-2">
           <Button
             variant="ghost"
@@ -409,29 +413,16 @@ export function Layout() {
           </div>
           )}
 
-          <div className="ml-auto flex h-full items-center gap-2">
+          <div ref={headerControls} className="relative ml-auto flex h-full items-center gap-2">
             <ThemeToggle className="border-[var(--chrome-border)] text-chrome-muted-foreground hover:bg-[var(--chrome-control-hover)] hover:text-chrome-foreground" value={user ? accountTheme : undefined}
               disabled={updateUiSettings.isPending}
               onChange={user ? (theme) => updateUiSettings.mutate({ theme }, {
                 onError: (error) => notifyActionError("Unable to save theme", error, "User settings"),
               }) : undefined} />
             {!publicOnlyMode && (
-              <Link
-                to="/notifications"
-                className={cn(
-                  "relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--chrome-border)] bg-[var(--chrome-control)] text-chrome-muted-foreground hover:bg-[var(--chrome-control-hover)] hover:text-chrome-foreground",
-                  location.pathname.startsWith("/notifications") && "border-[var(--chrome-active-border)] bg-[var(--chrome-active)] text-chrome-foreground"
-                )}
-                title="Notifications"
-                aria-label="Notifications"
-              >
-                <icon.bell className="h-5 w-5" />
-                {unreadCount > 0 && (
-                  <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-primary px-1.5 py-0.5 text-center type-label font-semibold leading-none text-primary-foreground shadow-sm">
-                    {unreadCount > 99 ? "99+" : unreadCount}
-                  </span>
-                )}
-              </Link>
+              <NotificationBell open={headerMenu === "notifications"} onOpenChange={open =>
+                setHeaderMenu(current => open ? "notifications" : current === "notifications" ? null : current)
+              } />
             )}
             {publicOnlyMode ? (
               <Link
@@ -443,7 +434,7 @@ export function Layout() {
             ) : (
             <div className="relative" ref={userMenuRef}>
               <button
-                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                onClick={() => setHeaderMenu(current => current === "user" ? null : "user")}
                 aria-label={`User menu for ${userDisplayName}`}
                 className="flex items-center gap-2 rounded-lg border border-[var(--chrome-border)] bg-[var(--chrome-control)] px-2 py-1.5 hover:bg-[var(--chrome-control-hover)]"
               >
@@ -457,15 +448,15 @@ export function Layout() {
                 <icon.chevronDown className="h-4 w-4 text-chrome-muted-foreground" />
               </button>
 
-              {isUserMenuOpen && (
+              {headerMenu === "user" && (
                 <div className="paper-menu absolute right-0 top-full z-50 mt-2 w-60 rounded-lg py-1">
-              <Link to="/profile" className="flex items-center px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
+              <Link to="/profile" className="flex items-center px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80" onClick={() => setHeaderMenu(null)}>
                     <icon.user className="mr-3 h-4 w-4 text-primary" /> Profile
                   </Link>
-                  <Link to="/profile/access-tokens" className="flex items-center px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
+                  <Link to="/profile/access-tokens" className="flex items-center px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80" onClick={() => setHeaderMenu(null)}>
                     <icon.keyRound className="mr-3 h-4 w-4 text-primary" /> Access tokens
                   </Link>
-                  <Link to="/notifications" className="flex items-center justify-between px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
+                  <Link to="/notifications" className="flex items-center justify-between px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80" onClick={() => setHeaderMenu(null)}>
                     <span className="flex items-center">
                       <icon.bell className="mr-3 h-4 w-4 text-primary" /> Notifications
                     </span>
@@ -476,10 +467,10 @@ export function Layout() {
                     )}
                   </Link>
                   <div className="my-1 border-t border-border/50"></div>
-                  <Link to="/about" className="flex items-center px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
+                  <Link to="/about" className="flex items-center px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80" onClick={() => setHeaderMenu(null)}>
                     <icon.fileQuestion className="mr-3 h-4 w-4 text-primary" /> About Coyote4
                   </Link>
-                  <Link to="/contact" className="flex items-center px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80" onClick={() => setIsUserMenuOpen(false)}>
+                  <Link to="/contact" className="flex items-center px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80" onClick={() => setHeaderMenu(null)}>
                     <icon.lifeBuoy className="mr-3 h-4 w-4 text-primary" /> Contact
                   </Link>
                   {issueMenuLinks.map((link) => (
@@ -489,7 +480,7 @@ export function Layout() {
                       target={isExternalHref(link.url) ? "_blank" : undefined}
                       rel={isExternalHref(link.url) ? "noreferrer" : undefined}
                       className="flex items-center px-4 py-2.5 text-sm font-normal transition-colors hover:bg-muted/80"
-                      onClick={() => setIsUserMenuOpen(false)}
+                      onClick={() => setHeaderMenu(null)}
                     >
                       <link.icon className="mr-3 h-4 w-4 text-primary" /> {link.label}
                     </a>

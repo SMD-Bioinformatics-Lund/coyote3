@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import { focusManager, onlineManager, QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -20,7 +20,12 @@ vi.mock("@/lib/api", async (importOriginal) => ({
 }))
 
 vi.mock("@/components/notifications/use-notifications", () => ({
-  useNotifications: () => ({ unreadCount: 7 }),
+  useNotifications: () => ({
+    unreadCount: 7,
+    notifications: Array.from({ length: 7 }, (_, index) => ({
+      id: String(index), title: `Message ${7 - index}`, createdAt: `2026-10-0${7 - index}T12:00:00Z`, read: false,
+    })),
+  }),
 }))
 
 vi.mock("./theme-toggle", () => ({
@@ -115,6 +120,28 @@ describe("Layout", () => {
     expect(screen.getByTitle("Workspace: Samples")).toBeVisible()
     expect(screen.getByTitle("Administration: Admin Settings")).toBeVisible()
     expect(screen.getByText("Route content")).toBeVisible()
+  })
+
+  it("opens the latest five in the bell and navigates only through the footer link", async () => {
+    mockPrivateQueries()
+    renderLayout()
+    const bell = await screen.findByRole("button", { name: "Notifications" })
+    fireEvent.click(bell)
+    const preview = screen.getByRole("region", { name: "Recent notifications" })
+    expect(within(preview).getAllByRole("listitem").map(row => within(row).getByText(/^Message/).textContent))
+      .toEqual(["Message 7", "Message 6", "Message 5", "Message 4", "Message 3"])
+    expect(within(preview).getByRole("link", { name: "Open notification center" })).toHaveAttribute("href", "/notifications")
+    fireEvent.keyDown(bell, { key: "Escape" })
+    expect(bell).toHaveFocus()
+    expect(preview).not.toBeInTheDocument()
+    fireEvent.click(bell)
+    fireEvent.click(await screen.findByRole("button", { name: "User menu for Avery" }))
+    expect(screen.queryByRole("region", { name: "Recent notifications" })).not.toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Profile" })).toBeVisible()
+    fireEvent.click(bell)
+    expect(screen.queryByRole("link", { name: "Profile" })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("link", { name: "Open notification center" }))
+    expect(screen.queryByRole("region", { name: "Recent notifications" })).not.toBeInTheDocument()
   })
 
   it("does not poll clinical resources or offer clinical navigation to a system administrator", async () => {

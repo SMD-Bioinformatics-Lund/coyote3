@@ -31,6 +31,40 @@ function response(data: unknown, ok = true) {
 describe("NotificationProvider", () => {
   afterEach(() => { vi.unstubAllGlobals(); window.sessionStorage.clear() })
 
+  it("shows a live change before older pages finish and closes the stream on unmount", async () => {
+    const events = new EventTarget()
+    const close = vi.fn()
+    vi.stubGlobal("EventSource", class {
+      addEventListener = events.addEventListener.bind(events)
+      close = close
+    })
+    const notice = { id: "new", title: "Just published", tone: "info", read: false, created_at: "2026-11-27T12:00:00Z" }
+    let releaseHistory!: (r: Response) => void
+    let inboxReads = 0
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+      const path = String(input)
+      if (path.includes("whoami")) return response({ username: "reader" })
+      if (path.includes("offset=")) return new Promise<Response>(resolve => { releaseHistory = resolve })
+      inboxReads++
+      const history = Array.from({ length: 200 }, (_, i) => ({
+        ...notice, id: String(i), title: `Older ${i}`, read: true, created_at: new Date(1730000000000 - i * 1000).toISOString(),
+      }))
+      return response({ notifications: inboxReads === 1 ? history : [notice, ...history.slice(0, 199)] })
+    }))
+    // Signal only once the provider has subscribed after its initial snapshot.
+    const listen = vi.spyOn(events, "addEventListener")
+    const view = render(<NotificationProvider><Probe /></NotificationProvider>)
+    await waitFor(() => expect(listen).toHaveBeenCalledWith("changed", expect.any(Function)))
+    act(() => { events.dispatchEvent(new Event("changed")) })
+    await waitFor(() => expect(screen.getByLabelText("Unread count")).toHaveTextContent("1"))
+    expect(screen.getAllByText("Just published")).toHaveLength(2)
+    await act(async () => releaseHistory(await response({ notifications: [{ ...notice, id: "old", title: "Oldest", created_at: "2020-01-01T00:00:00Z", read: true }] })))
+    expect(await screen.findByText("Oldest")).toBeVisible()
+    expect(screen.getByLabelText("Unread count")).toHaveTextContent("1")
+    view.unmount()
+    expect(close).toHaveBeenCalledOnce()
+  })
+
   it("does not overwrite a newer inbox refresh with an older response", async () => {
     let finish!: (value: Response) => void
     let inboxCalls = 0
