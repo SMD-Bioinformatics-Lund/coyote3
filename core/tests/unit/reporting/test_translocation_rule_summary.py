@@ -76,6 +76,22 @@ def test_selected_gene_pairs_merge_maximum_support_without_modifying_findings():
     )
 
 
+def test_wgs_wording_can_omit_read_support_for_every_gene_pair():
+    rows = [_call(pair, GT=[{"PR": "8,2", "SR": "7,3"}]) for pair in ("BCR&ABL1", "ETV6&NTRK3")]
+    for row in rows:
+        row["INFO"]["UR"] = 12
+    context = _context(rows)
+    assert render_named(
+        "translocation_summary",
+        source=[group.model_dump() for group in context.aggregates.translocation_summaries],
+        scope={},
+        terminology={"translocation_summary": {**TERMS, "include_read_support": False}},
+    ) == (
+        "Vid analysen finner man en genfusion mellan generna BCR och ABL1.\n"
+        "Vidare finner man en genfusion mellan generna ETV6 och NTRK3."
+    )
+
+
 @pytest.mark.parametrize("raw", [None, "", "bad", "0,0", "-1,2", "nan,2", "inf,2", "1.5,2"])
 def test_invalid_support_never_creates_evidence(raw):
     """Invalid and missing read counts do not fabricate percentages."""

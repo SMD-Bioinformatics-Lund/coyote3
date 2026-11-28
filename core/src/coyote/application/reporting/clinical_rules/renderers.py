@@ -259,7 +259,8 @@ def render_translocation_summary(groups: list[dict[str, Any]], terminology: dict
 
     Args:
         groups: Ordered gene-pair groups with maximum PR/SR percentages and UR counts.
-        terminology: Required translocation_summary text fragments.
+        terminology: Translocation wording. Set include_read_support to false in the
+            translocation_summary block to end each sentence after the gene pair.
 
     Returns:
         Source-style sentences including only positive observed evidence. The
@@ -279,6 +280,9 @@ def render_translocation_summary(groups: list[dict[str, Any]], terminology: dict
             else "next_prefix"
         )
         text = _required(terms, prefix) + nl_join(group["genes"], _required(terms, "gene_joiner"))
+        if terms.get("include_read_support") is False:
+            sentences.append(text + ".")
+            continue
         support = []
         for field, suffix in (
             ("paired_read_percent", "paired_read_suffix"),
