@@ -130,7 +130,12 @@ describe("FiltersSidebar", () => {
     mocks.get.mockResolvedValue({ data: {
       expected_version: 4, configuration_id: "release-3",
       configuration: { aspc_id: "hema_gmsv1_hem_production", version: 3, analysis_types: ["SNV"] },
-      filters_before: {}, filters_after: {}, changed_components: [],
+      previous_configuration: {aspc_id: "hema_gmsv1_hem_production", version: 2},
+      filters_before: {germline: null}, filters_after: {germline: null}, changed_components: ["gene_list_release"],
+      gene_list_changes: [
+        {isgl_id: "hem", previous_version:1, version:2, added_genes:["TP53"], removed_genes:["FLT3"]},
+        {isgl_id: "unchanged-list", previous_version:1, version:2, added_genes:[], removed_genes:[]},
+      ],
     } })
     renderSidebar({
       sample,
@@ -150,13 +155,16 @@ describe("FiltersSidebar", () => {
     expect(screen.getByText(/Configuration:/)).toHaveTextContent("hema_gmsv1_hem_production v2")
     await user.click(screen.getByRole("button", { name: "Review configuration update" }))
     const apply = await screen.findByRole("button", { name: "Apply configuration" })
+    expect(await screen.findByText("Added genes: TP53")).toBeVisible()
+    expect(screen.getByText("Removed genes: FLT3")).toBeVisible()
+    expect(screen.queryByText("unchanged-list")).not.toBeInTheDocument()
     expect(apply).toBeDisabled()
     await user.type(screen.getByLabelText("Reason for applying this release"), "Validated thresholds")
     await user.click(apply)
 
     await waitFor(() => expect(mocks.post).toHaveBeenCalledWith(
       "/samples/CASE_001/aspc/apply-latest",
-      { expected_version: 4, configuration_id: "release-3", reason: "Validated thresholds", retain_overrides: false }, editSessionOptions
+      { expected_version: 4, configuration_id: "release-3", reason: "Validated thresholds", retain_overrides: true }, editSessionOptions
     ))
   })
 

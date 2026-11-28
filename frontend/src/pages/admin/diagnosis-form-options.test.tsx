@@ -8,6 +8,10 @@ import { describe, expect, it } from "vitest"
 import { AdminManagedForm } from "./AdminManagedForm"
 import { specs, type FormSpec } from "./resource-specs"
 
+function checkboxIn(group: string, name: string) {
+  return within(screen.getByRole("group", { name: group })).getByRole("checkbox", { name })
+}
+
 function AssayCapabilityForm() {
   const [values, setValues] = useState<Record<string, unknown>>({ asp_category: "dna", asp_family: "panel-dna", expected_files: ["vcf_files"], required_files: ["vcf_files"], supported_analyses: ["SNV"] })
   const form: FormSpec = { fields: {
@@ -30,9 +34,9 @@ it("switches assay modality without retaining incompatible files or analyses", a
   expect(screen.queryByRole("checkbox", { name: /vcf_files/ })).toBeNull()
   expect(screen.getByTestId("values")).toHaveTextContent('"required_files":[]')
   expect(screen.getByTestId("values")).toHaveTextContent('"supported_analyses":[]')
-  await user.click(screen.getByRole("checkbox", { name: /Expected files fusion_files/ }))
-  expect(screen.getByRole("checkbox", { name: /Required files fusion_files/ })).toBeVisible()
-  expect(screen.getByRole("checkbox", { name: /Analyses FUSION/ })).toBeVisible()
+  await user.click(checkboxIn("Expected files", "fusion_files"))
+  expect(checkboxIn("Required files", "fusion_files")).toBeVisible()
+  expect(checkboxIn("Analyses", "FUSION")).toBeVisible()
 })
 
 function ScopedForm({ multiple = false, empty = false }: { multiple?: boolean; empty?: boolean }) {
@@ -64,10 +68,10 @@ describe("assay-associated diagnosis choices", () => {
     const user = userEvent.setup()
     expect(screen.getByText("Select assay groups first to see available assays.")).toBeVisible()
     expect(screen.getByText("Select assays first to see available diagnosis options.")).toBeVisible()
-    await user.click(screen.getByRole("checkbox", { name: /Groups group-a/ }))
-    await user.click(screen.getByRole("checkbox", { name: /Assays assay-a/ }))
+    await user.click(checkboxIn("Groups", "group-a"))
+    await user.click(checkboxIn("Assays", "assay-a"))
     expect(screen.getByRole("checkbox", { name: "panel-a" })).toBeVisible()
-    expect(screen.getByRole("checkbox", { name: /Diagnosis base/ })).toBeVisible()
+    expect(checkboxIn("Diagnosis", "base")).toBeVisible()
     expect(screen.queryByRole("checkbox", { name: "panel-b" })).not.toBeInTheDocument()
   })
   it("shows only the chosen assay's diagnoses and resets to Base when changing assays", async () => {
@@ -84,7 +88,7 @@ describe("assay-associated diagnosis choices", () => {
 
   it("clears gene-list diagnoses when a group change removes their associated assay", async () => {
     render(<ScopedForm multiple />)
-    await userEvent.setup().click(screen.getByRole("checkbox", { name: /Groups group-a/ }))
+    await userEvent.setup().click(checkboxIn("Groups", "group-a"))
     expect(screen.getByRole("status")).toHaveTextContent('"asp_ids":[]')
     expect(screen.getByRole("status")).toHaveTextContent('"diagnosis":[]')
     expect(screen.queryByRole("checkbox", { name: "panel-a" })).toBeNull()

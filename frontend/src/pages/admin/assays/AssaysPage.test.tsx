@@ -98,18 +98,27 @@ describe("Assays page", () => {
     expect(mocks.get).toHaveBeenCalledWith("/resources/asp?per_page=200", expect.objectContaining({ signal: expect.any(AbortSignal) }));
   });
 
-  it("links creation to setup and protects installed assays from deletion", async () => {
+  it("opens the individual assay creator and protects installed assays from deletion", async () => {
     mount();
     const row = (await screen.findByText("demo_dna")).closest("tr")!;
     expect(screen.getByRole("link", { name: "Create" })).toHaveAttribute(
       "href",
-      "/admin/assay-setups?setup=new",
+      "/admin/asp/create",
     );
     expect(within(row).queryByTitle("Edit")).not.toBeInTheDocument();
-    expect(within(row).queryByTitle("Toggle active")).not.toBeInTheDocument();
-    expect(within(row).queryByTitle("Delete")).not.toBeInTheDocument();
+    expect(within(row).queryByTitle("Deactivate")).not.toBeInTheDocument();
+    expect(within(row).queryByTitle("Withdraw")).not.toBeInTheDocument();
     const customRow = screen.getByText("demo_rna").closest("tr")!;
-    expect(within(customRow).getByTitle("Delete")).toBeEnabled();
+    expect(within(customRow).getByTitle("Deactivate")).toBeEnabled();
+    expect(within(customRow).queryByTitle("Withdraw")).not.toBeInTheDocument();
+  });
+
+  it("allows withdrawal with the delete permission alone", async () => {
+    mocks.permissions = ["assay.panel:list", "assay.panel:delete"];
+    mount();
+    const row = (await screen.findByText("demo_rna")).closest("tr")!;
+    expect(within(row).getByTitle("Withdraw")).toBeEnabled();
+    expect(within(row).queryByTitle("Deactivate")).not.toBeInTheDocument();
   });
 
   it("shows covered gene counts instead of gene names, including zero for an empty list", async () => {
@@ -128,8 +137,8 @@ describe("Assays page", () => {
     const row = (await screen.findByText("demo_rna")).closest("tr")!;
     expect(within(row).getByTitle("View")).toHaveAttribute("href", "/admin/asp/demo_rna/view");
     expect(within(row).queryByTitle("Edit")).not.toBeInTheDocument();
-    expect(within(row).queryByTitle("Delete")).not.toBeInTheDocument();
-    expect(within(row).queryByTitle("Toggle active")).not.toBeInTheDocument();
+    expect(within(row).queryByTitle("Withdraw")).not.toBeInTheDocument();
+    expect(within(row).queryByTitle("Deactivate")).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Create" })).not.toBeInTheDocument();
   });
 });

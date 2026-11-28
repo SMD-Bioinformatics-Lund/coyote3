@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Ram Nanduri
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { BulkInstall } from "@/components/admin/BulkInstall"
 import { Surface } from "@/components/ui/surface"
 import { AppLoader } from "@/components/layout/AppLoader"
 import { Notice } from "@/components/ui/notice"
@@ -209,7 +210,6 @@ export function ClinicalRulesPage() {
     if (document.status === "published" || document.status === "retired") {
       void queryClient.invalidateQueries({ queryKey: ["report-preview"] })
       void queryClient.invalidateQueries({ queryKey: ["admin-resource-context", "aspc"] })
-      void queryClient.invalidateQueries({ queryKey: ["assay-setup-context"] })
     }
   } })
   const deleteDraftMutation = useMutation({
@@ -289,6 +289,7 @@ export function ClinicalRulesPage() {
   )
   return (
     <PageShell eyebrow="Clinical reporting" title="Reporting Rule Sets" description="Author, review, validate, and publish governed report wording." actions={<>{dirty || saveMutation.isPending ? <Badge variant="outline"><icon.save /> {saveMutation.isPending ? "Saving" : "Unsaved"}</Badge> : draft?.status === "draft" ? <Badge variant="outline"><icon.check /> Saved</Badge> : null}{can("clinical_rules:test") && <Button variant="outline" nativeButton={false} render={<Link to="/admin/clinical-rules/testing" />}><icon.beaker /> Test rules</Button>}{can("clinical_rules:draft") && !creating && <Button variant="outline" disabled={!workflowReady} onClick={() => beginCreation()}><icon.plus /> New rule set</Button>}{draft?.status !== "draft" && draft && can("clinical_rules:draft") && <Button onClick={createRevision}><icon.copyPlus /> Create revision</Button>}</>}>
+      {can("clinical_rules:draft") && !creating && workflowReady && <BulkInstall kind="reporting-rules" />}
       <DocumentEditorNotice editor={documentEditor} />
       {dirty && nameProblem && <p role="status" className="mb-3 type-body-sm text-muted-foreground">Autosave is waiting. {nameProblem}</p>}
       {dirty && incompleteSentence && <p role="status" className="mb-3 type-body-sm text-muted-foreground">Autosave is waiting for sentence text. Finish the empty sentence or remove its template to save your draft.</p>}

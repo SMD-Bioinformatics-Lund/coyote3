@@ -57,13 +57,6 @@ const utilityModules = [
     permission: "assay.panel:view",
   },
   {
-    title: "Assay setup",
-    description: "Prepare assay scopes, gene lists, reporting rules and configurations for review.",
-    href: "/admin/assay-setups",
-    icon: icon.dna,
-    permission: "assay.panel:view",
-  },
-  {
     title: "Diagnosis definitions",
     description: "Create shared diagnoses and select their assays.",
     href: "/admin/diagnoses",
@@ -150,7 +143,7 @@ const utilityModules = [
 ] as const
 
 const adminSections = [
-  { id: "assays", title: "Assays and diagnoses", icon: icon.dna, paths: ["assay-groups", "assay-setups", "asp", "diagnoses", "assay-diagnoses", "aspc", "genelists"] },
+  { id: "assays", title: "Assays and diagnoses", icon: icon.dna, paths: ["assay-groups", "asp", "diagnoses", "assay-diagnoses", "aspc", "genelists"] },
   { id: "reporting", title: "Clinical rules and catalog", icon: icon.bookOpenCheck, paths: ["query-rules", "query-rules/testing", "clinical-rules", "clinical-rules/testing", "assay-catalog"] },
   { id: "access", title: "Identity and access", icon: icon.usersRound, paths: ["users", "roles", "permissions", "service-tokens"] },
   { id: "operations", title: "Application operations", icon: icon.settings2, paths: ["samples", "ingest", "demo-installation", "controls", "notifications", "audit", "ui-routes"] },
@@ -164,7 +157,7 @@ export function AdminHubPage() {
   const visibleResources = Object.values(specs).filter((spec) => hasPermission(user, spec.permissions.list))
   const authorizedUtilities = utilityModules.filter((module) =>
     hasPermission(user, module.permission)
-    && (!["/admin/diagnoses", "/admin/assay-diagnoses", "/admin/assay-setups"].includes(module.href) || hasPermission(user, "assay.panel:list"))
+    && (!["/admin/diagnoses", "/admin/assay-diagnoses"].includes(module.href) || hasPermission(user, "assay.panel:list"))
   )
   const visibleUtilities = authorizedUtilities.filter(module => {
     if (module.href === "/admin/demo-installation") {

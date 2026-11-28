@@ -11,18 +11,18 @@ import { api } from "@/lib/api"
 import { withDocumentEditor } from "@/hooks/useDocumentEditor"
 import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { notifyActionError } from "@/lib/notifications"
+import { assayRevisionQueryKeys } from "./resource-specs"
 
 type GeneList = {
   isgl_id: string; displayname?: string; name: string; asp_ids: string[]; asp_groups: string[]
   is_active: boolean; version: number; system_installed?: boolean; system_managed?: boolean
 }
 type Props = {
-  aspId: string; aspGroup: string; readonly: boolean; pending?: boolean
-  selected?: string[]; onChange?: (ids: string[]) => void
+  aspId: string; aspGroup: string; readonly: boolean;
 }
 
-/** Show the shared registry; setup selections remain staged until activation. */
-export function AssayGeneLists({ aspId, aspGroup, readonly, pending, selected, onChange }: Props) {
+/** Manage explicit gene-list links for an installed assay. */
+export function AssayGeneLists({ aspId, aspGroup, readonly }: Props) {
   const access = useCurrentUserAccess()
   const client = useQueryClient()
   const [search, setSearch] = useState("")
@@ -44,7 +44,7 @@ export function AssayGeneLists({ aspId, aspGroup, readonly, pending, selected, o
       },
     }, options)),
     onSuccess: async () => {
-      await Promise.all([["assay-gene-lists"], ["admin-resource"], ["admin-resource-context"], ["assay-setup-context"]]
+      await Promise.all([["admin-resource", "genelists"], ...assayRevisionQueryKeys]
         .map((queryKey) => client.invalidateQueries({ queryKey })))
     },
     onError: (error) => {
@@ -54,22 +54,20 @@ export function AssayGeneLists({ aspId, aspGroup, readonly, pending, selected, o
   })
   return <Surface as="section" variant="card" aria-label="Existing gene lists" className="space-y-3 p-3">
     <h3 className="type-card-title">Existing gene lists</h3>
-    <p className="type-body-sm text-muted-foreground">Search all registered lists, including unassigned lists.
-      {onChange ? " Selections are saved in this draft and applied on activation." : " Links update the gene list’s associated assays."}
-      {" "}Association makes a list available; select it in the assay configuration to use it for analysis.</p>
+    <p className="type-body-sm text-muted-foreground">Manage explicit assay links. Lists shared with this assay’s group are also available in its configurations.</p>
     {!canList ? <p role="status">Gene-list list permission is required to browse existing lists.</p> : <>
       <SearchInput aria-label="Search existing gene lists" value={search}
         onChange={(event) => { setSearch(event.target.value); setPage(1) }} />
       {registry.isLoading && <p role="status">Loading gene lists…</p>}
       {registry.error && <p role="alert">Unable to load gene lists.</p>}
       <ul className="divide-y divide-border">{registry.data?.genelists.map((row) => {
-        const linked = onChange ? Boolean(selected?.includes(row.isgl_id)) : row.asp_ids.includes(aspId)
+        const linked = row.asp_ids.includes(aspId)
         const protectedList = row.system_installed || row.system_managed
         return <li key={row.isgl_id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-          <span title={row.displayname}><span className="block font-semibold">{row.name || row.displayname || row.isgl_id}</span><span className="type-meta text-muted-foreground">{row.isgl_id}</span></span>
-          <Button size="sm" variant="outline" disabled={!canEdit || pending || mutation.isPending || ((!row.is_active || protectedList) && !(onChange && linked))}
-            onClick={() => onChange ? onChange(linked ? (selected || []).filter((id) => id !== row.isgl_id) : [...(selected || []), row.isgl_id]) : mutation.mutate(row)}>
-            {onChange && linked ? "Unlink" : protectedList ? "System managed" : !row.is_active ? "Inactive" : linked ? "Unlink" : "Link"}
+          <span title={row.displayname}><span className="block font-semibold">{row.name || row.displayname || row.isgl_id}</span><span className="type-meta text-muted-foreground">{row.isgl_id}{row.asp_groups.includes(aspGroup) ? " · Available through group" : ""}</span></span>
+          <Button size="sm" variant="outline" disabled={!canEdit || mutation.isPending || !row.is_active || protectedList}
+            onClick={() => mutation.mutate(row)}>
+            {protectedList ? "System managed" : !row.is_active ? "Inactive" : linked ? "Remove assay link" : row.asp_groups.includes(aspGroup) ? "Link assay" : "Link assay and group"}
           </Button>
         </li>
       })}</ul>
@@ -77,10 +75,5 @@ export function AssayGeneLists({ aspId, aspGroup, readonly, pending, selected, o
         <span className="type-meta">Page {page}</span><Button variant="ghost" size="sm" disabled={!registry.data?.pagination.has_next} onClick={() => setPage(page + 1)}>Next lists</Button></div>
       {hasPermission(access.data, "gene_list.insilico:list") && <Link className="type-body-sm text-primary underline" to="/admin/genelists">Manage gene lists</Link>}
     </>}
-    {selected && selected.length > 0 && <div className="space-y-2">
-      <p className="type-body-sm">Selected: {selected.join(", ")}</p>
-      {onChange && <Button size="sm" variant="outline" disabled={readonly || pending || mutation.isPending} onClick={() => onChange([])}>Clear selected lists</Button>}
-      {onChange && <div className="flex flex-wrap gap-2">{selected.map(id => <Button key={id} size="sm" variant="outline" className="h-auto min-h-7 min-w-0 max-w-full whitespace-normal" disabled={!canEdit || pending || mutation.isPending} aria-label={`Remove selected gene list ${id}`} onClick={() => onChange(selected.filter(value => value !== id))}><span className="min-w-0 break-all">{id}</span> ×</Button>)}</div>}
-    </div>}
   </Surface>
 }

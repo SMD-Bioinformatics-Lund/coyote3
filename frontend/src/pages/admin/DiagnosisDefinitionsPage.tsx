@@ -66,7 +66,7 @@ export function DiagnosisDefinitionsPage() {
     for (const queryKey of [
       ["diagnosis-definitions"], ["assay-diagnoses"],
       ["admin-resource-context", "aspc"], ["admin-resource-context", "genelists"],
-      ["assay-setup-context"], ["clinical-rule-authoring-options"],
+      ["clinical-rule-authoring-options"],
     ]) void client.invalidateQueries({ queryKey })
   }
   const statusMutation = useMutation({

@@ -28,7 +28,7 @@ export function AdminEditorActions({ state, spec, mode, supportsConfigurationTra
   )
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {mode === "view" && canEdit && !systemPermission && (
+      {mode === "view" && canEdit && !systemPermission && !state.withdrawn && (
         <Link
           to={`/admin/${spec.key}/${encodeURIComponent(id)}/edit`}
           className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground shadow-sm"

@@ -11,8 +11,8 @@ import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { downloadJson } from "@/lib/json-download"
 import { configurationContent } from "@/lib/configuration-transfer"
 import { formStateFromSpec, submitPayload } from "@/pages/admin/resource-list"
-import type { FormSpec } from "@/pages/admin/resource-specs"
-import { BULK_BYTES, bulkDefinitions, parseBulkFile, type BulkKind, type BulkRecord } from "./bulk-import"
+import { assayRevisionQueryKeys, isVersionedAssayResource, type FormSpec } from "@/pages/admin/resource-specs"
+import { bulkDefinitions, identityParts, parseBulkFile, readBulkFiles, type BulkKind, type BulkRecord } from "./bulk-import"
 
 type Result = { row: number; identity: string; status: string }
 
@@ -37,7 +37,8 @@ export function BulkInstall(props: { kind: Exclude<BulkKind, "assay-diagnoses"> 
   const [running, setRunning] = useState(false)
   const [reading, setReading] = useState(false)
   const [attempted, setAttempted] = useState(false)
-  const endpoint = props.kind === "assay-diagnoses"
+  const importingRules = kind === "reporting-rules"
+  const endpoint = importingRules ? "/admin/clinical-rule-sets/imports" : props.kind === "assay-diagnoses"
     ? `/resources/asp/${encodeURIComponent(props.aspId)}/diagnoses` : `/resources/${kind}`
   const contract = useQuery({
     queryKey: ["bulk-install-contract", kind, category], enabled: allowed,
@@ -72,15 +73,20 @@ export function BulkInstall(props: { kind: Exclude<BulkKind, "assay-diagnoses"> 
     setAttempted(true)
     const completed: Result[] = []
     for (const [index, record] of records.entries()) {
-      const identity = definition.identity.split(",").map((key) => String(record[key])).join(" / ")
+      const identity = identityParts(record, definition.identity).join(" / ")
       try {
-        await api.post(endpoint, "example" in definition ? record : { config: record })
-        completed.push({ row: index + 1, identity, status: "Created" })
+        const body = importingRules ? { document: record, scope: record.scope, name: record.name }
+          : "example" in definition ? record : { config: record }
+        const { data } = await api.post<{ meta?: { unresolved_asp_ids?: string[] } }>(endpoint, body)
+        const unresolved = data?.meta?.unresolved_asp_ids
+        const status = importingRules ? "Draft created" : "Created"
+        completed.push({ row: index + 1, identity, status: unresolved?.length
+          ? [status, "Unresolved assay IDs: " + unresolved.join(", ")].join(" · ") : status })
       } catch (failure) {
         completed.push({ row: index + 1, identity, status: failure instanceof Error ? failure.message : "Creation failed" })
         // Stop when authentication is lost, access is denied, or the outcome is uncertain.
         if (!(failure instanceof ApiClientError) || !failure.status || failure.status === 401 || failure.status === 403 || failure.status >= 500 || failure.status === 429) {
-          completed.push(...records.slice(index + 1).map((remaining, offset) => ({ row: index + offset + 2, identity: definition.identity.split(",").map((key) => String(remaining[key])).join(" / "), status: "Not attempted" })))
+          completed.push(...records.slice(index + 1).map((remaining, offset) => ({ row: index + offset + 2, identity: identityParts(remaining, definition.identity).join(" / "), status: "Not attempted" })))
           break
         }
       }
@@ -91,24 +97,23 @@ export function BulkInstall(props: { kind: Exclude<BulkKind, "assay-diagnoses"> 
     await Promise.all([
       ["admin-resource"], ["admin-resource-context"], ["diagnosis-definitions"],
       ["diagnosis-all-assays"], ["diagnosis-assay-options"], ["assay-diagnoses"],
-      ["assay-groups"], ["assay-setup-context"], ["clinical-rule-authoring-options"],
+      ["assay-groups"], ["clinical-rule-authoring-options"],
       ["admin-public-assay-catalog"], ["assay-catalog-nav"], ["public-catalog"],
-      ["public-catalog-matrix"], ["bulk-install-contract"],
+      ["public-catalog-matrix"], ["bulk-install-contract"], ["clinical-rule-sets"],
+      ...(isVersionedAssayResource(kind) ? assayRevisionQueryKeys : []),
     ].map((queryKey) => client.invalidateQueries({ queryKey })))
   }
   return <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/30 p-2 text-foreground">
     <span className="mr-2 inline-flex items-center gap-2 px-1 type-label text-muted-foreground">
       <icon.layers aria-hidden="true" className="size-4 text-primary" /> Bulk install
     </span>
-    {kind === "aspc" && <label className="type-label">Bulk category <select aria-label="Bulk configuration category" className="paper-inset rounded p-2" value={category} disabled={running || reading} onChange={(event) => setCategory(event.target.value)}><option>DNA</option><option>RNA</option></select></label>}
-    <input ref={input} type="file" accept=".json,.yaml,.yml" aria-label={`Bulk upload ${kind}`} className="sr-only" disabled={running || reading || !contract.data} onChange={async (event) => {
-      const file = event.target.files?.[0]
+    <input ref={input} type="file" multiple accept=".json,.yaml,.yml" aria-label={`Bulk upload ${kind}`} className="sr-only" disabled={running || reading || !contract.data} onChange={async (event) => {
+      const files = Array.from(event.target.files ?? [])
       event.target.value = ""
-      if (!file || !contract.data) return
+      if (!files.length || !contract.data) return
       setError(""); setRecords([]); setResults([]); setAttempted(false); setReading(true)
       try {
-        if (file.size > BULK_BYTES) throw new Error("File must be no larger than 1 MiB")
-        setRecords(parseBulkFile(await file.text(), file.name, keys, contract.data.required, definition.identity))
+        setRecords(await readBulkFiles(files, keys, contract.data.required, definition.identity))
         setSource("file")
         setMode("preview")
       } catch (failure) { setError(failure instanceof Error ? failure.message : "Unable to read file") }
@@ -123,14 +128,15 @@ export function BulkInstall(props: { kind: Exclude<BulkKind, "assay-diagnoses"> 
       <Dialog.Portal><Dialog.Backdrop className="fixed inset-0 z-50 bg-background/80" />
         <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 max-h-[85dvh] w-[min(48rem,95vw)] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-lg border border-border bg-card p-5 text-card-foreground shadow-lg">
           <Dialog.Title className="type-card-title">{mode === "example" ? "Bulk file example" : mode === "paste" ? "Paste bulk records" : "Review bulk installation"}</Dialog.Title>
-          <Dialog.Description className="my-3 type-body-sm">Paste or upload one JSON/YAML object or a list of 1–100 records, up to 1 MiB, for one resource type. Each record is created separately with your current permissions. Existing records are not overwritten; successful records remain if another fails.</Dialog.Description>
+          <Dialog.Description className="my-3 type-body-sm">Select one or more JSON/YAML files, up to 1 MiB each and 100 records in total. {importingRules && "Reporting rules are imported as drafts for review."} Each record is created separately with your current permissions. Existing records are not overwritten; successful records remain if another fails.</Dialog.Description>
           {mode === "example" ? <>
-            <p className="type-body-sm">Replace example values with your center's settings. Required keys: {contract.data?.required.join(", ") || "See field details"}. References must already exist; diagnoses may use an empty asp_ids list.</p>
+            {kind === "aspc" && <label className="type-label">Example category <select className="paper-inset rounded p-2" value={category} onChange={event => setCategory(event.target.value)}><option>DNA</option><option>RNA</option></select></label>}
+            <p className="type-body-sm">Replace example values with your center's settings. Required keys: {contract.data?.required.join(", ") || "See field details"}.</p>
             <pre className="paper-inset my-3 overflow-auto rounded p-3 type-body-sm">{JSON.stringify([example], null, 2)}</pre>
             <p className="type-body-sm">Accepted top-level keys: {keys.join(", ")}. Authorship, timestamps and system ownership are assigned by the server.</p>
             {contract.data?.form && <details className="my-3"><summary className="cursor-pointer">Field types, nested fields and choices</summary><pre className="overflow-auto type-body-sm">{JSON.stringify(Object.fromEntries(Object.entries(contract.data.form.fields).filter(([key]) => keys.includes(key))), null, 2)}</pre></details>}
-            <Button variant="outline" onClick={() => downloadJson(`${kind}-bulk-example`, [example])}>Download example JSON</Button>
-            <Button variant="outline" onClick={() => { setDraft(JSON.stringify([example], null, 2)); setFormat("json"); setMode("paste") }}>Edit example</Button>
+            <Button variant="outline" disabled={!contract.data} onClick={() => downloadJson(`${kind}-bulk-example`, [example])}>Download example JSON</Button>
+            <Button variant="outline" disabled={!contract.data} onClick={() => { setDraft(JSON.stringify([example], null, 2)); setFormat("json"); setMode("paste") }}>Edit example</Button>
           </> : mode === "paste" ? <div className="space-y-3">
             <label className="type-label">Content format <select className="paper-inset rounded p-2" value={format} onChange={(event) => setFormat(event.target.value as "json" | "yaml")}><option value="json">JSON</option><option value="yaml">YAML</option></select></label>
             <label htmlFor={editorId} className="block type-label">Bulk records</label>
@@ -146,7 +152,7 @@ export function BulkInstall(props: { kind: Exclude<BulkKind, "assay-diagnoses"> 
             <div aria-live="polite">{results.map((result) => <p className="type-body-sm" key={result.row}>{result.row}. {result.identity}: {result.status}</p>)}</div>
             {!!results.length && <Button variant="outline" onClick={() => downloadJson(`${kind}-bulk-results`, results)}>Download results</Button>}
             {source === "paste" && !attempted && <Button variant="outline" onClick={() => setMode("paste")}>Edit pasted records</Button>}
-            <Button disabled={running || attempted || !records.length} onClick={() => void install()}>{running ? "Installing…" : "Install records"}</Button>
+            <Button disabled={running || attempted || !records.length} onClick={() => void install()}>{running ? "Installing…" : importingRules ? "Import drafts" : "Install records"}</Button>
           </>}
           <div className="mt-4 flex justify-end"><Button variant="outline" disabled={running} onClick={() => setMode(null)}>Close</Button></div>
         </Dialog.Popup>

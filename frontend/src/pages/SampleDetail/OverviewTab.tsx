@@ -6,6 +6,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { TimeDisplay } from "@/components/ui/time-display"
 import { VepVersionBadge } from "@/components/ui/vep-version-badge"
 import { api } from "@/lib/api"
+import { hasPermission, useCurrentUserAccess } from "@/lib/access-control"
 import { notifyActionError, notifySuccess } from "@/lib/notifications"
 import { apiPath } from "@/lib/runtime-paths"
 import {
@@ -15,6 +16,7 @@ import {
 } from "@/lib/sample-artifact-ui"
 import { sampleFilterSection, sampleReported } from "@/lib/sample-shape"
 import { SampleGeneSettings, SettingsCard } from "@/pages/SampleDetail/SampleGeneSettings"
+import { invalidateSampleQueries } from "./sample-queries"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { icon as appIcon } from "@/lib/assets"
 import { ConfigurationApplyButton, type ConfigurationApplication } from "./ConfigurationApplyButton"
@@ -24,11 +26,11 @@ import { StatusPill } from "./OverviewStatusPill"
 
 export function OverviewTab({ sampleId, sample, context }: { sampleId: string; sample: any; context?: any }) {
   const queryClient = useQueryClient()
+  const access = useCurrentUserAccess()
   const applyLatestAspc = useMutation({
     mutationFn: (request: ConfigurationApplication) => api.post(`/samples/${sampleId}/aspc/apply-latest`, request).then((response) => response.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sample", sampleId] })
-      queryClient.invalidateQueries({ queryKey: ["samples"] })
+      invalidateSampleQueries(queryClient, sampleId)
       notifySuccess("Latest assay configuration applied", "The sample now uses the latest assay configuration.", "Assay configuration", { type: "sample", id: sampleId, name: sample?.name || sampleId })
     },
     onError: (error) => notifyActionError("Unable to apply latest assay configuration", error, "Assay configuration", { type: "sample", id: sampleId, name: sample?.name || sampleId }),
@@ -112,12 +114,6 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
               </div>)}
             </dl> : <p className="type-meta text-muted-foreground">Not recorded</p>}
           </section>
-          {context?.aspc_update?.available && (
-            <div className="mt-3 rounded-lg border border-primary/25 bg-primary/5 p-2">
-              <p className="text-xs font-semibold">Newer assay configuration available: {context.aspc_update.latest_aspc_id}{context.aspc_update.latest_version ? ` v${context.aspc_update.latest_version}` : ""}</p>
-              <ConfigurationApplyButton sampleId={sampleId} pending={applyLatestAspc.isPending} apply={applyLatestAspc.mutateAsync} />
-            </div>
-          )}
         </SettingsCard>
 
         <SettingsCard title="Case and Control" className="xl:col-span-2">
@@ -215,7 +211,14 @@ export function OverviewTab({ sampleId, sample, context }: { sampleId: string; s
       )}
 
       <div className="grid gap-3 xl:grid-cols-4">
-        <SampleGeneSettings sampleId={sampleId} sample={sample} />
+        <SampleGeneSettings sampleId={sampleId} sample={sample}>
+          {context?.aspc_update?.available && (
+            <div className="mt-3 rounded-lg border border-primary/25 bg-primary/5 p-2">
+              <p className="text-xs font-semibold">Newer assay configuration available: {context.aspc_update.latest_aspc_id}{context.aspc_update.latest_version ? ` v${context.aspc_update.latest_version}` : ""}</p>
+              {hasPermission(access.data, "sample:edit:own") && <ConfigurationApplyButton sampleId={sampleId} pending={applyLatestAspc.isPending} apply={applyLatestAspc.mutateAsync} />}
+            </div>
+          )}
+        </SampleGeneSettings>
 
         <SettingsCard title="Gene Filters" className="xl:col-span-2">
           <div className="divide-y divide-border/60">

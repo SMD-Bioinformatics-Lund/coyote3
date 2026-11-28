@@ -22,7 +22,7 @@ describe("UI route registry", () => {
   ])("assigns explicit routes to %s", (resource, page, editor) => {
     for (const suffix of ["", "/:id/view", "/:id/edit", "/create"]) {
       expect(uiRouteRegistry.find((entry) => entry.path === `/admin/${resource}${suffix}`))
-        .toMatchObject({ page: resource === "asp" && suffix === "/create" ? "AssaySetupPage" : suffix ? editor : page })
+        .toMatchObject({ page: suffix ? editor : page })
     }
     expect(uiRouteRegistry.some((entry) => entry.path.includes(":resource"))).toBe(false)
   })

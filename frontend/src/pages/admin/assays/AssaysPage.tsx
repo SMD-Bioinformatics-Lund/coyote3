@@ -71,7 +71,7 @@ export function AssaysPage() {
         <>
           {canCreate && (
             <Link
-              to="/admin/assay-setups?setup=new"
+              to="/admin/asp/create"
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-bold text-primary-foreground shadow-sm"
             >
               <icon.plus className="h-4 w-4" />

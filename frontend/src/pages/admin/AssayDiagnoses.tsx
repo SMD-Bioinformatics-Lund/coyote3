@@ -44,7 +44,7 @@ export function AssayDiagnoses({ aspId, canEdit }: { aspId: string; canEdit: boo
     await Promise.all([
       ["assay-diagnoses"], ["diagnosis-definitions"],
       ["admin-resource-context", "aspc"], ["admin-resource-context", "genelists"],
-      ["assay-setup-context"], ["clinical-rule-authoring-options"],
+      ["clinical-rule-authoring-options"],
     ].map((queryKey) => client.invalidateQueries({ queryKey })))
   }
   const link = useMutation({

@@ -36,7 +36,7 @@ export default function DemoInstallationPage() {
       if (samples === "starter") {
         setProgress("Installing the hematology DNA and RNA fusion demos and ingesting both samples…")
         await api.post("/admin/demo-installation/starter")
-        setProgress("Demo starter setups, DEMO_STARTER_DNA and DEMO_STARTER_RNA are installed.")
+        setProgress("Demo configuration and samples DEMO_STARTER_DNA and DEMO_STARTER_RNA are installed.")
         return
       }
       if (!plan.data.configuration_installed) {

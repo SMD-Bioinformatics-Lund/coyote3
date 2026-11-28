@@ -6,6 +6,7 @@ import { LoadingIndicator } from "@/components/ui/loading-indicator"
 import { useEffect, useMemo, useState } from "react"
 import type { ReactNode } from "react"
 import { icon } from "@/lib/assets"
+import { invalidateSampleQueries } from "./sample-queries"
 import { ConfigurationApplyButton, type ConfigurationApplication } from "./ConfigurationApplyButton"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import type { QueryClient } from "@tanstack/react-query"
@@ -24,6 +25,7 @@ interface FiltersSidebarProps {
   intent?: "somatic" | "germline"
   inline?: boolean
   embedded?: boolean
+  showConfigurationUpdate?: boolean
   collapsedLabel?: string
   editor?: ReturnType<typeof useDocumentEditor>
 }
@@ -105,24 +107,6 @@ function includesType(option: any, type: string) {
     .join(" ")
     .toLowerCase()
   return value.includes(type)
-}
-
-function invalidateSampleQueries(queryClient: QueryClient, sampleId: string) {
-  for (const key of [
-    "sample",
-    "sample-variants",
-    "sample-cnvs",
-    "sample-fusions",
-    "sample-translocations",
-    "sample-coverage",
-    "sample-genelists",
-    "sample-effective-genes",
-    "sample-comment-suggestion",
-    "report-preview",
-  ]) {
-    queryClient.invalidateQueries({ queryKey: [key, sampleId] })
-  }
-  queryClient.invalidateQueries({ queryKey: ["samples"] })
 }
 
 function activeTableQueryKey(activeTab: string, sampleId: string) {
@@ -289,6 +273,7 @@ export function FiltersSidebar({
   intent = "somatic",
   inline = false,
   embedded = false,
+  showConfigurationUpdate = true,
   collapsedLabel,
   editor: sharedEditor,
 }: FiltersSidebarProps) {
@@ -422,7 +407,7 @@ export function FiltersSidebar({
 
       {!sharedEditor && <DocumentEditorNotice editor={documentEditor} />}
       <fieldset disabled={!canEdit} className={`${inline && !embedded ? "max-h-[34rem]" : "flex-1"} min-w-0 space-y-3 overflow-y-auto p-2.5 scrollbar-thin scrollbar-thumb-border`}>
-        {context?.aspc_update?.available && (
+        {showConfigurationUpdate && context?.aspc_update?.available && (
           <section className="rounded-lg border border-primary/25 bg-primary/5 p-2.5">
             <p className="text-xs font-semibold text-foreground">A newer assay configuration is available.</p>
             <p className="mt-1 type-meta text-muted-foreground">

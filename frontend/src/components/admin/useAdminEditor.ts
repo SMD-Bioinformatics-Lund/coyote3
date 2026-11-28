@@ -11,6 +11,7 @@ import {
   formStateFromSpec
 } from "@/pages/admin/resource-list"
 import {
+  assayRevisionQueryKeys, isVersionedAssayResource,
   type AdminFormMode,
   type AdminResourceSpec,
   type FormSpec
@@ -68,11 +69,13 @@ export function useAdminEditor({ spec, mode, documentKey, requestBodyKey, usesSc
   const doc = contextQuery.data?.[documentKey] || null
   const systemManaged = Boolean(doc?.system_managed || doc?.system_installed)
   const systemPermission = systemManaged
-  const documentEditor = useDocumentEditor(spec.key, id, mode === "edit" && allowed && Boolean(doc) && !systemPermission, async () => {
+  const versionedComponent = isVersionedAssayResource(spec.key)
+  const withdrawn = versionedComponent && doc?.is_active === false
+  const documentEditor = useDocumentEditor(spec.key, id, mode === "edit" && allowed && Boolean(doc) && !systemPermission && !withdrawn, async () => {
     const result = await contextQuery.refetch()
     if (result.error) throw result.error
   })
-  const effectiveMode: AdminFormMode = (systemPermission || !documentEditor.owned) && mode === "edit" ? "view" : mode
+  const effectiveMode: AdminFormMode = (systemPermission || withdrawn || !documentEditor.owned) && mode === "edit" ? "view" : mode
 
   const stageImport = useCallback((source: unknown) => {
     if (!source || typeof source !== "object" || Array.isArray(source)) {
@@ -143,10 +146,16 @@ export function useAdminEditor({ spec, mode, documentKey, requestBodyKey, usesSc
     mutationFn: (payload: any) => {
       const body = { [requestBodyKey]: payload }
       if (mode === "create") return api.post(spec.endpoint, body)
-      return api.put(`${spec.endpoint}/${encodeURIComponent(id)}`, body, documentEditor.options())
+      const versioned = versionedComponent && typeof doc?.version === "number"
+      return api.put(`${spec.endpoint}/${encodeURIComponent(id)}`, versioned ? { ...body, expected_version: doc.version } : body, documentEditor.options())
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-resource", spec.key] })
+      if (versionedComponent) {
+        for (const queryKey of assayRevisionQueryKeys) {
+          void queryClient.invalidateQueries({ queryKey })
+        }
+      }
       for (const queryKey of invalidateKeys) queryClient.invalidateQueries({ queryKey })
       const resourceName = String(values.name || values.username || values.email || values.role_id || values.permission_id || values.asp_id || values.aspc_id || values.isgl_id || id || spec.title)
       notifySuccess(
@@ -167,6 +176,6 @@ export function useAdminEditor({ spec, mode, documentKey, requestBodyKey, usesSc
     },
   })
 
-  return { id, accessQuery, user, requiredPermission, allowed, canEdit, navigate, values, setValues, editorError, setEditorError, importInputRef, handleImportFile, contextQuery, form, doc, systemManaged, systemPermission, effectiveMode, saveMutation, documentEditor }
+  return { id, accessQuery, user, requiredPermission, allowed, canEdit, navigate, values, setValues, editorError, setEditorError, importInputRef, handleImportFile, contextQuery, form, doc, systemManaged, systemPermission, withdrawn, effectiveMode, saveMutation, documentEditor }
 }
 export type AdminEditorState = ReturnType<typeof useAdminEditor>

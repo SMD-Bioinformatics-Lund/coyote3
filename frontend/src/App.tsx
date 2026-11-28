@@ -45,7 +45,6 @@ const PermissionEditorPage = lazy(() => import("./pages/admin/permissions/Permis
 const PermissionsPage = lazy(() => import("./pages/admin/permissions/PermissionsPage").then((module) => ({ default: module.PermissionsPage })))
 const AdminSampleEditorPage = lazy(() => import("./pages/admin/samples/AdminSampleEditorPage").then((module) => ({ default: module.AdminSampleEditorPage })))
 const AdminSamplesPage = lazy(() => import("./pages/admin/samples/AdminSamplesPage").then((module) => ({ default: module.AdminSamplesPage })))
-const AssaySetupPage = lazy(() => import("./pages/admin/AssaySetupPage").then((module) => ({ default: module.AssaySetupPage })))
 const AdminAuditPage = lazy(() => import("./pages/admin/AdminAuditPage").then((module) => ({ default: module.AdminAuditPage })))
 const AdminIngestionAuditPage = lazy(() => import("./pages/admin/AdminIngestionAuditPage").then((module) => ({ default: module.AdminIngestionAuditPage })))
 const AdminControlsPage = lazy(() => import("./pages/admin/AdminControlsPage").then((module) => ({ default: module.AdminControlsPage })))
@@ -199,9 +198,8 @@ export function createAppRouter() {
         <Route path="/admin/diagnoses" element={withAdminPermission(<DiagnosisDefinitionsPage />, "assay.panel:view")} />
         <Route path="/admin/assay-groups" element={withAdminPermission(<AssayGroupsPage />, "assay.panel:view")} />
         <Route path="/admin/assay-diagnoses" element={withAdminPermission(<AssayDiagnosesPage />, "assay.panel:view")} />
-        <Route path="/admin/assay-setups" element={withRouteLoader(<AssaySetupPage />)} />
         <Route path="/admin/configuration-profiles" element={withAdminPermission(<ConfigurationProfilesPage />, "assay.config:list")} />
-        <Route path="/admin/asp/create" element={withRouteLoader(<AssaySetupPage />)} />
+        <Route path="/admin/asp/create" element={withAdminPermission(<AssayEditorPage mode="create" />, "assay.panel:create")} />
         <Route path="/admin/asp/:id/view" element={withRouteLoader(<AssayEditorPage mode="view" />)} />
         <Route path="/admin/asp/:id/edit" element={withRouteLoader(<AssayEditorPage mode="edit" />)} />
         <Route path="/admin/asp" element={withRouteLoader(<AssaysPage />)} />

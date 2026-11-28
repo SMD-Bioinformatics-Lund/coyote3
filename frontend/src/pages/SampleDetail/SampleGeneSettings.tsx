@@ -44,7 +44,7 @@ function filterKeyForTarget(target: string) {
   return "snvlists"
 }
 
-export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sample: any }) {
+export function SampleGeneSettings({ sampleId, sample, children }: { sampleId: string; sample: any; children?: ReactNode }) {
   const queryClient = useQueryClient()
   const sampleName = String(sample?.name || sample?.case_id || sampleId)
   const options = targetOptions(sample)
@@ -175,6 +175,7 @@ export function SampleGeneSettings({ sampleId, sample }: { sampleId: string; sam
 
   return (
     <SettingsCard title="Sample Gene Settings" className="xl:col-span-2">
+      {children}
       <div className="space-y-4">
         <div className="gene-settings-targets" role="group" aria-label="Gene list analysis">
           {options.map((option) => {

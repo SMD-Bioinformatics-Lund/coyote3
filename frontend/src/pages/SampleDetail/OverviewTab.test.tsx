@@ -99,7 +99,7 @@ describe("sample overview presentation", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.get.mockImplementation((url: string) => Promise.resolve({
-      data: url.includes("effective-genes")
+      data: url === "/auth/whoami" ? {permissions: ["sample:edit:own"]} : url.includes("effective-genes")
         ? { items: ["TP53", "FLT3"], asp_covered_genes_count: 2 }
         : { items: [{ isgl_id: "heme", name: "Hematology", gene_count: 197, version: 1 }] },
     }))
@@ -134,7 +134,7 @@ describe("sample overview presentation", () => {
     expect(screen.queryByRole("heading", { name: "Fusion filters" })).not.toBeInTheDocument()
   })
 
-  it("shows the recorded ASPC and newer revision notice", () => {
+  it("shows the recorded ASPC and newer revision notice", async () => {
     wrapper(
       <OverviewTab
         sampleId="CASE_001"
@@ -155,7 +155,7 @@ describe("sample overview presentation", () => {
     expect(workflow.getByText("Configuration")).toBeVisible()
     expect(workflow.getByText("hema_gmsv1_base_production v1")).toBeVisible()
     expect(screen.getByText(/Newer assay configuration available: hema_gmsv1_base_production v2/)).toBeVisible()
-    expect(screen.getByRole("button", { name: "Review configuration update" })).toBeVisible()
+    expect(await screen.findByRole("button", { name: "Review configuration update" })).toBeVisible()
   })
 
   it("marks database versions as unrecorded when every value is missing", () => {

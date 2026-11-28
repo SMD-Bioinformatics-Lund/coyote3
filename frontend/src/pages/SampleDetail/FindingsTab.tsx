@@ -116,11 +116,12 @@ export function ClassicAnalysisFiltersSidebar({
       </div>
       <div className="min-h-0 space-y-3 overflow-y-auto p-2.5 scrollbar-thin scrollbar-thumb-border">
         <DocumentEditorNotice editor={documentEditor} />
-        {filterableSections.map((section) => (
+        {filterableSections.map((section, index) => (
           <FiltersSidebar
             key={section.id}
             inline
             embedded
+            showConfigurationUpdate={index === 0}
             sampleId={sampleId}
             sample={sample}
             context={context}

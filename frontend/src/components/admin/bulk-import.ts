@@ -7,9 +7,14 @@ import { configurationContent } from "@/lib/configuration-transfer"
 export const BULK_LIMIT = 100
 export const BULK_BYTES = 1024 * 1024
 export type BulkRecord = Record<string, unknown>
-export type BulkKind = "diagnoses" | "assay-groups" | "assay-diagnoses" | "asp" | "aspc" | "genelists"
+export type BulkKind = "diagnoses" | "assay-groups" | "assay-diagnoses" | "asp" | "aspc" | "genelists" | "reporting-rules"
 
 export const bulkDefinitions = {
+  "reporting-rules": {
+    permission: "clinical_rules:draft", identity: "scope.asp_id,scope.diagnosis_id,scope.language",
+    example: { schema_version: 1, scope: { asp_id: "example-panel", diagnosis_id: "base", language: "sv", analyte: "dna" }, name: "Example report rules", analysis_declarations: {}, terminology: {}, blocks: [], bulk_annotation_rules: [], test_cases: [], references: [] },
+    required: ["scope", "name"],
+  },
   "assay-diagnoses": {
     permission: "assay.panel:edit", identity: "diagnosis_id",
     example: { diagnosis_id: "example-diagnosis", display_name: "Example diagnosis", description: "", is_active: true },
@@ -30,8 +35,13 @@ export const bulkDefinitions = {
   genelists: { permission: "gene_list.insilico:create", identity: "isgl_id" },
 } as const
 
+export function identityParts(record: BulkRecord, identity: string): unknown[] {
+  return identity.split(",").map(path => path.split(".").reduce<unknown>((value, key) =>
+    value && typeof value === "object" ? (value as BulkRecord)[key] : undefined, record))
+}
+
 /** Read a single resource or bounded list without unsafe YAML or discarded keys. */
-export function parseBulkFile(text: string, filename: string, keys: string[], required: string[], identity: string): BulkRecord[] {
+export function parseBulkFile(text: string, filename: string, keys: string[], required: string[], identity: string, seen = new Set<string>()): BulkRecord[] {
   if (new TextEncoder().encode(text).length > BULK_BYTES) throw new Error("File must be no larger than 1 MiB")
   if (!/\.(json|ya?ml)$/i.test(filename)) throw new Error("Choose a JSON or YAML file")
   let value: unknown
@@ -44,7 +54,6 @@ export function parseBulkFile(text: string, filename: string, keys: string[], re
   }
   if (value !== null && typeof value === "object" && !Array.isArray(value)) value = [value]
   if (!Array.isArray(value) || !value.length || value.length > BULK_LIMIT) throw new Error(`Provide one record or a list of 1–${BULK_LIMIT} records`)
-  const seen = new Set<string>()
   return value.map((record: unknown, index) => {
     if (!record || typeof record !== "object" || Array.isArray(record)) throw new Error(`Row ${index + 1}: expected an object`)
     const item = configurationContent(record) as BulkRecord
@@ -52,7 +61,7 @@ export function parseBulkFile(text: string, filename: string, keys: string[], re
     if (unknown.length) throw new Error(`Row ${index + 1}: unsupported keys: ${unknown.join(", ")}`)
     const missing = required.filter((key) => item[key] == null || item[key] === "")
     if (missing.length) throw new Error(`Row ${index + 1}: missing required keys: ${missing.join(", ")}`)
-    const parts = identity.split(",").map((key) => item[key])
+    const parts = identityParts(item, identity)
     if (parts.some((id) => typeof id !== "string" || !id.trim())) throw new Error(`Row ${index + 1}: ${identity} must contain nonempty strings`)
     const id = parts.join(" / ")
     const canonical = JSON.stringify(parts.map((id) => String(id).trim().toLowerCase()))
@@ -60,4 +69,21 @@ export function parseBulkFile(text: string, filename: string, keys: string[], re
     seen.add(canonical)
     return item
   })
+}
+
+/** Validate the whole selection before offering any records for installation. */
+export async function readBulkFiles(files: File[], keys: string[], required: string[], identity: string): Promise<BulkRecord[]> {
+  if (files.length > BULK_LIMIT) throw new Error(`Select at most ${BULK_LIMIT} records per upload`)
+  const seen = new Set<string>()
+  const records: BulkRecord[] = []
+  for (const file of files) {
+    try {
+      if (file.size > BULK_BYTES) throw new Error("File must be no larger than 1 MiB")
+      records.push(...parseBulkFile(await file.text(), file.name, keys, required, identity, seen))
+      if (records.length > BULK_LIMIT) throw new Error(`Select at most ${BULK_LIMIT} records per upload`)
+    } catch (error) {
+      throw new Error(`${file.name}: ${error instanceof Error ? error.message : "Unable to read file"}`)
+    }
+  }
+  return records
 }

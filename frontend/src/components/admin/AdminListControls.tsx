@@ -13,6 +13,7 @@ import {
   rowId
 } from "@/pages/admin/resource-list"
 import {
+  isVersionedAssayResource,
   type AdminResourceSpec
 } from "@/pages/admin/resource-specs"
 import { icon } from "@/lib/assets"
@@ -88,7 +89,8 @@ export function AdminRowActions({ state, spec, row, allowInvite = false }: { sta
   const { canView, canEdit, canCreate, canDelete, setPendingAction, mutate } = state
   const id = rowId(row, spec)
   const systemManaged = Boolean(row.system_managed || row.system_installed)
-  const systemPermission = systemManaged
+  const versionedComponent = isVersionedAssayResource(spec.key)
+  const readOnly = systemManaged || (versionedComponent && row.is_active === false)
   return (
     <div className="flex items-center gap-1">
       {canView && <Link
@@ -98,22 +100,22 @@ export function AdminRowActions({ state, spec, row, allowInvite = false }: { sta
       >
         <icon.eye className="h-4 w-4" />
       </Link>}
-      {canView && ["asp", "aspc", "genelists"].includes(spec.key) && <Button variant="ghost" size="icon-sm" title="Version history" aria-label={`Version history for ${id}`} onClick={() => state.setVersionHistory(id)}><icon.history className="h-4 w-4" /></Button>}
-      {canEdit && !systemPermission && <Link
+      {canView && versionedComponent && <Button variant="ghost" size="icon-sm" title="Version history" aria-label={`Version history for ${id}`} onClick={() => state.setVersionHistory(id)}><icon.history className="h-4 w-4" /></Button>}
+      {canEdit && !readOnly && <Link
         to={`/admin/${spec.key}/${encodeURIComponent(id)}/edit`}
         className="rounded-md p-1.5 text-panel hover:bg-panel/10"
         title="Edit"
       >
         <icon.edit className="h-4 w-4" />
       </Link>}
-      {spec.canToggle && canEdit && !systemPermission && (
+      {spec.canToggle && canEdit && !systemManaged && (
         <button
           onClick={() =>
             setPendingAction({ action: "toggle", id, name: rowDisplayName(row, spec) })
           }
           disabled={mutate.isPending}
           className="rounded-md p-1.5 text-validation hover:bg-validation/10"
-          title="Toggle active"
+          title={row.is_active === false ? "Activate" : "Deactivate"}
         >
           <icon.power className="h-4 w-4" />
         </button>
@@ -128,12 +130,12 @@ export function AdminRowActions({ state, spec, row, allowInvite = false }: { sta
           <icon.mailPlus className="h-4 w-4" />
         </button>
       )}
-      {spec.canDelete && canDelete && !systemManaged && (
+      {spec.canDelete && canDelete && !readOnly && !(versionedComponent && spec.canToggle && canEdit) && (
         <button
           onClick={() => setPendingAction({ action: "delete", id, name: rowDisplayName(row, spec) })}
           disabled={mutate.isPending}
           className="rounded-md p-1.5 text-destructive hover:bg-destructive/10"
-          title="Delete"
+          title={versionedComponent ? "Withdraw" : "Delete"}
         >
           <icon.trash2 className="h-4 w-4" />
         </button>
@@ -144,11 +146,12 @@ export function AdminRowActions({ state, spec, row, allowInvite = false }: { sta
 
 export function AdminActionDialog({ state, spec }: { state: AdminListState; spec: AdminResourceSpec }) {
   const { pendingAction, setPendingAction, mutate } = state
+  const withdrawing = pendingAction?.action === "delete" && isVersionedAssayResource(spec.key)
   return <>
     {pendingAction && (
-      <ConfirmationDialog open title={`Confirm ${pendingAction.action}`}
+      <ConfirmationDialog open title={withdrawing ? "Withdraw this resource?" : `Confirm ${pendingAction.action}`}
         variant={pendingAction.action === "delete" ? "destructive" : "default"}
-        description={pendingAction.action === "delete"
+        description={withdrawing ? `${pendingAction.name} will become inactive. Its version history stays available.` : pendingAction.action === "delete"
           ? spec.key === "samples"
             ? `Delete sample ${pendingAction.name}? Its findings, comments, saved reports and report snapshots will be removed. Generated report HTML and PDF files will also be permanently erased. Shared annotations and audit history are retained.`
             : `Delete ${spec.title.toLowerCase()} ${pendingAction.name}? This removes the active resource from the admin workflow.`

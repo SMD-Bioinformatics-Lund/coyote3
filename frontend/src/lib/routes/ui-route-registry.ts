@@ -338,7 +338,7 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     path: "/admin/aspc",
     page: "AssayConfigurationsPage",
     area: "admin",
-    api: ["GET /resources/aspc","GET /resources/aspc/:id/versions","GET /resources/aspc/:id/context","GET /admin/assay-setups","GET /admin/assay-setups/{identifier}/context","GET /resources/aspc/create_context","POST /resources/aspc","DELETE /resources/aspc/:id","PATCH /resources/aspc/:id/status"],
+    api: ["GET /resources/aspc","GET /resources/aspc/:id/versions","GET /resources/aspc/:id/context","GET /resources/aspc/create_context","POST /resources/aspc","DELETE /resources/aspc/:id","PATCH /resources/aspc/:id/status"],
     dataUsed: ["managed resource list rows","admin table actions"],
   },
   {
@@ -503,18 +503,11 @@ export const uiRouteRegistry: UiRouteAudit[] = [
     dataUsed: ["form schema","record values","validation endpoints"],
   },
   {
-    path: "/admin/assay-setups",
-    page: "AssaySetupPage",
-    area: "admin",
-    api: ["GET /admin/assay-setups", "GET /admin/assay-setups/context", "GET /admin/assay-setups/{identifier}/context", "POST /admin/assay-setups", "PUT /admin/assay-setups/{identifier}", "POST /admin/assay-setups/{identifier}/submit", "POST /admin/assay-setups/{identifier}/publish", "POST /admin/assay-setups/{identifier}/return", "DELETE /admin/assay-setups/{identifier}", "GET /resources/genelists"],
-    dataUsed: ["setup drafts", "managed resource forms", "scope readiness", "review history"],
-  },
-  {
     path: "/admin/asp/create",
-    page: "AssaySetupPage",
+    page: "AssayEditorPage",
     area: "admin",
-    api: ["GET /admin/assay-setups", "GET /admin/assay-setups/context", "POST /admin/assay-setups"],
-    dataUsed: ["setup drafts", "managed resource forms"],
+    api: ["GET /resources/asp/create_context", "POST /resources/asp"],
+    dataUsed: ["assay fields", "registered assay groups"],
   },
   {
     path: "/admin/assay-groups",

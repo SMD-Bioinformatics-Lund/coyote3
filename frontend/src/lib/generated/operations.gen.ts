@@ -15,15 +15,6 @@ export type ApiOperations = {
   "DELETE /admin/assay-catalog/versions/{identifier}": { request: T.Request_deleteVersionApiV1AdminAssayCatalogVersionsIdentifierDelete; response: T.Response_deleteVersionApiV1AdminAssayCatalogVersionsIdentifierDelete }
   "GET /admin/assay-catalog/versions/{oid}": { request: T.Request_versionApiV1AdminAssayCatalogVersionsOidGet; response: T.Response_versionApiV1AdminAssayCatalogVersionsOidGet }
   "GET /admin/assay-catalog/versions/{oid}/revisions": { request: T.Request_revisionsApiV1AdminAssayCatalogVersionsOidRevisionsGet; response: T.Response_revisionsApiV1AdminAssayCatalogVersionsOidRevisionsGet }
-  "GET /admin/assay-setups": { request: T.Request_listSetupsApiV1AdminAssaySetupsGet; response: T.Response_listSetupsApiV1AdminAssaySetupsGet }
-  "POST /admin/assay-setups": { request: T.Request_createSetupApiV1AdminAssaySetupsPost; response: T.Response_createSetupApiV1AdminAssaySetupsPost }
-  "GET /admin/assay-setups/context": { request: T.Request_newSetupContextApiV1AdminAssaySetupsContextGet; response: T.Response_newSetupContextApiV1AdminAssaySetupsContextGet }
-  "DELETE /admin/assay-setups/{identifier}": { request: T.Request_deleteSetupApiV1AdminAssaySetupsIdentifierDelete; response: T.Response_deleteSetupApiV1AdminAssaySetupsIdentifierDelete }
-  "PUT /admin/assay-setups/{identifier}": { request: T.Request_saveSetupApiV1AdminAssaySetupsIdentifierPut; response: T.Response_saveSetupApiV1AdminAssaySetupsIdentifierPut }
-  "GET /admin/assay-setups/{identifier}/context": { request: T.Request_setupContextApiV1AdminAssaySetupsIdentifierContextGet; response: T.Response_setupContextApiV1AdminAssaySetupsIdentifierContextGet }
-  "POST /admin/assay-setups/{identifier}/publish": { request: T.Request_publishSetupApiV1AdminAssaySetupsIdentifierPublishPost; response: T.Response_publishSetupApiV1AdminAssaySetupsIdentifierPublishPost }
-  "POST /admin/assay-setups/{identifier}/return": { request: T.Request_returnSetupApiV1AdminAssaySetupsIdentifierReturnPost; response: T.Response_returnSetupApiV1AdminAssaySetupsIdentifierReturnPost }
-  "POST /admin/assay-setups/{identifier}/submit": { request: T.Request_submitSetupApiV1AdminAssaySetupsIdentifierSubmitPost; response: T.Response_submitSetupApiV1AdminAssaySetupsIdentifierSubmitPost }
   "GET /admin/audit": { request: T.Request_adminAuditReadApiV1AdminAuditGet; response: T.Response_adminAuditReadApiV1AdminAuditGet }
   "GET /admin/clinical-rule-sets": { request: T.Request_listRuleSetsApiV1AdminClinicalRuleSetsGet; response: T.Response_listRuleSetsApiV1AdminClinicalRuleSetsGet }
   "GET /admin/clinical-rule-sets/authoring-options": { request: T.Request_clinicalRuleAuthoringOptionsApiV1AdminClinicalRuleSetsAuthoringOptionsGet; response: T.Response_clinicalRuleAuthoringOptionsApiV1AdminClinicalRuleSetsAuthoringOptionsGet }

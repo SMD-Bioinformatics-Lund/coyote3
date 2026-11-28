@@ -23,6 +23,13 @@ async function upload() {
   await screen.findByRole("dialog")
 }
 beforeEach(() => { vi.clearAllMocks(); access.permissions = ["assay.panel:edit"]; vi.mocked(api.post).mockResolvedValue({ status: 201, data: {} }) })
+it("shows unresolved assay IDs on successfully imported diagnoses", async () => {
+  vi.mocked(api.post).mockResolvedValue({ status: 201, data: { meta: { unresolved_asp_ids: ["future-panel"] } } })
+  mount()
+  await upload()
+  fireEvent.click(screen.getByRole("button", { name: "Install records" }))
+  expect(await screen.findByText("1. first: Created · Unresolved assay IDs: future-panel")).toBeInTheDocument()
+})
 it("reviews a single ASPC upload before creating it through the normal API", async () => {
   access.permissions = ["assay.config:create"]
   const record = { asp_id: "synthetic", diagnosis_id: "base", environment: "production" }
@@ -138,4 +145,54 @@ it("uses server form fields for gene lists and the existing config request envel
   await screen.findByRole("button", { name: "Install records" })
   fireEvent.click(screen.getByRole("button", { name: "Install records" }))
   await waitFor(() => expect(api.post).toHaveBeenCalledWith("/resources/genelists", { config: record }))
+})
+
+it("reviews gene lists from multiple files together and blocks duplicate IDs across files", async () => {
+  access.permissions = ["gene_list.insilico:create"]
+  vi.mocked(api.get).mockResolvedValue({ status: 200, data: { form: { fields: {
+    isgl_id: { data_type: "str", required: true },
+  } } } })
+  mount("genelists")
+  await waitFor(() => expect(screen.getByRole("button", { name: "Upload JSON / YAML" })).toBeEnabled())
+  const input = screen.getByLabelText("Bulk upload genelists")
+  expect(input).toHaveAttribute("multiple")
+  function file(name: string, content: unknown) {
+    const text = JSON.stringify(content)
+    const result = new File([text], name)
+    Object.defineProperty(result, "text", { value: async () => text })
+    return result
+  }
+  const first = file("one.json", { isgl_id: "one" })
+  fireEvent.change(input, { target: { files: [first, file("duplicate.json", { isgl_id: "ONE" })] } })
+  expect(await screen.findByRole("alert")).toHaveTextContent("duplicate.json: Row 1: duplicate isgl_id")
+  expect(screen.queryByRole("dialog")).toBeNull()
+  fireEvent.change(input, { target: { files: [first, file("more.json", [{ isgl_id: "two" }, { isgl_id: "three" }])] } })
+  const install = await screen.findByRole("button", { name: "Install records" })
+  expect(api.post).not.toHaveBeenCalled()
+  fireEvent.click(install)
+  await screen.findByText("3. three: Created")
+  expect(vi.mocked(api.post).mock.calls).toEqual(["one", "two", "three"].map(isgl_id => ["/resources/genelists", { config: { isgl_id } }]))
+})
+
+it("imports reporting rules under their exported scopes as separate drafts", async () => {
+  access.permissions = ["clinical_rules:draft"]
+  mount("reporting-rules")
+  await waitFor(() => expect(screen.getByRole("button", { name: "Upload JSON / YAML" })).toBeEnabled())
+  const documents = ["panel-a", "panel-b"].map(asp_id => ({
+    scope: { asp_id, diagnosis_id: "base", language: "sv", analyte: "dna" }, name: asp_id, blocks: [],
+  }))
+  const files = documents.map(document => {
+    const text = JSON.stringify(document)
+    const file = new File([text], document.name + ".json")
+    Object.defineProperty(file, "text", { value: async () => text })
+    return file
+  })
+  fireEvent.change(screen.getByLabelText("Bulk upload reporting-rules"), { target: { files } })
+  const confirm = await screen.findByRole("button", { name: "Import drafts" })
+  expect(api.post).not.toHaveBeenCalled()
+  fireEvent.click(confirm)
+  await screen.findByText("2. panel-b / base / sv: Draft created")
+  expect(vi.mocked(api.post).mock.calls).toEqual(documents.map(document => [
+    "/admin/clinical-rule-sets/imports", { document, scope: document.scope, name: document.name },
+  ]))
 })

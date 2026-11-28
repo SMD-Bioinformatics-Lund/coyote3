@@ -13,13 +13,15 @@ import {
   rowMatchesResourceFilters
 } from "@/pages/admin/resource-list"
 import {
-  actionLabels,
+  actionLabels, assayRevisionQueryKeys, isVersionedAssayResource,
   type AdminResourceSpec
 } from "@/pages/admin/resource-specs"
 import { adminFields, adminSearchValue } from "@/pages/admin/resource-list"
 import { csvCellText } from "@/lib/csv-export"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useMemo, useState } from "react"
+
+type AdminAction = { action: "toggle" | "delete" | "invite"; id: string; name: string }
 
 const NO_INVALIDATIONS: string[][] = []
 const NO_COLUMNS: string[] = []
@@ -35,7 +37,7 @@ export function useAdminList({ spec, filters, preferredColumns = NO_COLUMNS, ser
   const [q, setQ] = useState("")
   const [resourceFilters, setResourceFilters] = useState<Record<string, string>>({})
   const [versionHistory, setVersionHistory] = useState<string | null>(null)
-  const [pendingAction, setPendingAction] = useState<{ action: "toggle" | "delete" | "invite"; id: string; name: string } | null>(null)
+  const [pendingAction, setPendingAction] = useState<AdminAction | null>(null)
 
   useEffect(() => {
     setResourceFilters({})
@@ -77,20 +79,25 @@ export function useAdminList({ spec, filters, preferredColumns = NO_COLUMNS, ser
   })
 
   const mutate = useMutation({
-    mutationFn: ({ action, id }: { action: "toggle" | "delete" | "invite"; id: string; name: string }) => {
+    mutationFn: ({ action, id }: AdminAction) => {
       if (action === "invite") return api.post(`${spec.endpoint}/${id}/invite`, {})
       if (action === "toggle") return api.patch(`${spec.endpoint}/${id}/status`, {})
       return api.delete(`${spec.endpoint}/${id}`)
     },
     onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ["admin-resource", spec.key] })
+      if (isVersionedAssayResource(spec.key)) {
+        for (const queryKey of assayRevisionQueryKeys) void queryClient.invalidateQueries({ queryKey })
+      }
       for (const queryKey of invalidateKeys) queryClient.invalidateQueries({ queryKey })
       setPendingAction(null)
       const displayName = mutationDisplayName(result, variables.name)
       const resourceId = mutationResourceId(result, variables.id)
+      const outcome = variables.action === "delete" && isVersionedAssayResource(spec.key)
+        ? "withdrawn" : actionLabels[variables.action]
       notifySuccess(
-        `${spec.title} ${actionLabels[variables.action]}`,
-        `${displayName} was ${actionLabels[variables.action]}.`,
+        [spec.title, outcome].join(" "),
+        [displayName, "was", outcome + "."].join(" "),
         `Admin ${spec.key}`,
         {
           type: spec.key,

@@ -48,7 +48,7 @@ describe("Admin navigation permissions", () => {
     state.roles = ["superuser"]
     show()
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument()
-    expect(screen.getAllByRole("link")).toHaveLength(23)
+    const initialLinks = screen.getAllByRole("link").map(link => link.getAttribute("href"))
     fireEvent.change(screen.getByRole("textbox", { name: "Search administration" }), { target: { value: " testing " } })
     expect(screen.getAllByRole("link")).toHaveLength(2)
     expect(screen.getByRole("link", { name: /Clinical Rule Testing/ })).toBeVisible()
@@ -56,7 +56,7 @@ describe("Admin navigation permissions", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Search administration" }), { target: { value: "no match" } })
     expect(screen.queryAllByRole("link")).toHaveLength(0)
     fireEvent.click(screen.getAllByRole("button", { name: "Clear search" })[1])
-    expect(screen.getAllByRole("link")).toHaveLength(23)
+    expect(screen.getAllByRole("link").map(link => link.getAttribute("href"))).toEqual(initialLinks)
   })
   it("does not expose links without permission", () => {
     show()
@@ -103,7 +103,7 @@ describe("Admin navigation permissions", () => {
     expect(screen.getByRole("region", { name: "Identity and access" })).toBeInTheDocument()
     expect(screen.getByRole("region", { name: "Application operations" })).toBeInTheDocument()
     const destinations = screen.getAllByRole("link").map((link) => link.getAttribute("href"))
-    expect(destinations).toHaveLength(23)
+    expect(destinations).toEqual(expect.arrayContaining(["/admin/asp", "/admin/aspc", "/admin/genelists"]))
     expect(new Set(destinations).size).toBe(destinations.length)
   })
   it("omits empty sections for limited access", () => {

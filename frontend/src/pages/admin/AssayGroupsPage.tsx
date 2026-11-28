@@ -61,7 +61,7 @@ export function AssayGroupsPage() {
     },
     onSuccess: () => {
       setTarget(null)
-      for (const key of ["assay-groups", "assay-group-impact", "admin-resource-context", "assay-setup-context", "clinical-rule-authoring-options", "diagnosis-all-assays", "admin-public-assay-catalog", "assay-catalog-nav", "public-catalog", "public-catalog-matrix"]) {
+      for (const key of ["assay-groups", "assay-group-impact", "admin-resource-context", "clinical-rule-authoring-options", "diagnosis-all-assays", "admin-public-assay-catalog", "assay-catalog-nav", "public-catalog", "public-catalog-matrix"]) {
         void client.invalidateQueries({ queryKey: [key] })
       }
       notifySuccess("Assay group availability updated")
@@ -78,7 +78,6 @@ export function AssayGroupsPage() {
       setCreating(false)
       void client.invalidateQueries({ queryKey: ["assay-groups"] })
       void client.invalidateQueries({ queryKey: ["admin-resource-context"] })
-      void client.invalidateQueries({ queryKey: ["assay-setup-context"] })
       notifySuccess("Assay group created")
     },
     onError: (error) => notifyActionError("Create assay group", error),
